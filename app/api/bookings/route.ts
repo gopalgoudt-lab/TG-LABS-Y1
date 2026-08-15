@@ -4,15 +4,21 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-const bookingSchema = z.object({
-  name: z.string().trim().min(2).max(120),
-  phone: z.string().regex(/^[0-9]{10}$/),
-  mode: z.enum(['home', 'centre']),
-  address: z.string().trim().max(500).optional(),
-  date: z.string().date(),
-  slot: z.string().trim().min(3).max(60),
-  testIds: z.array(z.string().min(1)).min(1).max(20),
-});
+const bookingSchema = z
+  .object({
+    name: z.string().trim().min(2).max(120),
+    phone: z.string().regex(/^[0-9]{10}$/),
+    mode: z.enum(['home', 'centre']),
+    address: z.string().trim().max(500).optional(),
+    date: z.string().date(),
+    slot: z.string().trim().min(3).max(60),
+    testIds: z.array(z.string().min(1)).min(1).max(20).optional(),
+    testNames: z.array(z.string().trim().min(1)).min(1).max(20).optional(),
+  })
+  .refine((value) => Boolean(value.testIds?.length || value.testNames?.length), {
+    message: 'At least one diagnostic test is required.',
+    path: ['testIds'],
+  });
 
 export async function POST(request: Request) {
   try {
@@ -28,11 +34,15 @@ export async function POST(request: Request) {
     }
 
     const tests = await prisma.diagnosticTest.findMany({
-      where: { id: { in: body.testIds }, active: true },
+      where: {
+        active: true,
+        ...(body.testIds?.length ? { id: { in: body.testIds } } : { name: { in: body.testNames } }),
+      },
       select: { id: true, name: true, price: true },
     });
 
-    if (tests.length !== body.testIds.length) {
+    const requestedCount = body.testIds?.length ?? body.testNames?.length ?? 0;
+    if (tests.length !== requestedCount) {
       return NextResponse.json({ error: 'One or more selected tests are unavailable.' }, { status: 400 });
     }
 
@@ -56,7 +66,6 @@ export async function POST(request: Request) {
           create: tests.map((test) => ({ testId: test.id, price: test.price })),
         },
       },
-      include: { items: { include: { test: true } } },
     });
 
     return NextResponse.json(
@@ -75,7 +84,10 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Please check the booking details and try again.', fields: error.flatten().fieldErrors }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Please check the booking details and try again.', fields: error.flatten().fieldErrors },
+        { status: 400 },
+      );
     }
 
     console.error('POST /api/bookings failed', error);
