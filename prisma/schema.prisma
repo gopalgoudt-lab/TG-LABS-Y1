@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BookingMode {
+  HOME
+  CENTRE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model Patient {
+  id        String    @id @default(cuid())
+  name      String
+  phone     String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+}
+
+model DiagnosticTest {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  price       Int
+  active      Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  items       BookingItem[]
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  patientId       String
+  patient         Patient       @relation(fields: [patientId], references: [id])
+  mode            BookingMode
+  address         String?
+  collectionDate  DateTime
+  slot            String
+  status          BookingStatus  @default(PENDING)
+  paymentStatus   PaymentStatus  @default(PENDING)
+  totalAmount     Int
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  items           BookingItem[]
+
+  @@index([patientId])
+  @@index([collectionDate])
+  @@index([status])
+}
+
+model BookingItem {
+  id        String          @id @default(cuid())
+  bookingId String
+  testId    String
+  price     Int
+  booking   Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  test      DiagnosticTest  @relation(fields: [testId], references: [id])
+
+  @@unique([bookingId, testId])
+}
