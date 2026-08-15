@@ -1,0 +1,1 @@
+export default function Auth(){return <main className="wrap" style={{padding:'80px 0'}}><div className="card"><h1>Sign in to TG Labs</h1><p>OTP authentication will be connected to the production provider in Phase 2.</p><a className="btn primary" href="/">Back to TG Labs</a></div></main>}
