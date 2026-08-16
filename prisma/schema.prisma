@@ -49,32 +49,36 @@ model DiagnosticTest {
 }
 
 model Booking {
-  id              String        @id @default(cuid())
-  patientId       String
-  patient         Patient       @relation(fields: [patientId], references: [id])
-  mode            BookingMode
-  address         String?
-  collectionDate  DateTime
-  slot            String
-  status          BookingStatus  @default(PENDING)
-  paymentStatus   PaymentStatus  @default(PENDING)
-  totalAmount     Int
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  items           BookingItem[]
+  id                String        @id @default(cuid())
+  patientId         String
+  patient           Patient       @relation(fields: [patientId], references: [id])
+  mode              BookingMode
+  address           String?
+  collectionDate    DateTime
+  slot              String
+  status            BookingStatus @default(PENDING)
+  paymentStatus     PaymentStatus @default(PENDING)
+  totalAmount       Int
+  razorpayOrderId   String?       @unique
+  razorpayPaymentId String?       @unique
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  items             BookingItem[]
 
   @@index([patientId])
   @@index([collectionDate])
   @@index([status])
+  @@index([paymentStatus])
 }
 
 model BookingItem {
-  id        String          @id @default(cuid())
+  id        String         @id @default(cuid())
   bookingId String
   testId    String
   price     Int
-  booking   Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  test      DiagnosticTest  @relation(fields: [testId], references: [id])
+  booking   Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  test      DiagnosticTest @relation(fields: [testId], references: [id])
 
   @@unique([bookingId, testId])
 }
