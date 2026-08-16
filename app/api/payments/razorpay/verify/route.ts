@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { sendBookingConfirmationWhatsApp } from '@/lib/whatsapp';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,7 +47,17 @@ export async function POST(request: Request) {
         status: 'CONFIRMED',
         paidAt: new Date(),
       },
+      include: {
+        patient: { select: { name: true, phone: true } },
+        items: { include: { test: { select: { name: true } } } },
+      },
     });
+
+    try {
+      await sendBookingConfirmationWhatsApp(updated);
+    } catch (notificationError) {
+      console.error('Payment succeeded but WhatsApp confirmation failed', notificationError);
+    }
 
     return NextResponse.json({
       booking: {
