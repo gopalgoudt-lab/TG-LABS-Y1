@@ -49,22 +49,23 @@ model DiagnosticTest {
 }
 
 model Booking {
-  id                String        @id @default(cuid())
-  patientId         String
-  patient           Patient       @relation(fields: [patientId], references: [id])
-  mode              BookingMode
-  address           String?
-  collectionDate    DateTime
-  slot              String
-  status            BookingStatus @default(PENDING)
-  paymentStatus     PaymentStatus @default(PENDING)
-  totalAmount       Int
-  razorpayOrderId   String?       @unique
-  razorpayPaymentId String?       @unique
-  paidAt            DateTime?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  items             BookingItem[]
+  id                  String        @id @default(cuid())
+  patientId           String
+  patient             Patient       @relation(fields: [patientId], references: [id])
+  mode                BookingMode
+  address             String?
+  collectionDate      DateTime
+  slot                String
+  status              BookingStatus @default(PENDING)
+  paymentStatus       PaymentStatus @default(PENDING)
+  totalAmount         Int
+  razorpayOrderId     String?       @unique
+  razorpayPaymentId   String?       @unique
+  paidAt              DateTime?
+  whatsappNotifiedAt  DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  items               BookingItem[]
 
   @@index([patientId])
   @@index([collectionDate])
