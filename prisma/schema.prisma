@@ -4,9 +4,9 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // Neon integration was connected with the custom prefix NEON,
-  // so Vercel exposes the pooled connection as NEON_URL.
-  url      = env("NEON_URL")
+  // Use Vercel/Neon's standard DATABASE_URL connection.
+  // The project already has DATABASE_URL configured in Vercel.
+  url      = env("DATABASE_URL")
 }
 
 enum BookingMode {
