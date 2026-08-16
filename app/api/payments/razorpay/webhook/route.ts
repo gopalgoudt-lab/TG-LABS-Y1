@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sendBookingConfirmationWhatsApp } from '@/lib/whatsapp';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,17 +33,36 @@ export async function POST(request: Request) {
     const paymentId = payment?.id;
 
     if ((event === 'order.paid' || event === 'payment.captured') && orderId) {
-      const booking = await prisma.booking.findUnique({ where: { razorpayOrderId: orderId } });
-      if (booking && booking.paymentStatus !== 'PAID') {
-        await prisma.booking.update({
-          where: { id: booking.id },
-          data: {
-            paymentStatus: 'PAID',
-            status: 'CONFIRMED',
-            razorpayPaymentId: paymentId || booking.razorpayPaymentId,
-            paidAt: booking.paidAt || new Date(),
-          },
-        });
+      const booking = await prisma.booking.findUnique({
+        where: { razorpayOrderId: orderId },
+        include: {
+          patient: { select: { name: true, phone: true } },
+          items: { include: { test: { select: { name: true } } } },
+        },
+      });
+
+      if (booking) {
+        const confirmed = booking.paymentStatus === 'PAID'
+          ? booking
+          : await prisma.booking.update({
+              where: { id: booking.id },
+              data: {
+                paymentStatus: 'PAID',
+                status: 'CONFIRMED',
+                razorpayPaymentId: paymentId || booking.razorpayPaymentId,
+                paidAt: booking.paidAt || new Date(),
+              },
+              include: {
+                patient: { select: { name: true, phone: true } },
+                items: { include: { test: { select: { name: true } } } },
+              },
+            });
+
+        try {
+          await sendBookingConfirmationWhatsApp(confirmed);
+        } catch (notificationError) {
+          console.error('Webhook processed but WhatsApp confirmation failed', notificationError);
+        }
       }
     }
 
