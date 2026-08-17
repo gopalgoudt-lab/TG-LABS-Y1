@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { hashPin } from '@/lib/technician-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,7 @@ const schema = z.object({
   pincodes: z.array(z.string().regex(/^[1-9][0-9]{5}$/)).max(50).default([]),
   active: z.boolean(),
   notes: z.string().trim().max(1000).optional().or(z.literal('')),
+  loginPin: z.string().regex(/^[0-9]{4,6}$/).optional().or(z.literal('')),
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -28,6 +30,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         pincodes: b.pincodes,
         active: b.active,
         notes: b.notes || null,
+        ...(b.loginPin ? { loginPinHash: hashPin(b.loginPin) } : {}),
       },
     });
     return NextResponse.json({ technician });
@@ -42,6 +45,7 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
   try {
     const { id } = await params;
     const technician = await prisma.technician.update({ where: { id }, data: { active: false } });
+    await prisma.technicianSession.deleteMany({ where: { technicianId: id } });
     return NextResponse.json({ technician });
   } catch (error) {
     console.error(error);
