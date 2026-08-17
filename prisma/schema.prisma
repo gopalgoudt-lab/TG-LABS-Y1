@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // Vercel Neon integration exposes the pooled production connection as NEON_DATABASE_URL.
   url      = env("NEON_DATABASE_URL")
 }
 
@@ -27,6 +26,20 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum BookingSource {
+  WEBSITE
+  ADMIN
+}
+
+enum PaymentMode {
+  ONLINE
+  CASH
+  CARD
+  UPI
+  BANK_TRANSFER
+  OTHER
+}
+
 model Patient {
   id        String    @id @default(cuid())
   name      String
@@ -37,15 +50,49 @@ model Patient {
 }
 
 model DiagnosticTest {
-  id          String        @id @default(cuid())
-  slug        String        @unique
-  name        String
-  description String?
-  price       Int
-  active      Boolean       @default(true)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  items       BookingItem[]
+  id                String        @id @default(cuid())
+  slug              String        @unique
+  name              String
+  description       String?
+  mrp               Int           @default(0)
+  price             Int
+  imageData          String?
+  diagnosticPartner String?
+  tat                String?
+  fastingNeeded      Boolean       @default(false)
+  active             Boolean       @default(true)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  items              BookingItem[]
+  packageItems       PackageItem[]
+}
+
+model DiagnosticPackage {
+  id                String        @id @default(cuid())
+  slug              String        @unique
+  name              String
+  description       String?
+  mrp               Int           @default(0)
+  price             Int
+  imageData          String?
+  diagnosticPartner String?
+  tat                String?
+  fastingNeeded      Boolean       @default(false)
+  active             Boolean       @default(true)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  tests              PackageItem[]
+}
+
+model PackageItem {
+  id        String            @id @default(cuid())
+  packageId String
+  testId    String
+  package   DiagnosticPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  test      DiagnosticTest    @relation(fields: [testId], references: [id])
+
+  @@unique([packageId, testId])
+  @@index([testId])
 }
 
 model Booking {
@@ -53,12 +100,16 @@ model Booking {
   patientId           String
   patient             Patient       @relation(fields: [patientId], references: [id])
   mode                BookingMode
+  source              BookingSource @default(WEBSITE)
   address             String?
   collectionDate      DateTime
   slot                String
   status              BookingStatus @default(PENDING)
   paymentStatus       PaymentStatus @default(PENDING)
+  paymentMode         PaymentMode?  
   totalAmount         Int
+  adminNotes          String?
+  createdByAdmin      String?
   razorpayOrderId     String?       @unique
   razorpayPaymentId   String?       @unique
   paidAt              DateTime?
@@ -71,6 +122,7 @@ model Booking {
   @@index([collectionDate])
   @@index([status])
   @@index([paymentStatus])
+  @@index([source])
 }
 
 model BookingItem {
