@@ -26,6 +26,7 @@ const slugify = (v: string) => v.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-'
 
 export async function GET() {
   const packages = await prisma.diagnosticPackage.findMany({
+    where: { active: true },
     include: { tests: { include: { test: true } } },
     orderBy: { createdAt: 'desc' },
   });
