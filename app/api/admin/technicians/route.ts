@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { hashPin } from '@/lib/technician-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,7 @@ const schema = z.object({
   pincodes: z.array(z.string().regex(/^[1-9][0-9]{5}$/)).max(50).default([]),
   active: z.boolean().default(true),
   notes: z.string().trim().max(1000).optional().or(z.literal('')),
+  loginPin: z.string().regex(/^[0-9]{4,6}$/),
 });
 
 export async function GET() {
@@ -40,6 +42,7 @@ export async function POST(request: Request) {
         pincodes: b.pincodes,
         active: b.active,
         notes: b.notes || null,
+        loginPinHash: hashPin(b.loginPin),
       },
     });
     return NextResponse.json({ technician }, { status: 201 });
