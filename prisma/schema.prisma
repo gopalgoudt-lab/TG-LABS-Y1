@@ -7,11 +7,38 @@ datasource db {
   url      = env("NEON_DATABASE_URL")
 }
 
-enum BookingMode { HOME CENTRE }
-enum BookingStatus { PENDING CONFIRMED CANCELLED COMPLETED }
-enum PaymentStatus { PENDING PAID FAILED REFUNDED }
-enum BookingSource { WEBSITE ADMIN }
-enum PaymentMode { ONLINE CASH CARD UPI BANK_TRANSFER OTHER }
+enum BookingMode {
+  HOME
+  CENTRE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum BookingSource {
+  WEBSITE
+  ADMIN
+}
+
+enum PaymentMode {
+  ONLINE
+  CASH
+  CARD
+  UPI
+  BANK_TRANSFER
+  OTHER
+}
 
 model Patient {
   id String @id @default(cuid())
