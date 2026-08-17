@@ -116,6 +116,14 @@ model Booking {
   paymentMode PaymentMode?
   totalAmount Int
   technician String?
+  workflowStatus String @default("BOOKING_CREATED")
+  bookingConfirmedAt DateTime?
+  technicianAssignedAt DateTime?
+  sampleCollectedAt DateTime?
+  sampleReceivedAt DateTime?
+  processingStartedAt DateTime?
+  reportReadyAt DateTime?
+  reportDeliveredAt DateTime?
   reportName String?
   reportData String?
   adminNotes String?
@@ -132,6 +140,7 @@ model Booking {
   @@index([status])
   @@index([paymentStatus])
   @@index([source])
+  @@index([workflowStatus])
 }
 
 model BookingItem {
