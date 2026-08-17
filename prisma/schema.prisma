@@ -110,10 +110,23 @@ model Technician {
   pincodes String[] @default([])
   active Boolean @default(true)
   notes String?
+  loginPinHash String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   bookings Booking[]
+  sessions TechnicianSession[]
   @@index([active])
+}
+
+model TechnicianSession {
+  id String @id @default(cuid())
+  technicianId String
+  tokenHash String @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  @@index([technicianId])
+  @@index([expiresAt])
 }
 
 model Booking {
@@ -136,11 +149,15 @@ model Booking {
   workflowStatus String @default("BOOKING_CREATED")
   bookingConfirmedAt DateTime?
   technicianAssignedAt DateTime?
+  technicianAcceptedAt DateTime?
+  technicianOnTheWayAt DateTime?
+  technicianReachedAt DateTime?
   sampleCollectedAt DateTime?
   sampleReceivedAt DateTime?
   processingStartedAt DateTime?
   reportReadyAt DateTime?
   reportDeliveredAt DateTime?
+  technicianNotes String?
   reportName String?
   reportData String?
   adminNotes String?
