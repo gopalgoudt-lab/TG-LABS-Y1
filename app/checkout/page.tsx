@@ -11,6 +11,20 @@ const catalog: Record<string, number> = {
   'Liver Function Test': 650,
 };
 
+function formatBookingTime(totalMinutes: number) {
+  const hour24 = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const period = hour24 >= 12 ? 'PM' : 'AM';
+  const hour12 = hour24 % 12 || 12;
+  return `${hour12}:${String(minutes).padStart(2, '0')} ${period}`;
+}
+
+const BOOKING_SLOTS = Array.from({ length: 26 }, (_, index) => {
+  const start = 6 * 60 + index * 30;
+  const end = start + 30;
+  return `${formatBookingTime(start)} - ${formatBookingTime(end)}`;
+});
+
 export default function CheckoutPage() {
   const [cart, setCart] = useState<string[]>([]);
   const [mode, setMode] = useState<'home' | 'centre'>('home');
@@ -169,7 +183,7 @@ export default function CheckoutPage() {
             {mode === 'home' && <label>Collection address<textarea className="field" required value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="House / street / locality" rows={3} /></label>}
             <div className="twoFields">
               <label>Date<input className="field" required min={minDate} type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></label>
-              <label>Preferred slot<select className="field" required value={form.slot} onChange={(e) => setForm({ ...form, slot: e.target.value })}><option value="">Choose</option><option>7:00 AM – 9:00 AM</option><option>9:00 AM – 11:00 AM</option><option>11:00 AM – 1:00 PM</option><option>4:00 PM – 6:00 PM</option></select></label>
+              <label>Preferred slot<select className="field" required value={form.slot} onChange={(e) => setForm({ ...form, slot: e.target.value })}><option value="">Choose 30-minute slot</option>{BOOKING_SLOTS.map((slot) => <option key={slot} value={slot}>{slot}</option>)}</select></label>
             </div>
             {error && <div className="errorBox" role="alert">{error}</div>}
             <div className="notice">Your booking is saved first, then Razorpay opens for secure payment. Payment is confirmed only after server-side signature verification.</div>
