@@ -39,13 +39,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Payment signature verification failed.' }, { status: 400 });
     }
 
+    const now = new Date();
     const updated = await prisma.booking.update({
       where: { id: booking.id },
       data: {
         razorpayPaymentId: body.razorpay_payment_id,
         paymentStatus: 'PAID',
         status: 'CONFIRMED',
-        paidAt: new Date(),
+        workflowStatus: booking.workflowStatus === 'BOOKING_CREATED' ? 'BOOKING_CONFIRMED' : booking.workflowStatus,
+        bookingConfirmedAt: booking.bookingConfirmedAt ?? now,
+        paidAt: now,
       },
       include: {
         patient: { select: { name: true, phone: true } },
@@ -64,6 +67,7 @@ export async function POST(request: Request) {
         id: updated.id,
         status: updated.status,
         paymentStatus: updated.paymentStatus,
+        workflowStatus: updated.workflowStatus,
         totalAmount: updated.totalAmount,
       },
     });
