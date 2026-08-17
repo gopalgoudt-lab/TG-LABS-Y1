@@ -90,6 +90,7 @@ model DiagnosticPackage {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   tests PackageItem[]
+  bookings BookingPackage[]
 }
 
 model PackageItem {
@@ -170,6 +171,7 @@ model Booking {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   items BookingItem[]
+  packages BookingPackage[]
   @@index([patientId])
   @@index([technicianId])
   @@index([collectionDate])
@@ -187,4 +189,15 @@ model BookingItem {
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   test DiagnosticTest @relation(fields: [testId], references: [id])
   @@unique([bookingId, testId])
+}
+
+model BookingPackage {
+  id String @id @default(cuid())
+  bookingId String
+  packageId String
+  price Int
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  package DiagnosticPackage @relation(fields: [packageId], references: [id])
+  @@unique([bookingId, packageId])
+  @@index([packageId])
 }
