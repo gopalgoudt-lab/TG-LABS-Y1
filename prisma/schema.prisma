@@ -60,6 +60,8 @@ model DiagnosticTest {
   diagnosticPartner String?
   tat                String?
   fastingNeeded      Boolean       @default(false)
+  sampleTypes        String[]      @default([])
+  sampleTypeOther    String?
   active             Boolean       @default(true)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
@@ -78,6 +80,8 @@ model DiagnosticPackage {
   diagnosticPartner String?
   tat                String?
   fastingNeeded      Boolean       @default(false)
+  sampleTypes        String[]      @default([])
+  sampleTypeOther    String?
   active             Boolean       @default(true)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
@@ -106,7 +110,7 @@ model Booking {
   slot                String
   status              BookingStatus @default(PENDING)
   paymentStatus       PaymentStatus @default(PENDING)
-  paymentMode         PaymentMode?  
+  paymentMode         PaymentMode?
   totalAmount         Int
   adminNotes          String?
   createdByAdmin      String?
