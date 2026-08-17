@@ -27,7 +27,7 @@ function slugify(value: string) {
 }
 
 export async function GET() {
-  const tests = await prisma.diagnosticTest.findMany({ orderBy: { createdAt: 'desc' } });
+  const tests = await prisma.diagnosticTest.findMany({ where: { active: true }, orderBy: { createdAt: 'desc' } });
   return NextResponse.json({ tests });
 }
 
