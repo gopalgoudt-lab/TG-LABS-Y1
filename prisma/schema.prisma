@@ -101,6 +101,21 @@ model PackageItem {
   @@index([testId])
 }
 
+model Technician {
+  id String @id @default(cuid())
+  name String
+  phone String @unique
+  email String?
+  employeeCode String? @unique
+  pincodes String[] @default([])
+  active Boolean @default(true)
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  bookings Booking[]
+  @@index([active])
+}
+
 model Booking {
   id String @id @default(cuid())
   patientId String
@@ -116,6 +131,8 @@ model Booking {
   paymentMode PaymentMode?
   totalAmount Int
   technician String?
+  technicianId String?
+  assignedTechnician Technician? @relation(fields: [technicianId], references: [id])
   workflowStatus String @default("BOOKING_CREATED")
   bookingConfirmedAt DateTime?
   technicianAssignedAt DateTime?
@@ -136,6 +153,7 @@ model Booking {
   updatedAt DateTime @updatedAt
   items BookingItem[]
   @@index([patientId])
+  @@index([technicianId])
   @@index([collectionDate])
   @@index([status])
   @@index([paymentStatus])
