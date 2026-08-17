@@ -7,43 +7,17 @@ datasource db {
   url      = env("NEON_DATABASE_URL")
 }
 
-enum BookingMode {
-  HOME
-  CENTRE
-}
-
-enum BookingStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-  COMPLETED
-}
-
-enum PaymentStatus {
-  PENDING
-  PAID
-  FAILED
-  REFUNDED
-}
-
-enum BookingSource {
-  WEBSITE
-  ADMIN
-}
-
-enum PaymentMode {
-  ONLINE
-  CASH
-  CARD
-  UPI
-  BANK_TRANSFER
-  OTHER
-}
+enum BookingMode { HOME CENTRE }
+enum BookingStatus { PENDING CONFIRMED CANCELLED COMPLETED }
+enum PaymentStatus { PENDING PAID FAILED REFUNDED }
+enum BookingSource { WEBSITE ADMIN }
+enum PaymentMode { ONLINE CASH CARD UPI BANK_TRANSFER OTHER }
 
 model Patient {
   id        String    @id @default(cuid())
   name      String
   phone     String    @unique
+  email     String?
   age       Int?
   gender    String?
   createdAt DateTime  @default(now())
@@ -52,81 +26,79 @@ model Patient {
 }
 
 model DiagnosticTest {
-  id                String        @id @default(cuid())
-  slug              String        @unique
-  name              String
-  description       String?
-  mrp               Int           @default(0)
-  price             Int
-  imageData          String?
+  id String @id @default(cuid())
+  slug String @unique
+  name String
+  description String?
+  mrp Int @default(0)
+  price Int
+  imageData String?
   diagnosticPartner String?
-  tat                String?
-  fastingNeeded      Boolean       @default(false)
-  sampleTypes        String[]      @default([])
-  sampleTypeOther    String?
-  active             Boolean       @default(true)
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
-  items              BookingItem[]
-  packageItems       PackageItem[]
+  tat String?
+  fastingNeeded Boolean @default(false)
+  sampleTypes String[] @default([])
+  sampleTypeOther String?
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  items BookingItem[]
+  packageItems PackageItem[]
 }
 
 model DiagnosticPackage {
-  id                String        @id @default(cuid())
-  slug              String        @unique
-  name              String
-  description       String?
-  mrp               Int           @default(0)
-  price             Int
-  imageData          String?
+  id String @id @default(cuid())
+  slug String @unique
+  name String
+  description String?
+  mrp Int @default(0)
+  price Int
+  imageData String?
   diagnosticPartner String?
-  tat                String?
-  fastingNeeded      Boolean       @default(false)
-  sampleTypes        String[]      @default([])
-  sampleTypeOther    String?
-  active             Boolean       @default(true)
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
-  tests              PackageItem[]
+  tat String?
+  fastingNeeded Boolean @default(false)
+  sampleTypes String[] @default([])
+  sampleTypeOther String?
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tests PackageItem[]
 }
 
 model PackageItem {
-  id        String            @id @default(cuid())
+  id String @id @default(cuid())
   packageId String
-  testId    String
-  package   DiagnosticPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  test      DiagnosticTest    @relation(fields: [testId], references: [id])
-
+  testId String
+  package DiagnosticPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  test DiagnosticTest @relation(fields: [testId], references: [id])
   @@unique([packageId, testId])
   @@index([testId])
 }
 
 model Booking {
-  id                  String        @id @default(cuid())
-  patientId           String
-  patient             Patient       @relation(fields: [patientId], references: [id])
-  mode                BookingMode
-  source              BookingSource @default(WEBSITE)
-  address             String?
-  collectionDate      DateTime
-  slot                String
-  status              BookingStatus @default(PENDING)
-  paymentStatus       PaymentStatus @default(PENDING)
-  paymentMode         PaymentMode?
-  totalAmount         Int
-  technician          String?
-  reportName          String?
-  reportData          String?
-  adminNotes          String?
-  createdByAdmin      String?
-  razorpayOrderId     String?       @unique
-  razorpayPaymentId   String?       @unique
-  paidAt              DateTime?
-  whatsappNotifiedAt  DateTime?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
-  items               BookingItem[]
-
+  id String @id @default(cuid())
+  patientId String
+  patient Patient @relation(fields: [patientId], references: [id])
+  mode BookingMode
+  source BookingSource @default(WEBSITE)
+  address String?
+  collectionDate DateTime
+  slot String
+  status BookingStatus @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentMode PaymentMode?
+  totalAmount Int
+  technician String?
+  reportName String?
+  reportData String?
+  adminNotes String?
+  createdByAdmin String?
+  razorpayOrderId String? @unique
+  razorpayPaymentId String? @unique
+  paidAt DateTime?
+  whatsappNotifiedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  items BookingItem[]
   @@index([patientId])
   @@index([collectionDate])
   @@index([status])
@@ -135,12 +107,11 @@ model Booking {
 }
 
 model BookingItem {
-  id        String         @id @default(cuid())
+  id String @id @default(cuid())
   bookingId String
-  testId    String
-  price     Int
-  booking   Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  test      DiagnosticTest @relation(fields: [testId], references: [id])
-
+  testId String
+  price Int
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  test DiagnosticTest @relation(fields: [testId], references: [id])
   @@unique([bookingId, testId])
 }
