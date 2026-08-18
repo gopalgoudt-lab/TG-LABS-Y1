@@ -19,42 +19,129 @@ function safeEqualHex(a: string, b: string) {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
+async function fetchRazorpayPayment(paymentId: string, keyId: string, keySecret: string) {
+  const response = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}`, {
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString('base64')}`,
+    },
+    cache: 'no-store',
+  });
+
+  const payment = await response.json();
+  if (!response.ok) {
+    console.error('Razorpay payment lookup failed', payment);
+    return null;
+  }
+  return payment;
+}
+
 export async function POST(request: Request) {
   try {
     const body = inputSchema.parse(await request.json());
+    const keyId = process.env.RAZORPAY_KEY_ID;
     const secret = process.env.RAZORPAY_KEY_SECRET;
-    if (!secret) return NextResponse.json({ error: 'Razorpay is not configured.' }, { status: 503 });
+    if (!keyId || !secret) return NextResponse.json({ error: 'Razorpay is not configured.' }, { status: 503 });
 
     const booking = await prisma.booking.findUnique({ where: { id: body.bookingId } });
     if (!booking) return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
     if (!booking.razorpayOrderId || booking.razorpayOrderId !== body.razorpay_order_id) {
       return NextResponse.json({ error: 'Payment order does not match this booking.' }, { status: 400 });
     }
+    if (booking.paymentStatus === 'PAID' && booking.razorpayPaymentId === body.razorpay_payment_id) {
+      return NextResponse.json({
+        booking: {
+          id: booking.id,
+          status: booking.status,
+          paymentStatus: booking.paymentStatus,
+          workflowStatus: booking.workflowStatus,
+          totalAmount: booking.totalAmount,
+        },
+      });
+    }
+    if (booking.paymentStatus === 'PAID' && booking.razorpayPaymentId !== body.razorpay_payment_id) {
+      return NextResponse.json({ error: 'This booking is already paid with a different payment.' }, { status: 409 });
+    }
 
     const expected = createHmac('sha256', secret)
-      .update(`${body.razorpay_order_id}|${body.razorpay_payment_id}`)
+      .update(`${booking.razorpayOrderId}|${body.razorpay_payment_id}`)
       .digest('hex');
 
     if (!safeEqualHex(expected, body.razorpay_signature)) {
       return NextResponse.json({ error: 'Payment signature verification failed.' }, { status: 400 });
     }
 
+    const payment = await fetchRazorpayPayment(body.razorpay_payment_id, keyId, secret);
+    if (!payment) {
+      return NextResponse.json({ error: 'Unable to confirm payment with Razorpay.' }, { status: 502 });
+    }
+
+    const expectedAmount = booking.totalAmount * 100;
+    if (
+      payment.order_id !== booking.razorpayOrderId ||
+      payment.amount !== expectedAmount ||
+      payment.currency !== 'INR'
+    ) {
+      return NextResponse.json({ error: 'Razorpay payment details do not match this booking.' }, { status: 400 });
+    }
+
+    if (payment.status !== 'captured') {
+      return NextResponse.json({
+        error: 'Payment is verified but has not been captured yet. It will be reconciled automatically.',
+        paymentStatus: payment.status,
+      }, { status: 409 });
+    }
+
     const now = new Date();
-    const updated = await prisma.booking.update({
-      where: { id: booking.id },
-      data: {
-        razorpayPaymentId: body.razorpay_payment_id,
-        paymentStatus: 'PAID',
-        status: 'CONFIRMED',
-        workflowStatus: booking.workflowStatus === 'BOOKING_CREATED' ? 'BOOKING_CONFIRMED' : booking.workflowStatus,
-        bookingConfirmedAt: booking.bookingConfirmedAt ?? now,
-        paidAt: now,
-      },
-      include: {
-        patient: { select: { name: true, phone: true } },
-        items: { include: { test: { select: { name: true } } } },
-      },
+    const pendingRecord = await prisma.paymentTransaction.findFirst({
+      where: { bookingId: booking.id, orderId: booking.razorpayOrderId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
     });
+
+    const [, updated] = await prisma.$transaction([
+      pendingRecord
+        ? prisma.paymentTransaction.update({
+            where: { id: pendingRecord.id },
+            data: {
+              paymentId: body.razorpay_payment_id,
+              status: 'PAID',
+              amount: expectedAmount,
+              currency: payment.currency,
+              signatureVerified: true,
+              source: 'CHECKOUT_VERIFY',
+              failureCode: null,
+              failureDescription: null,
+            },
+          })
+        : prisma.paymentTransaction.create({
+            data: {
+              bookingId: booking.id,
+              orderId: booking.razorpayOrderId,
+              paymentId: body.razorpay_payment_id,
+              status: 'PAID',
+              amount: expectedAmount,
+              currency: payment.currency,
+              signatureVerified: true,
+              source: 'CHECKOUT_VERIFY',
+            },
+          }),
+      prisma.booking.update({
+        where: { id: booking.id },
+        data: {
+          razorpayPaymentId: body.razorpay_payment_id,
+          paymentStatus: 'PAID',
+          paymentMode: 'ONLINE',
+          status: 'CONFIRMED',
+          workflowStatus: booking.workflowStatus === 'BOOKING_CREATED' ? 'BOOKING_CONFIRMED' : booking.workflowStatus,
+          bookingConfirmedAt: booking.bookingConfirmedAt ?? now,
+          paidAt: booking.paidAt ?? now,
+        },
+        include: {
+          patient: { select: { name: true, phone: true } },
+          items: { include: { test: { select: { name: true } } } },
+        },
+      }),
+    ]);
 
     try {
       await sendBookingConfirmationWhatsApp(updated);
@@ -69,6 +156,7 @@ export async function POST(request: Request) {
         paymentStatus: updated.paymentStatus,
         workflowStatus: updated.workflowStatus,
         totalAmount: updated.totalAmount,
+        razorpayPaymentId: updated.razorpayPaymentId,
       },
     });
   } catch (error) {
