@@ -172,6 +172,7 @@ model Booking {
   updatedAt DateTime @updatedAt
   items BookingItem[]
   packages BookingPackage[]
+  payments PaymentTransaction[]
   @@index([patientId])
   @@index([technicianId])
   @@index([collectionDate])
@@ -179,6 +180,40 @@ model Booking {
   @@index([paymentStatus])
   @@index([source])
   @@index([workflowStatus])
+}
+
+model PaymentTransaction {
+  id String @id @default(cuid())
+  bookingId String
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  provider String @default("RAZORPAY")
+  orderId String
+  paymentId String? @unique
+  status PaymentStatus @default(PENDING)
+  amount Int
+  currency String @default("INR")
+  signatureVerified Boolean @default(false)
+  source String
+  failureCode String?
+  failureDescription String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([bookingId])
+  @@index([orderId])
+  @@index([status])
+}
+
+model RazorpayWebhookEvent {
+  eventId String @id
+  eventType String
+  paymentId String?
+  orderId String?
+  receivedAt DateTime @default(now())
+  processedAt DateTime?
+  processingError String?
+  @@index([eventType])
+  @@index([paymentId])
+  @@index([orderId])
 }
 
 model BookingItem {
