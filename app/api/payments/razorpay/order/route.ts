@@ -6,6 +6,27 @@ export const dynamic = 'force-dynamic';
 
 const inputSchema = z.object({ bookingId: z.string().min(1) });
 
+async function ensurePendingPaymentRecord(bookingId: string, orderId: string, amount: number) {
+  const existing = await prisma.paymentTransaction.findFirst({
+    where: { bookingId, orderId },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    await prisma.paymentTransaction.create({
+      data: {
+        bookingId,
+        orderId,
+        amount,
+        currency: 'INR',
+        status: 'PENDING',
+        signatureVerified: false,
+        source: 'ORDER_CREATE',
+      },
+    });
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const { bookingId } = inputSchema.parse(await request.json());
@@ -22,10 +43,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'This booking is already paid.' }, { status: 409 });
     }
 
+    const amount = booking.totalAmount * 100;
+
     if (booking.razorpayOrderId) {
+      await ensurePendingPaymentRecord(booking.id, booking.razorpayOrderId, amount);
       return NextResponse.json({
         keyId,
-        order: { id: booking.razorpayOrderId, amount: booking.totalAmount * 100, currency: 'INR' },
+        order: { id: booking.razorpayOrderId, amount, currency: 'INR' },
         bookingId: booking.id,
       });
     }
@@ -37,7 +61,7 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        amount: booking.totalAmount * 100,
+        amount,
         currency: 'INR',
         receipt: booking.id.slice(0, 40),
         notes: { bookingId: booking.id },
@@ -51,10 +75,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unable to start payment.' }, { status: 502 });
     }
 
-    await prisma.booking.update({
-      where: { id: booking.id },
-      data: { razorpayOrderId: order.id },
-    });
+    await prisma.$transaction([
+      prisma.booking.update({
+        where: { id: booking.id },
+        data: { razorpayOrderId: order.id },
+      }),
+      prisma.paymentTransaction.create({
+        data: {
+          bookingId: booking.id,
+          orderId: order.id,
+          amount,
+          currency: order.currency ?? 'INR',
+          status: 'PENDING',
+          signatureVerified: false,
+          source: 'ORDER_CREATE',
+        },
+      }),
+    ]);
 
     return NextResponse.json({ keyId, order, bookingId: booking.id });
   } catch (error) {
