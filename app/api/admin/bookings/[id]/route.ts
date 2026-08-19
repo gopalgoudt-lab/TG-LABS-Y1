@@ -1,0 +1,46 @@
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/prisma';
+
+export const dynamic='force-dynamic';
+const WORKFLOW=['BOOKING_CREATED','BOOKING_CONFIRMED','TECHNICIAN_ASSIGNED','SAMPLE_COLLECTED','SAMPLE_RECEIVED_AT_LAB','PROCESSING','REPORT_READY','REPORT_DELIVERED'] as const;
+const schema=z.object({
+ name:z.string().trim().min(2).max(120),phone:z.string().regex(/^[0-9]{10}$/),email:z.string().trim().email().max(200),age:z.coerce.number().int().min(0).max(120).nullable().optional(),gender:z.enum(['Male','Female','Others']).nullable().optional(),mode:z.enum(['HOME','CENTRE']),address:z.string().trim().max(500).optional().default(''),pincode:z.string().regex(/^[1-9][0-9]{5}$/).optional().default(''),date:z.string().date(),slot:z.string().trim().min(3).max(60),testIds:z.array(z.string()).default([]),packageIds:z.array(z.string()).default([]),technician:z.string().trim().max(120).optional().default(''),totalAmount:z.coerce.number().int().min(0),status:z.enum(['PENDING','CONFIRMED','CANCELLED','COMPLETED']),paymentStatus:z.enum(['PENDING','PAID','FAILED','REFUNDED']),workflowStatus:z.enum(WORKFLOW),adminNotes:z.string().trim().max(1000).optional().default(''),reportName:z.string().trim().max(255).optional().default(''),reportData:z.string().max(4500000).optional().default('')
+}).refine(v=>v.testIds.length+v.packageIds.length>0,{message:'Select at least one test or package.'}).refine(v=>v.mode!=='HOME'||Boolean(v.address&&v.pincode),{message:'Address and 6-digit pincode are required for home collection.'});
+
+export async function GET(_:Request,{params}:{params:Promise<{id:string}>}){
+ const{id}=await params;
+ const booking=await prisma.booking.findUnique({where:{id},include:{patient:{include:{bookings:{orderBy:{createdAt:'desc'},take:20,include:{items:{include:{test:true}}}}}},items:{include:{test:true}}}});
+ if(!booking)return NextResponse.json({error:'Booking not found.'},{status:404});
+ return NextResponse.json({booking});
+}
+
+export async function PATCH(request:Request,{params}:{params:Promise<{id:string}>}){
+ try{
+  const{id}=await params,b=schema.parse(await request.json()),existing=await prisma.booking.findUnique({where:{id},include:{patient:true}});
+  if(!existing)return NextResponse.json({error:'Booking not found.'},{status:404});
+  const tests=await prisma.diagnosticTest.findMany({where:{id:{in:b.testIds},active:true}}),packages=await prisma.diagnosticPackage.findMany({where:{id:{in:b.packageIds},active:true},include:{tests:{include:{test:true}}}});
+  if(tests.length!==b.testIds.length||packages.length!==b.packageIds.length)return NextResponse.json({error:'One or more selected tests/packages are unavailable.'},{status:400});
+  const testMap=new Map<string,{id:string;price:number}>();tests.forEach(t=>testMap.set(t.id,{id:t.id,price:t.price}));for(const p of packages)for(const item of p.tests)if(!testMap.has(item.test.id))testMap.set(item.test.id,{id:item.test.id,price:item.test.price});
+  const now=new Date();
+  const stamps:any={};
+  if(b.workflowStatus!==existing.workflowStatus){
+   if(b.workflowStatus==='BOOKING_CONFIRMED'&&!existing.bookingConfirmedAt)stamps.bookingConfirmedAt=now;
+   if(b.workflowStatus==='TECHNICIAN_ASSIGNED'&&!existing.technicianAssignedAt)stamps.technicianAssignedAt=now;
+   if(b.workflowStatus==='SAMPLE_COLLECTED'&&!existing.sampleCollectedAt)stamps.sampleCollectedAt=now;
+   if(b.workflowStatus==='SAMPLE_RECEIVED_AT_LAB'&&!existing.sampleReceivedAt)stamps.sampleReceivedAt=now;
+   if(b.workflowStatus==='PROCESSING'&&!existing.processingStartedAt)stamps.processingStartedAt=now;
+   if(b.workflowStatus==='REPORT_READY'&&!existing.reportReadyAt)stamps.reportReadyAt=now;
+   if(b.workflowStatus==='REPORT_DELIVERED'&&!existing.reportDeliveredAt)stamps.reportDeliveredAt=now;
+  }
+  if(b.technician&&!existing.technicianAssignedAt)stamps.technicianAssignedAt=now;
+  const autoStatus=b.workflowStatus==='REPORT_DELIVERED'?'COMPLETED':b.workflowStatus==='BOOKING_CREATED'?b.status:(b.status==='CANCELLED'?'CANCELLED':'CONFIRMED');
+  const booking=await prisma.$transaction(async tx=>{
+   let patientId=existing.patientId;const pdata={name:b.name,email:b.email,age:b.age??null,gender:b.gender??null};
+   if(existing.patient.phone!==b.phone){const target=await tx.patient.findUnique({where:{phone:b.phone}});if(target){patientId=target.id;await tx.patient.update({where:{id:target.id},data:pdata})}else await tx.patient.update({where:{id:existing.patientId},data:{phone:b.phone,...pdata}})}else await tx.patient.update({where:{id:existing.patientId},data:pdata});
+   await tx.bookingItem.deleteMany({where:{bookingId:id}});
+   return tx.booking.update({where:{id},data:{patientId,mode:b.mode,address:b.mode==='HOME'?b.address:null,pincode:b.mode==='HOME'?b.pincode:null,collectionDate:new Date(`${b.date}T00:00:00.000Z`),slot:b.slot,technician:b.technician||null,totalAmount:b.totalAmount,status:autoStatus,paymentStatus:b.paymentStatus,workflowStatus:b.workflowStatus,...stamps,adminNotes:b.adminNotes||null,reportName:b.reportName||null,reportData:b.reportData||null,items:{create:[...testMap.values()].map(t=>({testId:t.id,price:t.price}))}},include:{patient:true,items:{include:{test:true}}}})
+  });
+  return NextResponse.json({booking});
+ }catch(error){if(error instanceof z.ZodError)return NextResponse.json({error:'Please check the booking details.',fields:error.flatten().fieldErrors},{status:400});console.error(error);return NextResponse.json({error:'Unable to update booking.'},{status:500})}
+}
