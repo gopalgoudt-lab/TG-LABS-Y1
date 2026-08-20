@@ -42,6 +42,10 @@ export async function PATCH(request: Request) {
     const existing = await prisma.booking.findUnique({ where: { id: body.bookingId } });
     if (!existing) return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
 
+    if ((body.workflowStatus === 'REPORT_READY' || body.workflowStatus === 'REPORT_DELIVERED') && !existing.reportData) {
+      return NextResponse.json({ error: 'Upload the diagnostic PDF before marking this booking as Report Ready or Delivered.' }, { status: 409 });
+    }
+
     const data: Record<string, unknown> = {};
     const now = new Date();
 
@@ -89,7 +93,8 @@ export async function PATCH(request: Request) {
     });
 
     if (booking.workflowStatus !== existing.workflowStatus) {
-      try { await sendWorkflowStatusWhatsApp(booking); } catch (notificationError) { console.error('Workflow updated but WhatsApp notification failed', notificationError); }
+      try { await sendWorkflowStatusWhatsApp(booking); }
+      catch (notificationError) { console.error('Workflow updated but WhatsApp notification failed', notificationError); }
     }
 
     return NextResponse.json({ booking });
