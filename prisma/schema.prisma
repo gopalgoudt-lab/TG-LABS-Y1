@@ -165,6 +165,12 @@ model Booking {
   technicianNotes String?
   reportName String?
   reportData String?
+  aiReportEn String?
+  aiReportTe String?
+  aiReportHi String?
+  aiReportEnAt DateTime?
+  aiReportTeAt DateTime?
+  aiReportHiAt DateTime?
   adminNotes String?
   createdByAdmin String?
   razorpayOrderId String? @unique
