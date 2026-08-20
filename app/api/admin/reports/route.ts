@@ -24,22 +24,14 @@ function estimatedBase64Bytes(dataUrl: string) {
 export async function POST(request: Request) {
   try {
     const body = uploadSchema.parse(await request.json());
-    if (!body.fileName.toLowerCase().endsWith('.pdf')) {
-      return NextResponse.json({ error: 'Only PDF diagnostic reports can be uploaded.' }, { status: 400 });
-    }
-    if (!body.fileData.startsWith('data:application/pdf;base64,')) {
-      return NextResponse.json({ error: 'The selected file is not a valid PDF.' }, { status: 400 });
-    }
-    if (estimatedBase64Bytes(body.fileData) > MAX_PDF_BYTES) {
-      return NextResponse.json({ error: 'PDF is too large. Please upload a PDF smaller than 3 MB.' }, { status: 413 });
-    }
+    if (!body.fileName.toLowerCase().endsWith('.pdf')) return NextResponse.json({ error: 'Only PDF diagnostic reports can be uploaded.' }, { status: 400 });
+    if (!body.fileData.startsWith('data:application/pdf;base64,')) return NextResponse.json({ error: 'The selected file is not a valid PDF.' }, { status: 400 });
+    if (estimatedBase64Bytes(body.fileData) > MAX_PDF_BYTES) return NextResponse.json({ error: 'PDF is too large. Please upload a PDF smaller than 3 MB.' }, { status: 413 });
 
     const existing = await prisma.booking.findUnique({ where: { id: body.bookingId } });
     if (!existing) return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
     if (existing.status === 'CANCELLED') return NextResponse.json({ error: 'A report cannot be published for a cancelled booking.' }, { status: 409 });
-    if (!['SAMPLE_RECEIVED_AT_LAB','PROCESSING','REPORT_READY','REPORT_DELIVERED'].includes(existing.workflowStatus)) {
-      return NextResponse.json({ error: 'Mark the sample as received at the lab before publishing a report.' }, { status: 409 });
-    }
+    if (!['SAMPLE_RECEIVED_AT_LAB','PROCESSING','REPORT_READY','REPORT_DELIVERED'].includes(existing.workflowStatus)) return NextResponse.json({ error: 'Mark the sample as received at the lab before publishing a report.' }, { status: 409 });
 
     const now = new Date();
     const booking = await prisma.booking.update({
@@ -47,6 +39,12 @@ export async function POST(request: Request) {
       data: {
         reportName: body.fileName,
         reportData: body.fileData,
+        aiReportEn: null,
+        aiReportTe: null,
+        aiReportHi: null,
+        aiReportEnAt: null,
+        aiReportTeAt: null,
+        aiReportHiAt: null,
         reportReadyAt: existing.reportReadyAt ?? now,
         workflowStatus: existing.workflowStatus === 'REPORT_DELIVERED' ? 'REPORT_DELIVERED' : 'REPORT_READY',
         status: existing.status === 'COMPLETED' ? 'COMPLETED' : 'CONFIRMED',
@@ -63,14 +61,7 @@ export async function POST(request: Request) {
       catch (notificationError) { console.error('Report published but WhatsApp notification failed', notificationError); }
     }
 
-    return NextResponse.json({
-      success: true,
-      bookingId: booking.id,
-      reportName: booking.reportName,
-      workflowStatus: booking.workflowStatus,
-      reportReadyAt: booking.reportReadyAt,
-      printedReportPending: booking.printedReport && !booking.reportDeliveredAt,
-    });
+    return NextResponse.json({ success: true, bookingId: booking.id, reportName: booking.reportName, workflowStatus: booking.workflowStatus, reportReadyAt: booking.reportReadyAt, printedReportPending: booking.printedReport && !booking.reportDeliveredAt });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Invalid report upload.' }, { status: 400 });
     console.error('POST /api/admin/reports failed', error);
