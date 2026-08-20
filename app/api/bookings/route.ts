@@ -4,12 +4,16 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
+const PRINTED_REPORT_FEE = 100;
+
 const bookingSchema = z.object({
   name: z.string().trim().min(2).max(120),
   phone: z.string().regex(/^[0-9]{10}$/),
   email: z.string().trim().email().max(200),
   age: z.coerce.number().int().min(0).max(120),
   gender: z.enum(['MALE', 'FEMALE', 'OTHERS']),
+  doctorName: z.string().trim().max(160).optional(),
+  printedReport: z.boolean().optional().default(false),
   mode: z.enum(['home', 'centre']),
   address: z.string().trim().max(500).optional(),
   pincode: z.string().regex(/^[1-9][0-9]{5}$/).optional(),
@@ -78,9 +82,11 @@ export async function POST(request: Request) {
       if (!uniqueTests.has(test.id)) uniqueTests.set(test.id, { id: test.id, price: test.price, includedByPackage: false });
     }
 
-    const totalAmount =
+    const diagnosticAmount =
       packages.reduce((sum, pkg) => sum + pkg.price, 0) +
       chargeableDirectTests.reduce((sum, test) => sum + test.price, 0);
+    const printedReportFee = body.printedReport ? PRINTED_REPORT_FEE : 0;
+    const totalAmount = diagnosticAmount + printedReportFee;
 
     const patient = await prisma.patient.upsert({
       where: { phone: body.phone },
@@ -94,6 +100,9 @@ export async function POST(request: Request) {
         mode: body.mode === 'home' ? 'HOME' : 'CENTRE',
         address: body.mode === 'home' ? body.address : null,
         pincode: body.mode === 'home' ? body.pincode : null,
+        doctorName: body.doctorName || null,
+        printedReport: body.printedReport,
+        printedReportFee,
         collectionDate,
         slot: body.slot,
         totalAmount,
@@ -112,6 +121,10 @@ export async function POST(request: Request) {
         status: booking.status,
         paymentStatus: booking.paymentStatus,
         totalAmount: booking.totalAmount,
+        diagnosticAmount,
+        printedReport: booking.printedReport,
+        printedReportFee: booking.printedReportFee,
+        doctorName: booking.doctorName,
         mode: booking.mode,
         collectionDate: booking.collectionDate.toISOString(),
         slot: booking.slot,
