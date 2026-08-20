@@ -14,15 +14,26 @@ async function validSession(token:string){
  const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['verify']);
  return crypto.subtle.verify('HMAC',key,b64urlToBytes(signature),new TextEncoder().encode(`${header}.${payload}`));
 }
+function secure(response:NextResponse,admin=false){
+ response.headers.set('X-Content-Type-Options','nosniff');
+ response.headers.set('X-Frame-Options','DENY');
+ response.headers.set('Referrer-Policy','strict-origin-when-cross-origin');
+ response.headers.set('Permissions-Policy','camera=(), microphone=(), geolocation=(), payment=(self)');
+ response.headers.set('Cross-Origin-Opener-Policy','same-origin-allow-popups');
+ response.headers.set('X-Permitted-Cross-Domain-Policies','none');
+ if(process.env.NODE_ENV==='production')response.headers.set('Strict-Transport-Security','max-age=31536000; includeSubDomains');
+ if(admin){response.headers.set('Cache-Control','no-store, max-age=0');response.headers.set('Pragma','no-cache')}
+ return response;
+}
 
 export async function middleware(request:NextRequest){
  const {pathname,search}=request.nextUrl;
- if(pathname==='/admin/login'||pathname==='/api/admin/session')return NextResponse.next();
- const protectedPath=pathname==='/manual'||pathname.startsWith('/manual/')||pathname==='/admin'||pathname.startsWith('/admin/')||pathname.startsWith('/api/admin/');
- if(!protectedPath)return NextResponse.next();
- try{const token=request.cookies.get(COOKIE)?.value||'';if(!token||!(await validSession(token)))throw new Error('UNAUTHENTICATED');return NextResponse.next()}catch{
-  if(pathname.startsWith('/api/'))return NextResponse.json({error:'Admin authentication required.'},{status:401});
-  const login=new URL('/admin/login',request.url);login.searchParams.set('next',`${pathname}${search}`);return NextResponse.redirect(login);
+ const adminSurface=pathname==='/manual'||pathname.startsWith('/manual/')||pathname==='/admin'||pathname.startsWith('/admin/')||pathname.startsWith('/api/admin/');
+ if(pathname==='/admin/login'||pathname==='/api/admin/session')return secure(NextResponse.next(),true);
+ if(!adminSurface)return secure(NextResponse.next(),false);
+ try{const token=request.cookies.get(COOKIE)?.value||'';if(!token||!(await validSession(token)))throw new Error('UNAUTHENTICATED');return secure(NextResponse.next(),true)}catch{
+  if(pathname.startsWith('/api/'))return secure(NextResponse.json({error:'Admin authentication required.'},{status:401}),true);
+  const login=new URL('/admin/login',request.url);login.searchParams.set('next',`${pathname}${search}`);return secure(NextResponse.redirect(login),true);
  }
 }
-export const config={matcher:['/admin/:path*','/manual/:path*','/api/admin/:path*']};
+export const config={matcher:['/((?!_next/static|_next/image|favicon.ico).*)']};
