@@ -49,7 +49,7 @@ export async function GET(request: Request) {
         workflowStatus: booking.workflowStatus,
         tests: booking.items.map((item) => item.test.name),
         packages: booking.packages.map((item) => item.package.name),
-        downloadUrl: booking.reportData || null,
+        downloadUrl: booking.reportData ? `/api/patient/reports/${booking.id}/file` : null,
       })),
     });
   } catch (error) {
