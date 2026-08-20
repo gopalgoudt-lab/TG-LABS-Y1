@@ -7,9 +7,21 @@ export const maxDuration = 60;
 
 type Language = 'en' | 'te' | 'hi';
 const LANGUAGES: Record<Language, { name: string; instruction: string; disclaimer: string }> = {
-  en: { name: 'English', instruction: 'Write the complete response in clear patient-friendly English.', disclaimer: 'AI-generated educational explanation only. It does not replace medical advice, diagnosis, or treatment from a qualified healthcare professional.' },
-  te: { name: 'Telugu', instruction: 'Write the complete response in natural, easy-to-understand Telugu. Keep laboratory test names, values, units and standard medical abbreviations in their original form where translating them could reduce accuracy. You may put a short English medical term in parentheses after the Telugu explanation when useful.', disclaimer: 'ఇది AI ద్వారా రూపొందించిన విద్యాపరమైన వివరణ మాత్రమే. ఇది అర్హత కలిగిన వైద్య నిపుణుడి సలహా, నిర్ధారణ లేదా చికిత్సకు ప్రత్యామ్నాయం కాదు.' },
-  hi: { name: 'Hindi', instruction: 'Write the complete response in natural, easy-to-understand Hindi. Keep laboratory test names, values, units and standard medical abbreviations in their original form where translating them could reduce accuracy. You may put a short English medical term in parentheses after the Hindi explanation when useful.', disclaimer: 'यह AI द्वारा तैयार की गई केवल शैक्षिक व्याख्या है। यह योग्य स्वास्थ्य विशेषज्ञ की चिकित्सकीय सलाह, निदान या उपचार का विकल्प नहीं है।' },
+  en: {
+    name: 'English',
+    instruction: 'Write the complete response in clear patient-friendly English.',
+    disclaimer: 'AI-generated educational explanation only. It does not replace medical advice, diagnosis, or treatment from a qualified healthcare professional.',
+  },
+  te: {
+    name: 'Telugu',
+    instruction: 'Write the full explanation in natural, easy-to-understand Telugu. Keep laboratory test names, values, units, ranges and standard medical abbreviations in English exactly where needed for accuracy. Use short Telugu sentences and avoid unnecessary repetition.',
+    disclaimer: 'ఇది AI ద్వారా రూపొందించిన విద్యాపరమైన వివరణ మాత్రమే. ఇది అర్హత కలిగిన వైద్య నిపుణుడి సలహా, నిర్ధారణ లేదా చికిత్సకు ప్రత్యామ్నాయం కాదు.',
+  },
+  hi: {
+    name: 'Hindi',
+    instruction: 'Write the full explanation in natural, easy-to-understand Hindi. Keep laboratory test names, values, units, ranges and standard medical abbreviations in English exactly where needed for accuracy. Use short Hindi sentences and avoid unnecessary repetition.',
+    disclaimer: 'यह AI द्वारा तैयार की गई केवल शैक्षिक व्याख्या है। यह योग्य स्वास्थ्य विशेषज्ञ की चिकित्सकीय सलाह, निदान या उपचार का विकल्प नहीं है।',
+  },
 };
 
 function outputText(data: any) {
@@ -104,7 +116,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       packages.length ? `Packages: ${packages.join(', ')}` : '',
     ].filter(Boolean).join('\n');
 
-    const prompt = `You are the TG Labs AI Report Assistant. Explain the attached diagnostic laboratory report to a patient in clear, calm, non-alarmist language.\n\nOUTPUT LANGUAGE: ${language.name}. ${language.instruction}\n\n${context}\n\nIMPORTANT SAFETY RULES:\n- Do not diagnose a disease or claim certainty.\n- Do not prescribe, start, stop, or change medicines or supplements.\n- Do not invent values, reference ranges, symptoms, history, or findings that are not in the report.\n- Preserve every laboratory number, decimal, unit and reference range exactly as shown; never translate or convert numerical values.\n- Clearly distinguish normal, borderline, and out-of-range results using the laboratory ranges printed on the report.\n- Mention that reference ranges vary by lab, age, sex, pregnancy status, medications, and clinical context where relevant.\n- Diet and activity suggestions must be general wellness guidance and must account for uncertainty.\n- Never expose or repeat phone numbers, addresses, emails, IDs, payment information, or other identifiers even if visible in the document.\n\nReturn these sections in ${language.name}:\n1. REPORT OVERVIEW\n2. KEY RESULTS — markdown table: Test | Result | Lab Range | Interpretation. Include only values actually visible.\n3. WHAT THE RESULTS MAY MEAN\n4. DIET SUGGESTION TABLE — Goal | Foods to Prefer | Foods to Limit | Practical Tip.\n5. PHYSICAL ACTIVITY PLAN — Activity | Frequency | Duration | Notes.\n6. WHAT TO DISCUSS WITH YOUR DOCTOR\n7. WHEN TO SEEK MEDICAL CARE\n8. IMPORTANT NOTE — clearly state that this is educational and should be reviewed with a qualified healthcare professional.`;
+    const compactLanguageNote = requestedLanguage === 'en'
+      ? ''
+      : '\nKeep the answer concise enough to finish quickly. For KEY RESULTS include the clinically important and out-of-range values first, then other important values. Diet and exercise tables should contain 4–6 practical rows each.';
+
+    const prompt = `You are the TG Labs AI Report Assistant. Explain the attached diagnostic laboratory report to a patient in clear, calm, non-alarmist language.\n\nOUTPUT LANGUAGE: ${language.name}. ${language.instruction}${compactLanguageNote}\n\n${context}\n\nIMPORTANT SAFETY RULES:\n- Do not diagnose a disease or claim certainty.\n- Do not prescribe, start, stop, or change medicines or supplements.\n- Do not invent values, reference ranges, symptoms, history, or findings that are not in the report.\n- Preserve every laboratory number, decimal, unit and reference range exactly as shown; never translate or convert numerical values.\n- Clearly distinguish normal, borderline, and out-of-range results using the laboratory ranges printed on the report.\n- Mention that reference ranges vary by lab, age, sex, pregnancy status, medications, and clinical context where relevant.\n- Diet and activity suggestions must be general wellness guidance and must account for uncertainty.\n- Never expose or repeat phone numbers, addresses, emails, IDs, payment information, or other identifiers even if visible in the document.\n\nReturn these sections in ${language.name}:\n1. REPORT OVERVIEW\n2. KEY RESULTS — markdown table: Test | Result | Lab Range | Interpretation.\n3. WHAT THE RESULTS MAY MEAN\n4. DIET SUGGESTION TABLE — Goal | Foods to Prefer | Foods to Limit | Practical Tip.\n5. PHYSICAL ACTIVITY PLAN — Activity | Frequency | Duration | Notes.\n6. WHAT TO DISCUSS WITH YOUR DOCTOR\n7. WHEN TO SEEK MEDICAL CARE\n8. IMPORTANT NOTE — clearly state that this is educational and should be reviewed with a qualified healthcare professional.`;
 
     openAIFileId = await uploadPdfToOpenAI(apiKey, booking.reportData, booking.reportName || 'diagnostic-report.pdf');
 
@@ -117,6 +133,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       body: JSON.stringify({
         model: process.env.AI_REPORT_MODEL || 'gpt-5.6-terra',
         store: false,
+        max_output_tokens: requestedLanguage === 'en' ? 4000 : 2200,
         input: [{
           role: 'user',
           content: [
@@ -129,8 +146,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const data = await aiResponse.json();
     if (!aiResponse.ok) {
-      console.error('OpenAI AI report failed', aiResponse.status, data?.error?.message || data);
-      return NextResponse.json({ error: 'AI Report could not be generated right now. Please try again.' }, { status: 502 });
+      const apiMessage = data?.error?.message || '';
+      console.error('OpenAI AI report failed', aiResponse.status, apiMessage || data);
+      if (aiResponse.status === 429) return NextResponse.json({ error: 'AI usage limit reached. Please try again shortly.' }, { status: 429 });
+      return NextResponse.json({ error: `AI Report could not be generated right now.${apiMessage ? ' ' + apiMessage.slice(0, 180) : ''}` }, { status: 502 });
     }
 
     const analysis = outputText(data);
