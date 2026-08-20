@@ -21,9 +21,8 @@ function outputText(data: any) {
 
 function reportInput(reportData: string, reportName: string) {
   if (reportData.startsWith('data:image/')) return { type: 'input_image', image_url: reportData };
-  if (reportData.startsWith('data:')) {
-    const comma = reportData.indexOf(',');
-    return { type: 'input_file', filename: reportName || 'diagnostic-report.pdf', file_data: comma >= 0 ? reportData.slice(comma + 1) : reportData };
+  if (reportData.startsWith('data:application/pdf;base64,')) {
+    return { type: 'input_file', filename: reportName || 'diagnostic-report.pdf', file_data: reportData };
   }
   if (/^https:\/\//i.test(reportData)) return { type: 'input_file', filename: reportName || 'diagnostic-report.pdf', file_url: reportData };
   return { type: 'input_file', filename: reportName || 'diagnostic-report.pdf', file_data: reportData };
