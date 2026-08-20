@@ -8,23 +8,243 @@ datasource db {
   directUrl = env("NEON_DATABASE_URL_UNPOOLED")
 }
 
-enum BookingMode { HOME CENTRE }
-enum BookingStatus { PENDING CONFIRMED CANCELLED COMPLETED }
-enum PaymentStatus { PENDING PAID FAILED REFUNDED }
-enum BookingSource { WEBSITE ADMIN }
-enum PaymentMode { ONLINE CASH CARD UPI BANK_TRANSFER OTHER }
+enum BookingMode {
+  HOME
+  CENTRE
+}
 
-model Patient { id String @id @default(cuid()) name String phone String @unique email String? age Int? gender String? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt bookings Booking[] }
-model DiagnosticTest { id String @id @default(cuid()) slug String @unique name String description String? mrp Int @default(0) price Int imageData String? diagnosticPartner String? tat String? fastingNeeded Boolean @default(false) sampleTypes String[] @default([]) sampleTypeOther String? active Boolean @default(true) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt items BookingItem[] packageItems PackageItem[] }
-model DiagnosticPackage { id String @id @default(cuid()) slug String @unique name String description String? mrp Int @default(0) price Int imageData String? diagnosticPartner String? tat String? fastingNeeded Boolean @default(false) sampleTypes String[] @default([]) sampleTypeOther String? active Boolean @default(true) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt tests PackageItem[] bookings BookingPackage[] }
-model PackageItem { id String @id @default(cuid()) packageId String testId String package DiagnosticPackage @relation(fields:[packageId],references:[id],onDelete:Cascade) test DiagnosticTest @relation(fields:[testId],references:[id]) @@unique([packageId,testId]) @@index([testId]) }
-model Technician { id String @id @default(cuid()) name String phone String @unique email String? employeeCode String? @unique pincodes String[] @default([]) active Boolean @default(true) notes String? loginPinHash String? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt bookings Booking[] sessions TechnicianSession[] @@index([active]) }
-model TechnicianSession { id String @id @default(cuid()) technicianId String tokenHash String @unique expiresAt DateTime createdAt DateTime @default(now()) technician Technician @relation(fields:[technicianId],references:[id],onDelete:Cascade) @@index([technicianId]) @@index([expiresAt]) }
-model Booking { id String @id @default(cuid()) patientId String patient Patient @relation(fields:[patientId],references:[id]) mode BookingMode source BookingSource @default(WEBSITE) address String? pincode String? doctorName String? printedReport Boolean @default(false) printedReportFee Int @default(0) collectionDate DateTime slot String status BookingStatus @default(PENDING) paymentStatus PaymentStatus @default(PENDING) paymentMode PaymentMode? totalAmount Int technician String? technicianId String? assignedTechnician Technician? @relation(fields:[technicianId],references:[id]) workflowStatus String @default("BOOKING_CREATED") bookingConfirmedAt DateTime? technicianAssignedAt DateTime? technicianAcceptedAt DateTime? technicianOnTheWayAt DateTime? technicianReachedAt DateTime? sampleCollectedAt DateTime? sampleReceivedAt DateTime? processingStartedAt DateTime? reportReadyAt DateTime? reportDeliveredAt DateTime? technicianNotes String? reportName String? reportData String? aiReportEn String? aiReportTe String? aiReportHi String? aiReportEnAt DateTime? aiReportTeAt DateTime? aiReportHiAt DateTime? adminNotes String? createdByAdmin String? razorpayOrderId String? @unique razorpayPaymentId String? @unique paidAt DateTime? whatsappNotifiedAt DateTime? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt items BookingItem[] packages BookingPackage[] payments PaymentTransaction[] @@index([patientId]) @@index([technicianId]) @@index([collectionDate]) @@index([status]) @@index([paymentStatus]) @@index([source]) @@index([workflowStatus]) }
-model PaymentTransaction { id String @id @default(cuid()) bookingId String booking Booking @relation(fields:[bookingId],references:[id],onDelete:Cascade) provider String @default("RAZORPAY") orderId String paymentId String? @unique status PaymentStatus @default(PENDING) amount Int currency String @default("INR") signatureVerified Boolean @default(false) source String failureCode String? failureDescription String? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt @@index([bookingId]) @@index([orderId]) @@index([status]) }
-model RazorpayWebhookEvent { eventId String @id eventType String paymentId String? orderId String? receivedAt DateTime @default(now()) processedAt DateTime? processingError String? @@index([eventType]) @@index([paymentId]) @@index([orderId]) }
-model BookingItem { id String @id @default(cuid()) bookingId String testId String price Int booking Booking @relation(fields:[bookingId],references:[id],onDelete:Cascade) test DiagnosticTest @relation(fields:[testId],references:[id]) @@unique([bookingId,testId]) }
-model BookingPackage { id String @id @default(cuid()) bookingId String packageId String price Int booking Booking @relation(fields:[bookingId],references:[id],onDelete:Cascade) package DiagnosticPackage @relation(fields:[packageId],references:[id]) @@unique([bookingId,packageId]) @@index([packageId]) }
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum BookingSource {
+  WEBSITE
+  ADMIN
+}
+
+enum PaymentMode {
+  ONLINE
+  CASH
+  CARD
+  UPI
+  BANK_TRANSFER
+  OTHER
+}
+
+model Patient {
+  id String @id @default(cuid())
+  name String
+  phone String @unique
+  email String?
+  age Int?
+  gender String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  bookings Booking[]
+}
+
+model DiagnosticTest {
+  id String @id @default(cuid())
+  slug String @unique
+  name String
+  description String?
+  mrp Int @default(0)
+  price Int
+  imageData String?
+  diagnosticPartner String?
+  tat String?
+  fastingNeeded Boolean @default(false)
+  sampleTypes String[] @default([])
+  sampleTypeOther String?
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  items BookingItem[]
+  packageItems PackageItem[]
+}
+
+model DiagnosticPackage {
+  id String @id @default(cuid())
+  slug String @unique
+  name String
+  description String?
+  mrp Int @default(0)
+  price Int
+  imageData String?
+  diagnosticPartner String?
+  tat String?
+  fastingNeeded Boolean @default(false)
+  sampleTypes String[] @default([])
+  sampleTypeOther String?
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tests PackageItem[]
+  bookings BookingPackage[]
+}
+
+model PackageItem {
+  id String @id @default(cuid())
+  packageId String
+  testId String
+  package DiagnosticPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  test DiagnosticTest @relation(fields: [testId], references: [id])
+  @@unique([packageId, testId])
+  @@index([testId])
+}
+
+model Technician {
+  id String @id @default(cuid())
+  name String
+  phone String @unique
+  email String?
+  employeeCode String? @unique
+  pincodes String[] @default([])
+  active Boolean @default(true)
+  notes String?
+  loginPinHash String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  bookings Booking[]
+  sessions TechnicianSession[]
+  @@index([active])
+}
+
+model TechnicianSession {
+  id String @id @default(cuid())
+  technicianId String
+  tokenHash String @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  @@index([technicianId])
+  @@index([expiresAt])
+}
+
+model Booking {
+  id String @id @default(cuid())
+  patientId String
+  patient Patient @relation(fields: [patientId], references: [id])
+  mode BookingMode
+  source BookingSource @default(WEBSITE)
+  address String?
+  pincode String?
+  doctorName String?
+  printedReport Boolean @default(false)
+  printedReportFee Int @default(0)
+  collectionDate DateTime
+  slot String
+  status BookingStatus @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentMode PaymentMode?
+  totalAmount Int
+  technician String?
+  technicianId String?
+  assignedTechnician Technician? @relation(fields: [technicianId], references: [id])
+  workflowStatus String @default("BOOKING_CREATED")
+  bookingConfirmedAt DateTime?
+  technicianAssignedAt DateTime?
+  technicianAcceptedAt DateTime?
+  technicianOnTheWayAt DateTime?
+  technicianReachedAt DateTime?
+  sampleCollectedAt DateTime?
+  sampleReceivedAt DateTime?
+  processingStartedAt DateTime?
+  reportReadyAt DateTime?
+  reportDeliveredAt DateTime?
+  technicianNotes String?
+  reportName String?
+  reportData String?
+  aiReportEn String?
+  aiReportTe String?
+  aiReportHi String?
+  aiReportEnAt DateTime?
+  aiReportTeAt DateTime?
+  aiReportHiAt DateTime?
+  adminNotes String?
+  createdByAdmin String?
+  razorpayOrderId String? @unique
+  razorpayPaymentId String? @unique
+  paidAt DateTime?
+  whatsappNotifiedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  items BookingItem[]
+  packages BookingPackage[]
+  payments PaymentTransaction[]
+  @@index([patientId])
+  @@index([technicianId])
+  @@index([collectionDate])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([source])
+  @@index([workflowStatus])
+}
+
+model PaymentTransaction {
+  id String @id @default(cuid())
+  bookingId String
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  provider String @default("RAZORPAY")
+  orderId String
+  paymentId String? @unique
+  status PaymentStatus @default(PENDING)
+  amount Int
+  currency String @default("INR")
+  signatureVerified Boolean @default(false)
+  source String
+  failureCode String?
+  failureDescription String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([bookingId])
+  @@index([orderId])
+  @@index([status])
+}
+
+model RazorpayWebhookEvent {
+  eventId String @id
+  eventType String
+  paymentId String?
+  orderId String?
+  receivedAt DateTime @default(now())
+  processedAt DateTime?
+  processingError String?
+  @@index([eventType])
+  @@index([paymentId])
+  @@index([orderId])
+}
+
+model BookingItem {
+  id String @id @default(cuid())
+  bookingId String
+  testId String
+  price Int
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  test DiagnosticTest @relation(fields: [testId], references: [id])
+  @@unique([bookingId, testId])
+}
+
+model BookingPackage {
+  id String @id @default(cuid())
+  bookingId String
+  packageId String
+  price Int
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  package DiagnosticPackage @relation(fields: [packageId], references: [id])
+  @@unique([bookingId, packageId])
+  @@index([packageId])
+}
 
 model AdminAuditLog {
   id String @id @default(cuid())
