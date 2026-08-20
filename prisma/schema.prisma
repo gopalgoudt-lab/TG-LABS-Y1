@@ -139,6 +139,9 @@ model Booking {
   source BookingSource @default(WEBSITE)
   address String?
   pincode String?
+  doctorName String?
+  printedReport Boolean @default(false)
+  printedReportFee Int @default(0)
   collectionDate DateTime
   slot String
   status BookingStatus @default(PENDING)
