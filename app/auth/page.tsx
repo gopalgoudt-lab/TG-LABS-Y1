@@ -14,11 +14,20 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    return () => {
+  function resetRecaptcha() {
+    try {
       verifier.current?.clear();
-      verifier.current = null;
-    };
+    } catch {
+      // Ignore Firebase cleanup errors and recreate the verifier below.
+    }
+    verifier.current = null;
+
+    const container = document.getElementById("recaptcha-container");
+    if (container) container.innerHTML = "";
+  }
+
+  useEffect(() => {
+    return () => resetRecaptcha();
   }, []);
 
   function normalizedPhone() {
@@ -33,18 +42,21 @@ export default function AuthPage() {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+
     try {
-      if (!verifier.current) {
-        verifier.current = new RecaptchaVerifier(auth, "recaptcha-container", {
-          size: "invisible",
-        });
-      }
+      resetRecaptcha();
+
+      verifier.current = new RecaptchaVerifier(auth, "recaptcha-container", {
+        size: "invisible",
+      });
+
+      await verifier.current.render();
+
       const result = await signInWithPhoneNumber(auth, normalizedPhone(), verifier.current);
       setConfirmation(result);
       setMessage("OTP sent successfully. Enter the 6-digit code received by SMS.");
     } catch (error) {
-      verifier.current?.clear();
-      verifier.current = null;
+      resetRecaptcha();
       setMessage(error instanceof Error ? error.message : "Unable to send OTP. Please try again.");
     } finally {
       setLoading(false);
@@ -56,8 +68,10 @@ export default function AuthPage() {
     if (!confirmation) return;
     setLoading(true);
     setMessage("");
+
     try {
       await confirmation.confirm(otp.trim());
+      resetRecaptcha();
       setMessage("Mobile number verified. Opening your patient account…");
       router.push("/patient");
       router.refresh();
@@ -66,6 +80,13 @@ export default function AuthPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function changeNumber() {
+    resetRecaptcha();
+    setConfirmation(null);
+    setOtp("");
+    setMessage("");
   }
 
   return (
@@ -113,7 +134,7 @@ export default function AuthPage() {
             <button className="btn primary" type="submit" disabled={loading || otp.length !== 6} style={{ marginTop: 18 }}>
               {loading ? "Verifying…" : "Verify & sign in"}
             </button>
-            <button className="btn" type="button" disabled={loading} onClick={() => { setConfirmation(null); setOtp(""); setMessage(""); }} style={{ marginTop: 18, marginLeft: 8 }}>
+            <button className="btn" type="button" disabled={loading} onClick={changeNumber} style={{ marginTop: 18, marginLeft: 8 }}>
               Change number
             </button>
           </form>
