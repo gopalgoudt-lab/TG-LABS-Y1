@@ -1,21 +1,12 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { sendWorkflowStatusWhatsApp } from '@/lib/whatsapp';
 
 export const dynamic = 'force-dynamic';
 
 const WORKFLOW = [
-  'BOOKING_CREATED',
-  'BOOKING_CONFIRMED',
-  'TECHNICIAN_ASSIGNED',
-  'TECHNICIAN_ACCEPTED',
-  'ON_THE_WAY',
-  'REACHED_PATIENT',
-  'SAMPLE_COLLECTED',
-  'SAMPLE_RECEIVED_AT_LAB',
-  'PROCESSING',
-  'REPORT_READY',
-  'REPORT_DELIVERED',
+  'BOOKING_CREATED','BOOKING_CONFIRMED','TECHNICIAN_ASSIGNED','TECHNICIAN_ACCEPTED','ON_THE_WAY','REACHED_PATIENT','SAMPLE_COLLECTED','SAMPLE_RECEIVED_AT_LAB','PROCESSING','REPORT_READY','REPORT_DELIVERED',
 ] as const;
 
 const patchSchema = z.object({
@@ -96,6 +87,11 @@ export async function PATCH(request: Request) {
         items: { include: { test: true } },
       },
     });
+
+    if (booking.workflowStatus !== existing.workflowStatus) {
+      try { await sendWorkflowStatusWhatsApp(booking); } catch (notificationError) { console.error('Workflow updated but WhatsApp notification failed', notificationError); }
+    }
+
     return NextResponse.json({ booking });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Invalid operations update.' }, { status: 400 });
