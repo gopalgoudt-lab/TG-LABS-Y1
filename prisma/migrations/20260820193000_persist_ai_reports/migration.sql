@@ -1,0 +1,7 @@
+ALTER TABLE "Booking"
+ADD COLUMN "aiReportEn" TEXT,
+ADD COLUMN "aiReportTe" TEXT,
+ADD COLUMN "aiReportHi" TEXT,
+ADD COLUMN "aiReportEnAt" TIMESTAMP(3),
+ADD COLUMN "aiReportTeAt" TIMESTAMP(3),
+ADD COLUMN "aiReportHiAt" TIMESTAMP(3);
