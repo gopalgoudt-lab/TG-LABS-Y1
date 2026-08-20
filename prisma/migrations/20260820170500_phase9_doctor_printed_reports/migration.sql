@@ -1,0 +1,3 @@
+ALTER TABLE "Booking" ADD COLUMN "doctorName" TEXT;
+ALTER TABLE "Booking" ADD COLUMN "printedReport" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Booking" ADD COLUMN "printedReportFee" INTEGER NOT NULL DEFAULT 0;
