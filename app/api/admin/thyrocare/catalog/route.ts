@@ -15,12 +15,61 @@ const itemSchema = z.object({
   tat: z.string().trim().max(100).optional().default(''),
   fastingNeeded: z.coerce.boolean().optional().default(false),
   sampleTypes: z.array(z.string().trim().min(1).max(80)).max(10).optional().default([]),
+  includedTestIds: z.array(z.string().trim().min(1)).max(100).optional().default([]),
+  customTestNames: z.array(z.string().trim().min(1).max(160)).max(100).optional().default([]),
   active: z.boolean().optional().default(true),
 });
 
 function slugify(name: string, type: 'TEST' | 'PACKAGE') {
   const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80) || 'item';
   return `thyrocare-${type.toLowerCase()}-${base}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+async function resolvePackageTestIds(selectedIds: string[], enteredNames: string[]) {
+  const uniqueIds = [...new Set(selectedIds)];
+  const validSelected = uniqueIds.length
+    ? await prisma.diagnosticTest.findMany({
+        where: { id: { in: uniqueIds }, diagnosticPartner: PARTNER },
+        select: { id: true },
+      })
+    : [];
+  const ids = new Set(validSelected.map((x) => x.id));
+
+  const uniqueNames = [...new Set(enteredNames.map((x) => x.trim()).filter(Boolean))];
+  for (const name of uniqueNames) {
+    let test = await prisma.diagnosticTest.findFirst({
+      where: { diagnosticPartner: PARTNER, name: { equals: name, mode: 'insensitive' } },
+      select: { id: true },
+    });
+    if (!test) {
+      test = await prisma.diagnosticTest.create({
+        data: {
+          slug: slugify(name, 'TEST'),
+          name,
+          description: 'Added while creating a Thyrocare package. Update price and test details if required.',
+          mrp: 0,
+          price: 0,
+          diagnosticPartner: PARTNER,
+          fastingNeeded: false,
+          sampleTypes: [],
+          active: true,
+        },
+        select: { id: true },
+      });
+    }
+    ids.add(test.id);
+  }
+  return [...ids];
+}
+
+async function replacePackageTests(packageId: string, testIds: string[]) {
+  await prisma.packageItem.deleteMany({ where: { packageId } });
+  if (testIds.length) {
+    await prisma.packageItem.createMany({
+      data: testIds.map((testId) => ({ packageId, testId })),
+      skipDuplicates: true,
+    });
+  }
 }
 
 export async function GET(request: Request) {
@@ -33,12 +82,19 @@ export async function GET(request: Request) {
     }),
     prisma.diagnosticPackage.findMany({
       where: { diagnosticPartner: PARTNER, ...(includeInactive ? {} : { active: true }) },
+      include: { tests: { include: { test: true } } },
       orderBy: { name: 'asc' },
     }),
   ]);
   return NextResponse.json({
     tests: tests.map((x) => ({ ...x, type: 'TEST' as const })),
-    packages: packages.map((x) => ({ ...x, type: 'PACKAGE' as const })),
+    packages: packages.map((x) => ({
+      ...x,
+      type: 'PACKAGE' as const,
+      includedTests: x.tests
+        .map((row) => ({ id: row.test.id, name: row.test.name, active: row.test.active }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    })),
   });
 }
 
@@ -60,10 +116,18 @@ export async function POST(request: Request) {
     const created = b.type === 'TEST'
       ? await prisma.diagnosticTest.create({ data: common })
       : await prisma.diagnosticPackage.create({ data: common });
+
+    let testCount = 0;
+    if (b.type === 'PACKAGE') {
+      const testIds = await resolvePackageTestIds(b.includedTestIds, b.customTestNames);
+      await replacePackageTests(created.id, testIds);
+      testCount = testIds.length;
+    }
+
     await writeAdminAudit(request, {
       action: 'THYROCARE_CATALOG_CREATED', entityType: b.type, entityId: created.id,
       summary: `Created Thyrocare ${b.type.toLowerCase()} ${b.name}`,
-      metadata: { name: b.name, price: b.price, mrp: b.mrp || b.price },
+      metadata: { name: b.name, price: b.price, mrp: b.mrp || b.price, testCount },
     });
     return NextResponse.json({ ok: true, item: created }, { status: 201 });
   } catch (error) {
@@ -91,10 +155,18 @@ export async function PATCH(request: Request) {
     const updated = b.type === 'TEST'
       ? await prisma.diagnosticTest.update({ where: { id }, data })
       : await prisma.diagnosticPackage.update({ where: { id }, data });
+
+    let testCount = 0;
+    if (b.type === 'PACKAGE') {
+      const testIds = await resolvePackageTestIds(b.includedTestIds, b.customTestNames);
+      await replacePackageTests(id, testIds);
+      testCount = testIds.length;
+    }
+
     await writeAdminAudit(request, {
       action: 'THYROCARE_CATALOG_UPDATED', entityType: b.type, entityId: id,
       summary: `Updated Thyrocare ${b.type.toLowerCase()} ${b.name}`,
-      metadata: { name: b.name, price: b.price, active: b.active },
+      metadata: { name: b.name, price: b.price, active: b.active, testCount },
     });
     return NextResponse.json({ ok: true, item: updated });
   } catch (error) {
