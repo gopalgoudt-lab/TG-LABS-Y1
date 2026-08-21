@@ -1,0 +1,3 @@
+Trigger production deployment for Thyrocare Sample Barcode feature.
+Commit set includes barcode storage, validation, Sample Barcodes page, top navigation, and editable barcodes in Manage Orders.
+Triggered: 2026-08-21.
