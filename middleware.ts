@@ -12,7 +12,7 @@ function secure(response:NextResponse,admin=false){response.headers.set('X-Conte
 
 export async function middleware(request:NextRequest){
  const {pathname,search}=request.nextUrl;
- if(pathname==='/admin/login'||pathname==='/api/admin/session'||pathname==='/manual/login'||pathname==='/api/manual/session')return secure(NextResponse.next(),true);
+ if(pathname==='/admin/login'||pathname==='/api/admin/session'||pathname==='/manual/login'||pathname==='/manual/forgot'||pathname==='/api/manual/session'||pathname==='/api/manual/password/reset')return secure(NextResponse.next(),true);
  const manualPage=pathname==='/manual'||pathname.startsWith('/manual/');const manualApi=pathname.startsWith('/api/admin/thyrocare/');
  if(manualPage||manualApi){try{const token=request.cookies.get(MANUAL_COOKIE)?.value||'';const identity=token?await manualIdentity(token):null;if(!identity)throw new Error('UNAUTHENTICATED');if(pathname.startsWith('/manual/catalog')&&identity.role!=='ADMIN'){const denied=new URL('/manual',request.url);denied.searchParams.set('permission','catalog-admin-only');return secure(NextResponse.redirect(denied),true)}return secure(NextResponse.next(),true)}catch{if(pathname.startsWith('/api/'))return secure(NextResponse.json({error:'Thyrocare dashboard sign-in required.'},{status:401}),true);const login=new URL('/manual/login',request.url);login.searchParams.set('next',`${pathname}${search}`);return secure(NextResponse.redirect(login),true)}}
  const adminSurface=pathname==='/admin'||pathname.startsWith('/admin/')||pathname.startsWith('/api/admin/');if(!adminSurface)return secure(NextResponse.next(),false);
