@@ -79,7 +79,7 @@ model DiagnosticPackage {
   name              String
   description       String?
   mrp               Int              @default(0)
-  price             Int
+  price              Int
   imageData         String?
   diagnosticPartner String?
   tat               String?
@@ -271,4 +271,19 @@ model AdminAuditLog {
   @@index([entityType])
   @@index([entityId])
   @@index([createdAt])
+}
+
+model ThyrocareCredential {
+  id           String   @id @default(cuid())
+  phone        String
+  role         String
+  passwordHash String
+  passwordSalt String
+  iterations   Int      @default(210000)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([phone, role])
+  @@index([phone])
+  @@index([role])
 }
