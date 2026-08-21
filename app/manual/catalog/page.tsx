@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 
 type Item={id:string;type:'TEST'|'PACKAGE';name:string;price:number;mrp:number;description?:string|null;tat?:string|null;fastingNeeded:boolean;sampleTypes:string[];active:boolean};
-const blank={id:'',type:'TEST' as const,name:'',price:'',mrp:'',description:'',tat:'',fastingNeeded:false,sampleTypes:'',active:true};
+type CatalogForm={id:string;type:'TEST'|'PACKAGE';name:string;price:string;mrp:string;description:string;tat:string;fastingNeeded:boolean;sampleTypes:string;active:boolean};
+const blank:CatalogForm={id:'',type:'TEST',name:'',price:'',mrp:'',description:'',tat:'',fastingNeeded:false,sampleTypes:'',active:true};
 
 export default function ThyrocareCatalogPage(){
- const[items,setItems]=useState<Item[]>([]);const[form,setForm]=useState(blank);const[loading,setLoading]=useState(true);const[saving,setSaving]=useState(false);const[error,setError]=useState('');const[q,setQ]=useState('');const[filter,setFilter]=useState('ALL');
+ const[items,setItems]=useState<Item[]>([]);const[form,setForm]=useState<CatalogForm>(blank);const[loading,setLoading]=useState(true);const[saving,setSaving]=useState(false);const[error,setError]=useState('');const[q,setQ]=useState('');const[filter,setFilter]=useState('ALL');
  async function load(){setLoading(true);setError('');try{const r=await fetch('/api/admin/thyrocare/catalog?includeInactive=1',{cache:'no-store'});const d=await r.json();if(!r.ok)throw new Error(d.error||'Unable to load catalogue.');setItems([...(d.packages||[]),...(d.tests||[])])}catch(e){setError(e instanceof Error?e.message:'Unable to load catalogue.')}finally{setLoading(false)}}
  useEffect(()=>{load()},[]);
  const shown=useMemo(()=>items.filter(x=>{const hit=!q||x.name.toLowerCase().includes(q.toLowerCase());const type=filter==='ALL'||x.type===filter;return hit&&type}),[items,q,filter]);
