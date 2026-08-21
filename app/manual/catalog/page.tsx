@@ -26,7 +26,8 @@ type CatalogForm = {
   description: string;
   tat: string;
   fastingNeeded: boolean;
-  sampleTypes: string;
+  sampleTypes: string[];
+  customSampleTypes: string;
   includedTestIds: string[];
   customTestNames: string;
   active: boolean;
@@ -34,7 +35,7 @@ type CatalogForm = {
 
 const blank: CatalogForm = {
   id: '', type: 'TEST', name: '', price: '', mrp: '', description: '', tat: '',
-  fastingNeeded: false, sampleTypes: '', includedTestIds: [], customTestNames: '', active: true,
+  fastingNeeded: false, sampleTypes: [], customSampleTypes: '', includedTestIds: [], customTestNames: '', active: true,
 };
 const SAMPLE_TYPES = ['Serum', 'EDTA', 'Fluoride', 'Urine'] as const;
 
@@ -71,20 +72,23 @@ export default function ThyrocareCatalogPage() {
     return tests.filter((x) => x.name.toLowerCase().includes(query)).slice(0, 30);
   }, [tests, packageTestQuery]);
 
-  const selectedSampleType = SAMPLE_TYPES.includes(form.sampleTypes as (typeof SAMPLE_TYPES)[number])
-    ? form.sampleTypes : form.sampleTypes ? 'OTHER' : '';
-
   function edit(x: Item) {
+    const savedSamples = x.sampleTypes || [];
+    const standard = savedSamples.filter((s) => SAMPLE_TYPES.includes(s as (typeof SAMPLE_TYPES)[number]));
+    const custom = savedSamples.filter((s) => !SAMPLE_TYPES.includes(s as (typeof SAMPLE_TYPES)[number]));
     setForm({
       id: x.id, type: x.type, name: x.name, price: String(x.price), mrp: String(x.mrp || x.price),
       description: x.description || '', tat: x.tat || '', fastingNeeded: x.fastingNeeded,
-      sampleTypes: (x.sampleTypes || []).join(', '),
+      sampleTypes: standard, customSampleTypes: custom.join(', '),
       includedTestIds: (x.includedTests || []).map((t) => t.id), customTestNames: '', active: x.active,
     });
     setPackageTestQuery('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function reset() { setForm(blank); setPackageTestQuery(''); }
+  function toggleSampleType(sample: string) {
+    setForm((x) => ({ ...x, sampleTypes: x.sampleTypes.includes(sample) ? x.sampleTypes.filter((s) => s !== sample) : [...x.sampleTypes, sample] }));
+  }
   function togglePackageTest(id: string) {
     setForm((x) => ({
       ...x,
@@ -98,11 +102,13 @@ export default function ThyrocareCatalogPage() {
     e.preventDefault(); setSaving(true); setError('');
     try {
       const customTestNames = form.customTestNames.split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
+      const customSampleTypes = form.customSampleTypes.split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
+      const allSampleTypes = [...new Set([...form.sampleTypes, ...customSampleTypes])];
       const payload = {
         ...form,
         price: Number(form.price) || 0,
         mrp: Number(form.mrp) || Number(form.price) || 0,
-        sampleTypes: form.sampleTypes.split(',').map((x) => x.trim()).filter(Boolean),
+        sampleTypes: allSampleTypes,
         includedTestIds: form.type === 'PACKAGE' ? form.includedTestIds : [],
         customTestNames: form.type === 'PACKAGE' ? customTestNames : [],
       };
@@ -138,7 +144,7 @@ export default function ThyrocareCatalogPage() {
   return <main style={{ minHeight: '100vh', background: '#f5f7f9', fontFamily: 'Arial,sans-serif', color: '#1f2937' }}>
     <div style={{ maxWidth: 1380, margin: '0 auto', padding: 22 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-        <div><div style={{ fontSize: 12, fontWeight: 900, color: '#087f6f' }}>THYROCARE • MANUAL CATALOGUE</div><h1 style={{ margin: '5px 0' }}>Tests & Packages</h1><div style={{ color: '#64748b' }}>Separate Thyrocare names, prices and package contents.</div></div>
+        <div><div style={{ fontSize: 12, fontWeight: 900, color: '#087f6f' }}>THYROCARE • MANUAL CATALOGUE</div><h1 style={{ margin: '5px 0' }}>Tests & Packages</h1><div style={{ color: '#64748b' }}>Separate Thyrocare names, prices, sample requirements and package contents.</div></div>
         <div style={{ display: 'flex', gap: 8 }}><a href="/manual" style={btnLight}>← Manual Dashboard</a><a href="/admin" style={btnLight}>Admin</a></div>
       </div>
       {error && <div style={err}>{error}</div>}
@@ -152,8 +158,16 @@ export default function ThyrocareCatalogPage() {
             <label style={label}>MRP (₹)<input type="number" min="0" value={form.mrp} onChange={(e) => setForm((x) => ({ ...x, mrp: e.target.value }))} style={input} /></label>
           </div>
           <label style={label}>TAT<input value={form.tat} onChange={(e) => setForm((x) => ({ ...x, tat: e.target.value }))} style={input} placeholder="e.g. 24 hours" /></label>
-          <label style={label}>Sample Type<select value={selectedSampleType} onChange={(e) => { const value = e.target.value; setForm((x) => ({ ...x, sampleTypes: value === 'OTHER' ? 'Other' : value })); }} style={input}><option value="">Select Sample Type</option><option value="Serum">Serum</option><option value="EDTA">EDTA</option><option value="Fluoride">Fluoride</option><option value="Urine">Urine</option><option value="OTHER">Others (Specify)</option></select></label>
-          {selectedSampleType === 'OTHER' && <label style={label}>Specify Other Sample Type *<input required value={form.sampleTypes === 'Other' ? '' : form.sampleTypes} onChange={(e) => setForm((x) => ({ ...x, sampleTypes: e.target.value }))} style={input} placeholder="e.g. Citrate Plasma, Swab, Stool" /></label>}
+
+          <div style={{ ...packageBox, marginTop: 10 }}>
+            <div style={{ fontWeight: 900, color: '#0d5f54' }}>Sample Type(s)</div>
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>Select all sample types needed. Packages can have multiple sample types.</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
+              {SAMPLE_TYPES.map((sample) => <label key={sample} style={sampleOption}><input type="checkbox" checked={form.sampleTypes.includes(sample)} onChange={() => toggleSampleType(sample)} /> {sample}</label>)}
+            </div>
+            <label style={label}>Other Sample Type(s)<input value={form.customSampleTypes} onChange={(e) => setForm((x) => ({ ...x, customSampleTypes: e.target.value }))} style={input} placeholder="e.g. Citrate Plasma, Swab, Stool" /></label>
+            {(form.sampleTypes.length > 0 || form.customSampleTypes.trim()) && <div style={{ marginTop: 7, fontSize: 11, color: '#0f766e', fontWeight: 800 }}>Selected: {[...form.sampleTypes, ...form.customSampleTypes.split(',').map((x) => x.trim()).filter(Boolean)].join(', ')}</div>}
+          </div>
 
           {form.type === 'PACKAGE' && <div style={packageBox}>
             <div style={{ fontWeight: 900, color: '#0d5f54' }}>Tests Included in Package</div>
@@ -197,6 +211,7 @@ const btnLight = { border:'1px solid #d5dce1',borderRadius:8,padding:'10px 14px'
 const err = { marginTop:14,padding:12,borderRadius:10,background:'#fff1f2',border:'1px solid #fecdd3',color:'#9f1239' } as const;
 const packageBox = { marginTop:12,padding:12,border:'1px solid #cfe5df',borderRadius:10,background:'#f8fbfa' } as const;
 const testOption = { display:'flex',gap:8,alignItems:'center',padding:'8px 9px',borderBottom:'1px solid #edf0f2',fontSize:12,cursor:'pointer',background:'#fff' } as const;
+const sampleOption = { display:'flex',gap:7,alignItems:'center',padding:'8px 9px',border:'1px solid #dbe8e4',borderRadius:8,fontSize:12,cursor:'pointer',background:'#fff' } as const;
 const th = { textAlign:'left' as const,padding:'10px 8px',borderBottom:'1px solid #dbe3e8',background:'#fafcfd',fontSize:12 };
 const td = { padding:'10px 8px',borderBottom:'1px solid #e5e7eb',verticalAlign:'top' as const,fontSize:12 };
 const sub = { fontSize:10,color:'#64748b',marginTop:3 };
