@@ -3,11 +3,15 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const url = new URL(request.url);
+    const referrer = request.headers.get('referer') || '';
+    const thyrocare = url.searchParams.get('lab') === 'thyrocare' || referrer.includes('/manual');
+    const partnerWhere = thyrocare ? { diagnosticPartner: 'THYROCARE' } : {};
     const [tests, packages] = await Promise.all([
       prisma.diagnosticTest.findMany({
-        where: { active: true },
+        where: { active: true, ...partnerWhere },
         orderBy: { name: 'asc' },
         select: {
           id: true,
@@ -23,7 +27,7 @@ export async function GET() {
         },
       }),
       prisma.diagnosticPackage.findMany({
-        where: { active: true },
+        where: { active: true, ...partnerWhere },
         orderBy: { name: 'asc' },
         select: {
           id: true,
@@ -46,6 +50,7 @@ export async function GET() {
     ]);
 
     return NextResponse.json({
+      lab: thyrocare ? 'THYROCARE' : 'DEFAULT',
       tests,
       packages: packages.map((pkg) => ({
         ...pkg,
