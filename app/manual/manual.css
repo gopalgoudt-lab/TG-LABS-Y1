@@ -29,7 +29,8 @@
 .thyrocare-manual ::-webkit-scrollbar{height:9px;width:9px}
 .thyrocare-manual ::-webkit-scrollbar-thumb{background:#cbd8d4;border-radius:999px}
 .thyrocare-manual ::-webkit-scrollbar-track{background:#edf2f0}
-[data-thyrocare-role="STAFF"] .thyrocare-manual a[href="/manual/catalog"]{display:none!important}
+.thyrocare-manual aside a[href="/admin/logout"]{display:none!important}
+[data-thyrocare-role="STAFF"] .thyrocare-manual a[href="/manual/catalog"],[data-thyrocare-role="STAFF"] .thyrocare-manual a[href="/admin"],[data-thyrocare-role="STAFF"] .thyrocare-manual a[href="/admin/audit"]{display:none!important}
 
 @media (min-width:1280px){.thyrocare-manual main>div{grid-template-columns:240px minmax(0,1fr)!important}.thyrocare-manual form{min-width:365px}}
 @media (min-width:1500px){.thyrocare-manual main>div{grid-template-columns:250px minmax(0,1fr)!important}.thyrocare-manual form{min-width:390px}}
