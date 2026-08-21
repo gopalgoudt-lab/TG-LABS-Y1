@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { ConfirmationResult, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { auth } from "../../lib/firebase";
+import { getFirebaseAuth } from "../../lib/firebase";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -45,6 +45,7 @@ export default function AuthPage() {
 
     try {
       resetRecaptcha();
+      const auth = getFirebaseAuth();
 
       verifier.current = new RecaptchaVerifier(auth, "recaptcha-container", {
         size: "invisible",
