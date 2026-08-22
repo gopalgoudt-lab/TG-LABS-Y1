@@ -25,7 +25,7 @@ type SampleBarcode={sampleType:string;barcode:string};
 type ManualMeta={
   brand:'THYROCARE';billNumber:string;tests:string[];grossAmount:number;discount:number;paidAmount?:number;balance:number;
   patient?:PatientSnapshot;doctorName?:string;sampleEntryAt?:string;paymentMode?:'CASH'|'UPI'|'CARD'|'MULTIPLE';paymentModes?:string[];
-  sampleBarcodes?:SampleBarcode[];extraBarcodes?:string[];barcodeUpdatedAt?:string;
+  sampleBarcodes?:SampleBarcode[];extraBarcodes?:string[];barcodeUpdatedAt?:string;sampleStatus?:string;sampleStatusUpdatedAt?:string;
 };
 function parseMeta(value:string|null):ManualMeta|null{try{return value?JSON.parse(value) as ManualMeta:null}catch{return null}}
 function orderId(){const d=new Date();const date=`${String(d.getFullYear()).slice(-2)}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;return `THY-${date}-${Math.random().toString(36).slice(2,7).toUpperCase()}`}
@@ -44,7 +44,8 @@ export async function GET(request:Request){
  return NextResponse.json({orders:rows.map(b=>{
    const m=parseMeta(b.adminNotes);const p=patientFrom(b);const total=m?.grossAmount??b.totalAmount;const discount=m?.discount||0;const net=Math.max(0,total-discount);const balance=m?.balance||0;const paidAmount=m?.paidAmount??Math.max(0,net-balance);const sampleEntryAt=b.sampleReceivedAt||m?.sampleEntryAt||b.createdAt;
    const storedMode=m?.paymentMode||(b.paymentMode==='CASH'||b.paymentMode==='UPI'||b.paymentMode==='CARD'?b.paymentMode:'OTHER');
-   return {id:b.id,orderId:b.id,billNumber:m?.billNumber||'',createdAt:sampleEntryAt,sampleEntryAt,patient:{name:p.name,age:p.age,gender:p.gender,phone:p.phone},doctorName:m?.doctorName||b.doctorName||'',tests:m?.tests||[],totalAmount:total,discount,paidAmount,balance,netAmount:net,paymentStatus:b.paymentStatus,paymentMode:storedMode,paymentModes:m?.paymentModes||[],sampleBarcodes:m?.sampleBarcodes||[],extraBarcodes:m?.extraBarcodes||[],barcodeUpdatedAt:m?.barcodeUpdatedAt||null,reportName:b.reportName,reportReady:!!b.reportData,reportReadyAt:b.reportReadyAt};
+   const sampleStatus=m?.sampleStatus||(m?.sampleBarcodes?.length||m?.extraBarcodes?.length?'BARCODE_ENTERED':'BARCODE_PENDING');
+   return {id:b.id,orderId:b.id,billNumber:m?.billNumber||'',createdAt:sampleEntryAt,sampleEntryAt,patient:{name:p.name,age:p.age,gender:p.gender,phone:p.phone},doctorName:m?.doctorName||b.doctorName||'',tests:m?.tests||[],totalAmount:total,discount,paidAmount,balance,netAmount:net,paymentStatus:b.paymentStatus,paymentMode:storedMode,paymentModes:m?.paymentModes||[],sampleBarcodes:m?.sampleBarcodes||[],extraBarcodes:m?.extraBarcodes||[],barcodeUpdatedAt:m?.barcodeUpdatedAt||null,sampleStatus,sampleStatusUpdatedAt:m?.sampleStatusUpdatedAt||null,sampleCollectedAt:b.sampleCollectedAt,sampleReceivedAt:b.sampleReceivedAt,processingStartedAt:b.processingStartedAt,reportName:b.reportName,reportReady:!!b.reportData,reportReadyAt:b.reportReadyAt};
  })});
 }
 
@@ -61,10 +62,10 @@ export async function POST(request:Request){
   const snapshot:PatientSnapshot={name:b.name,age:b.age,gender:b.gender,phone:b.phone,doctorName:b.doctorName};
   const now=new Date();
   const paymentModes=b.paymentMode==='MULTIPLE'?[...new Set(b.paymentModes)]:[b.paymentMode];
-  const meta:ManualMeta={brand:'THYROCARE',billNumber:bill,tests:b.tests,grossAmount:b.totalAmount,discount:b.discount,paidAmount:b.paidAmount,balance,patient:snapshot,doctorName:b.doctorName,sampleEntryAt:now.toISOString(),paymentMode:b.paymentMode,paymentModes,sampleBarcodes:[],extraBarcodes:[]};
+  const meta:ManualMeta={brand:'THYROCARE',billNumber:bill,tests:b.tests,grossAmount:b.totalAmount,discount:b.discount,paidAmount:b.paidAmount,balance,patient:snapshot,doctorName:b.doctorName,sampleEntryAt:now.toISOString(),paymentMode:b.paymentMode,paymentModes,sampleBarcodes:[],extraBarcodes:[],sampleStatus:'BARCODE_PENDING',sampleStatusUpdatedAt:now.toISOString()};
   const dbPaymentMode=b.paymentMode==='MULTIPLE'?'OTHER':b.paymentMode;
-  const booking=await prisma.booking.create({data:{id,patientId:patient.id,doctorName:b.doctorName||null,mode:'CENTRE',source:'ADMIN',collectionDate:now,slot:'Manual order',status:balance===0?'CONFIRMED':'PENDING',paymentStatus:balance===0?'PAID':'PENDING',paymentMode:dbPaymentMode,totalAmount:net,workflowStatus:'SAMPLE_RECEIVED_AT_LAB',sampleReceivedAt:now,adminNotes:JSON.stringify(meta),createdByAdmin:'THYROCARE_MANUAL',paidAt:balance===0?now:null},include:{patient:true}});
-  await writeAdminAudit(request,{action:'THYROCARE_MANUAL_ORDER_CREATED',entityType:'Booking',entityId:booking.id,summary:`Created Thyrocare manual order ${booking.id}`,metadata:{billNumber:bill,tests:b.tests,totalAmount:b.totalAmount,discount:b.discount,paidAmount:b.paidAmount,balance,doctorName:b.doctorName,sampleEntryAt:now.toISOString(),paymentMode:b.paymentMode,paymentModes}});
+  const booking=await prisma.booking.create({data:{id,patientId:patient.id,doctorName:b.doctorName||null,mode:'CENTRE',source:'ADMIN',collectionDate:now,slot:'Manual order',status:balance===0?'CONFIRMED':'PENDING',paymentStatus:balance===0?'PAID':'PENDING',paymentMode:dbPaymentMode,totalAmount:net,workflowStatus:'BOOKING_CREATED',adminNotes:JSON.stringify(meta),createdByAdmin:'THYROCARE_MANUAL',paidAt:balance===0?now:null},include:{patient:true}});
+  await writeAdminAudit(request,{action:'THYROCARE_MANUAL_ORDER_CREATED',entityType:'Booking',entityId:booking.id,summary:`Created Thyrocare manual order ${booking.id}`,metadata:{billNumber:bill,tests:b.tests,totalAmount:b.totalAmount,discount:b.discount,paidAmount:b.paidAmount,balance,doctorName:b.doctorName,sampleEntryAt:now.toISOString(),paymentMode:b.paymentMode,paymentModes,sampleStatus:'BARCODE_PENDING'}});
   return NextResponse.json({ok:true,id:booking.id,billNumber:bill,balance,sampleEntryAt:now.toISOString(),paymentMode:b.paymentMode,paymentModes},{status:201});
  }catch(error){if(error instanceof z.ZodError)return NextResponse.json({error:'Please check the manual order details.',fields:error.flatten().fieldErrors},{status:400});console.error('POST /api/admin/thyrocare/orders failed',error);return NextResponse.json({error:'Unable to create Thyrocare manual order.'},{status:500})}
 }
