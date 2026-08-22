@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { writeAdminAudit } from '@/lib/admin-audit';
+import { requireThyrocareRole, thyrocareAuthError } from '@/lib/thyrocare-auth';
 
 export const dynamic='force-dynamic';
 
@@ -38,6 +39,7 @@ function orderId(){const d=new Date();const date=`${String(d.getFullYear()).slic
 function patientFrom(b:{patient:{name:string;age:number|null;gender:string|null;phone:string};doctorName:string|null;adminNotes:string|null}){const m=parseMeta(b.adminNotes);return m?.patient||{name:b.patient.name,age:b.patient.age,gender:b.patient.gender,phone:b.patient.phone,email:m?.email||'',doctorName:m?.doctorName||b.doctorName||''}}
 
 export async function GET(request:Request){
+ try{await requireThyrocareRole(request,['ADMIN','STAFF'])}catch(error){const e=thyrocareAuthError(error);return NextResponse.json({error:e.error},{status:e.status})}
  const url=new URL(request.url);const phone=(url.searchParams.get('phone')||'').replace(/\D/g,'').slice(-10);
  const rows=await prisma.booking.findMany({where:{createdByAdmin:'THYROCARE_MANUAL',...(phone?{patient:{phone}}:{})},include:{patient:true},orderBy:{createdAt:'desc'},take:250});
  if(phone){
@@ -58,6 +60,7 @@ export async function GET(request:Request){
 
 export async function POST(request:Request){
  try{
+  await requireThyrocareRole(request,['ADMIN','STAFF']);
   const b=createSchema.parse(await request.json());const gross=b.totalAmount+b.homeCollectionCharge;
   const net=Math.max(0,gross-b.discount);
   if(b.discount>gross)return NextResponse.json({error:'Discount cannot exceed total amount including home collection charges.'},{status:400});
@@ -73,5 +76,5 @@ export async function POST(request:Request){
   const booking=await prisma.booking.create({data:{id,patientId:patient.id,doctorName:b.doctorName||null,mode:'CENTRE',source:'ADMIN',collectionDate:now,slot:'Manual order',status:balance===0?'CONFIRMED':'PENDING',paymentStatus:balance===0?'PAID':'PENDING',paymentMode:dbPaymentMode,totalAmount:net,workflowStatus:'BOOKING_CREATED',adminNotes:JSON.stringify(meta),createdByAdmin:'THYROCARE_MANUAL',paidAt:balance===0?now:null},include:{patient:true}});
   await writeAdminAudit(request,{action:'THYROCARE_MANUAL_ORDER_CREATED',entityType:'Booking',entityId:booking.id,summary:`Created Thyrocare manual order ${booking.id}`,metadata:{billNumber:bill,tests:b.tests,testAmount:b.totalAmount,homeCollectionCharge:b.homeCollectionCharge,totalAmount:gross,discount:b.discount,paidAmount:b.paidAmount,balance,email:b.email,doctorName:b.doctorName,sampleEntryAt:now.toISOString(),paymentMode:b.paymentMode,paymentModes,sampleStatus:'BARCODE_PENDING'}});
   return NextResponse.json({ok:true,id:booking.id,billNumber:bill,balance,totalAmount:gross,homeCollectionCharge:b.homeCollectionCharge,sampleEntryAt:now.toISOString(),paymentMode:b.paymentMode,paymentModes},{status:201});
- }catch(error){if(error instanceof z.ZodError)return NextResponse.json({error:'Please check the manual order details.',fields:error.flatten().fieldErrors},{status:400});console.error('POST /api/admin/thyrocare/orders failed',error);return NextResponse.json({error:'Unable to create Thyrocare manual order.'},{status:500})}
+ }catch(error){if(error instanceof z.ZodError)return NextResponse.json({error:'Please check the manual order details.',fields:error.flatten().fieldErrors},{status:400});if(error instanceof Error&&['FORBIDDEN','UNAUTHENTICATED','THYROCARE_AUTH_NOT_CONFIGURED'].includes(error.message)){const e=thyrocareAuthError(error);return NextResponse.json({error:e.error},{status:e.status})}console.error('POST /api/admin/thyrocare/orders failed',error);return NextResponse.json({error:'Unable to create Thyrocare manual order.'},{status:500})}
 }
