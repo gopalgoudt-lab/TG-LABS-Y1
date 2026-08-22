@@ -39,6 +39,9 @@ export async function POST(request: Request) {
 
     const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
     if (!booking) return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
+    if (booking.paymentTiming === 'SAMPLE_COLLECTION') {
+      return NextResponse.json({ error: 'This booking is set for payment at sample collection.' }, { status: 409 });
+    }
     if (booking.paymentStatus === 'PAID') {
       return NextResponse.json({ error: 'This booking is already paid.' }, { status: 409 });
     }
