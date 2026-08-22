@@ -2,222 +2,66 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-type IncludedTest = { id: string; name: string; active?: boolean };
-type Item = {
-  id: string;
-  type: 'TEST' | 'PACKAGE';
-  name: string;
-  price: number;
-  mrp: number;
-  description?: string | null;
-  tat?: string | null;
-  fastingNeeded: boolean;
-  sampleTypes: string[];
-  active: boolean;
-  includedTests?: IncludedTest[];
-};
+type CatalogType='TEST'|'PACKAGE'|'PROFILE';
+type IncludedTest={id:string;name:string;active?:boolean};
+type Item={id:string;type:CatalogType;name:string;price:number;mrp:number;description?:string|null;tat?:string|null;fastingNeeded:boolean;sampleTypes:string[];active:boolean;includedTests?:IncludedTest[]};
+type Form={id:string;type:CatalogType;name:string;price:string;mrp:string;description:string;tat:string;fastingNeeded:boolean;sampleTypes:string[];customSampleTypes:string;includedTestIds:string[];customTestNames:string;active:boolean};
 
-type CatalogForm = {
-  id: string;
-  type: 'TEST' | 'PACKAGE';
-  name: string;
-  price: string;
-  mrp: string;
-  description: string;
-  tat: string;
-  fastingNeeded: boolean;
-  sampleTypes: string[];
-  customSampleTypes: string;
-  includedTestIds: string[];
-  customTestNames: string;
-  active: boolean;
-};
+const blank:Form={id:'',type:'TEST',name:'',price:'',mrp:'',description:'',tat:'',fastingNeeded:false,sampleTypes:[],customSampleTypes:'',includedTestIds:[],customTestNames:'',active:true};
+const SAMPLE_TYPES=['Serum','EDTA','Fluoride','Urine'] as const;
 
-const blank: CatalogForm = {
-  id: '', type: 'TEST', name: '', price: '', mrp: '', description: '', tat: '',
-  fastingNeeded: false, sampleTypes: [], customSampleTypes: '', includedTestIds: [], customTestNames: '', active: true,
-};
-const SAMPLE_TYPES = ['Serum', 'EDTA', 'Fluoride', 'Urine'] as const;
-
-export default function ThyrocareCatalogPage() {
-  const [items, setItems] = useState<Item[]>([]);
-  const [form, setForm] = useState<CatalogForm>(blank);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [q, setQ] = useState('');
-  const [filter, setFilter] = useState('ALL');
-  const [packageTestQuery, setPackageTestQuery] = useState('');
-
-  async function load() {
-    setLoading(true); setError('');
-    try {
-      const r = await fetch('/api/admin/thyrocare/catalog?includeInactive=1', { cache: 'no-store' });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Unable to load catalogue.');
-      setItems([...(d.packages || []), ...(d.tests || [])]);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Unable to load catalogue.'); }
-    finally { setLoading(false); }
-  }
-  useEffect(() => { load(); }, []);
-
-  const tests = useMemo(() => items.filter((x) => x.type === 'TEST' && x.active), [items]);
-  const shown = useMemo(() => items.filter((x) => {
-    const hit = !q || x.name.toLowerCase().includes(q.toLowerCase());
-    return hit && (filter === 'ALL' || x.type === filter);
-  }), [items, q, filter]);
-  const packageTestMatches = useMemo(() => {
-    const query = packageTestQuery.trim().toLowerCase();
-    if (!query) return tests.slice(0, 30);
-    return tests.filter((x) => x.name.toLowerCase().includes(query)).slice(0, 30);
-  }, [tests, packageTestQuery]);
-
-  function edit(x: Item) {
-    const savedSamples = x.sampleTypes || [];
-    const standard = savedSamples.filter((s) => SAMPLE_TYPES.includes(s as (typeof SAMPLE_TYPES)[number]));
-    const custom = savedSamples.filter((s) => !SAMPLE_TYPES.includes(s as (typeof SAMPLE_TYPES)[number]));
-    setForm({
-      id: x.id, type: x.type, name: x.name, price: String(x.price), mrp: String(x.mrp || x.price),
-      description: x.description || '', tat: x.tat || '', fastingNeeded: x.fastingNeeded,
-      sampleTypes: standard, customSampleTypes: custom.join(', '),
-      includedTestIds: (x.includedTests || []).map((t) => t.id), customTestNames: '', active: x.active,
-    });
-    setPackageTestQuery('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-  function reset() { setForm(blank); setPackageTestQuery(''); }
-  function toggleSampleType(sample: string) {
-    setForm((x) => ({ ...x, sampleTypes: x.sampleTypes.includes(sample) ? x.sampleTypes.filter((s) => s !== sample) : [...x.sampleTypes, sample] }));
-  }
-  function togglePackageTest(id: string) {
-    setForm((x) => ({
-      ...x,
-      includedTestIds: x.includedTestIds.includes(id)
-        ? x.includedTestIds.filter((testId) => testId !== id)
-        : [...x.includedTestIds, id],
-    }));
-  }
-
-  async function save(e: React.FormEvent) {
-    e.preventDefault(); setSaving(true); setError('');
-    try {
-      const customTestNames = form.customTestNames.split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
-      const customSampleTypes = form.customSampleTypes.split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
-      const allSampleTypes = [...new Set([...form.sampleTypes, ...customSampleTypes])];
-      const payload = {
-        ...form,
-        price: Number(form.price) || 0,
-        mrp: Number(form.mrp) || Number(form.price) || 0,
-        sampleTypes: allSampleTypes,
-        includedTestIds: form.type === 'PACKAGE' ? form.includedTestIds : [],
-        customTestNames: form.type === 'PACKAGE' ? customTestNames : [],
-      };
-      const r = await fetch('/api/admin/thyrocare/catalog', {
-        method: form.id ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-      });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Unable to save item.');
-      reset(); await load();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Unable to save item.'); }
-    finally { setSaving(false); }
-  }
-
-  async function remove(x: Item) {
-    if (!confirm(`Delete ${x.name} from active Thyrocare catalogue?`)) return;
-    setError('');
-    try {
-      const r = await fetch('/api/admin/thyrocare/catalog', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: x.id, type: x.type }) });
-      const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Unable to delete item.'); await load();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Unable to delete item.'); }
-  }
-  async function restore(x: Item) {
-    setError('');
-    try {
-      const r = await fetch('/api/admin/thyrocare/catalog', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...x, active: true, description: x.description || '', tat: x.tat || '', sampleTypes: x.sampleTypes || [], includedTestIds: (x.includedTests || []).map((t) => t.id), customTestNames: [] }),
-      });
-      const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Unable to restore item.'); await load();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Unable to restore item.'); }
-  }
-
-  return <main style={{ minHeight: '100vh', background: '#f5f7f9', fontFamily: 'Arial,sans-serif', color: '#1f2937' }}>
-    <div style={{ maxWidth: 1380, margin: '0 auto', padding: 22 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-        <div><div style={{ fontSize: 12, fontWeight: 900, color: '#087f6f' }}>THYROCARE • MANUAL CATALOGUE</div><h1 style={{ margin: '5px 0' }}>Tests & Packages</h1><div style={{ color: '#64748b' }}>Separate Thyrocare names, prices, sample requirements and package contents.</div></div>
-        <div style={{ display: 'flex', gap: 8 }}><a href="/manual" style={btnLight}>← Manual Dashboard</a><a href="/admin" style={btnLight}>Admin</a></div>
-      </div>
-      {error && <div style={err}>{error}</div>}
-      <section style={{ display: 'grid', gridTemplateColumns: '410px minmax(0,1fr)', gap: 18, marginTop: 18 }}>
-        <form onSubmit={save} style={card}>
-          <h2 style={{ marginTop: 0, color: '#0d5f54' }}>{form.id ? 'Edit' : 'Add'} Test / Package</h2>
-          <label style={label}>Type<select value={form.type} onChange={(e) => setForm((x) => ({ ...x, type: e.target.value as 'TEST' | 'PACKAGE', includedTestIds: [], customTestNames: '' }))} style={input}><option value="TEST">Test</option><option value="PACKAGE">Package</option></select></label>
-          <label style={label}>Name *<input required value={form.name} onChange={(e) => setForm((x) => ({ ...x, name: e.target.value }))} style={input} placeholder="e.g. Aarogyam Profile" /></label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <label style={label}>Selling Price (₹) *<input required type="number" min="0" value={form.price} onChange={(e) => setForm((x) => ({ ...x, price: e.target.value }))} style={input} /></label>
-            <label style={label}>MRP (₹)<input type="number" min="0" value={form.mrp} onChange={(e) => setForm((x) => ({ ...x, mrp: e.target.value }))} style={input} /></label>
-          </div>
-          <label style={label}>TAT<input value={form.tat} onChange={(e) => setForm((x) => ({ ...x, tat: e.target.value }))} style={input} placeholder="e.g. 24 hours" /></label>
-
-          <div style={{ ...packageBox, marginTop: 10 }}>
-            <div style={{ fontWeight: 900, color: '#0d5f54' }}>Sample Type(s)</div>
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>Select all sample types needed. Packages can have multiple sample types.</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
-              {SAMPLE_TYPES.map((sample) => <label key={sample} style={sampleOption}><input type="checkbox" checked={form.sampleTypes.includes(sample)} onChange={() => toggleSampleType(sample)} /> {sample}</label>)}
-            </div>
-            <label style={label}>Other Sample Type(s)<input value={form.customSampleTypes} onChange={(e) => setForm((x) => ({ ...x, customSampleTypes: e.target.value }))} style={input} placeholder="e.g. Citrate Plasma, Swab, Stool" /></label>
-            {(form.sampleTypes.length > 0 || form.customSampleTypes.trim()) && <div style={{ marginTop: 7, fontSize: 11, color: '#0f766e', fontWeight: 800 }}>Selected: {[...form.sampleTypes, ...form.customSampleTypes.split(',').map((x) => x.trim()).filter(Boolean)].join(', ')}</div>}
-          </div>
-
-          {form.type === 'PACKAGE' && <div style={packageBox}>
-            <div style={{ fontWeight: 900, color: '#0d5f54' }}>Tests Included in Package</div>
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>Select existing Thyrocare tests or type new test names below.</div>
-            <input value={packageTestQuery} onChange={(e) => setPackageTestQuery(e.target.value)} style={input} placeholder="Search existing tests..." />
-            <div style={{ maxHeight: 190, overflowY: 'auto', marginTop: 7, border: '1px solid #e2e8f0', borderRadius: 8 }}>
-              {packageTestMatches.length === 0 ? <div style={{ padding: 10, fontSize: 12, color: '#64748b' }}>No matching test found.</div> : packageTestMatches.map((test) => <label key={test.id} style={testOption}><input type="checkbox" checked={form.includedTestIds.includes(test.id)} onChange={() => togglePackageTest(test.id)} /> <span>{test.name}</span></label>)}
-            </div>
-            {form.includedTestIds.length > 0 && <div style={{ marginTop: 8, fontSize: 11, color: '#0f766e', fontWeight: 800 }}>{form.includedTestIds.length} existing test{form.includedTestIds.length === 1 ? '' : 's'} selected</div>}
-            <label style={label}>Add Tests by Name<textarea rows={3} value={form.customTestNames} onChange={(e) => setForm((x) => ({ ...x, customTestNames: e.target.value }))} style={{ ...input, resize: 'vertical' }} placeholder="Enter new test names separated by comma or new line" /></label>
-            <div style={{ fontSize: 10, color: '#64748b', marginTop: 5 }}>New names will be added to the Thyrocare Test list automatically with ₹0 price, so you can update their individual price/details later.</div>
-          </div>}
-
-          <label style={label}>Description<textarea rows={4} value={form.description} onChange={(e) => setForm((x) => ({ ...x, description: e.target.value }))} style={{ ...input, resize: 'vertical' }} /></label>
-          <label style={{ ...label, display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={form.fastingNeeded} onChange={(e) => setForm((x) => ({ ...x, fastingNeeded: e.target.checked }))} /> Fasting required</label>
-          <label style={{ ...label, display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={form.active} onChange={(e) => setForm((x) => ({ ...x, active: e.target.checked }))} /> Active</label>
-          <div style={{ display: 'flex', gap: 8, marginTop: 15 }}><button disabled={saving} style={btnPrimary}>{saving ? 'Saving…' : form.id ? 'Update' : 'Add Item'}</button><button type="button" onClick={reset} style={btnLight}>Clear</button></div>
-        </form>
-
-        <div style={card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><div><h2 style={{ margin: '0 0 4px', color: '#0d5f54' }}>Thyrocare Price List</h2><div style={{ fontSize: 12, color: '#64748b' }}>{items.length} items</div></div><div style={{ display: 'flex', gap: 8 }}><input value={q} onChange={(e) => setQ(e.target.value)} style={{ ...input, width: 260, marginTop: 0 }} placeholder="Search test/package" /><select value={filter} onChange={(e) => setFilter(e.target.value)} style={{ ...input, width: 130, marginTop: 0 }}><option value="ALL">All</option><option value="TEST">Tests</option><option value="PACKAGE">Packages</option></select></div></div>
-          <div style={{ overflowX: 'auto', marginTop: 14 }}><table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}><thead><tr>{['Type','Name / Included Tests','MRP','Price','TAT','Fasting','Status','Actions'].map((h) => <th key={h} style={th}>{h}</th>)}</tr></thead><tbody>
-            {loading ? <tr><td colSpan={8} style={td}>Loading…</td></tr> : shown.length === 0 ? <tr><td colSpan={8} style={td}>No Thyrocare catalogue items yet.</td></tr> : shown.map((x) => <tr key={`${x.type}-${x.id}`}>
-              <td style={td}><span style={pill}>{x.type === 'TEST' ? 'Test' : 'Package'}</span></td>
-              <td style={td}><b>{x.name}</b>{x.sampleTypes?.length > 0 && <div style={sub}>Sample: {x.sampleTypes.join(', ')}</div>}{x.type === 'PACKAGE' && <div style={{ ...sub, marginTop: 5, color: '#475569' }}><b>Includes:</b> {(x.includedTests || []).length ? (x.includedTests || []).map((t) => t.name).join(', ') : 'No tests linked yet'}</div>}</td>
-              <td style={td}>₹{(x.mrp || x.price).toLocaleString('en-IN')}</td><td style={{ ...td, fontWeight: 900, color: '#087f6f' }}>₹{x.price.toLocaleString('en-IN')}</td><td style={td}>{x.tat || '—'}</td><td style={td}>{x.fastingNeeded ? 'Yes' : 'No'}</td><td style={td}>{x.active ? <span style={activePill}>Active</span> : <span style={inactivePill}>Deleted</span>}</td>
-              <td style={td}><div style={{ display: 'flex', gap: 6 }}><button onClick={() => edit(x)} style={smallBlue}>Edit</button>{x.active ? <button onClick={() => remove(x)} style={smallRed}>Delete</button> : <button onClick={() => restore(x)} style={smallGreen}>Restore</button>}</div></td>
-            </tr>)}
-          </tbody></table></div>
-        </div>
-      </section>
-    </div>
-  </main>;
+export default function ThyrocareCatalogPage(){
+ const[items,setItems]=useState<Item[]>([]);const[form,setForm]=useState<Form>(blank);const[loading,setLoading]=useState(true);const[saving,setSaving]=useState(false);const[error,setError]=useState('');const[q,setQ]=useState('');const[filter,setFilter]=useState('ALL');const[testQuery,setTestQuery]=useState('');
+ async function load(){setLoading(true);setError('');try{const r=await fetch('/api/admin/thyrocare/catalog?includeInactive=1',{cache:'no-store'});const d=await r.json();if(!r.ok)throw new Error(d.error||'Unable to load catalogue.');setItems([...(d.packages||[]),...(d.tests||[])])}catch(e){setError(e instanceof Error?e.message:'Unable to load catalogue.')}finally{setLoading(false)}}
+ useEffect(()=>{void load()},[]);
+ const tests=useMemo(()=>items.filter(x=>x.type==='TEST'&&x.active),[items]);
+ const shown=useMemo(()=>items.filter(x=>(!q||x.name.toLowerCase().includes(q.toLowerCase()))&&(filter==='ALL'||x.type===filter)),[items,q,filter]);
+ const matches=useMemo(()=>{const s=testQuery.trim().toLowerCase();return (s?tests.filter(x=>x.name.toLowerCase().includes(s)):tests).slice(0,40)},[tests,testQuery]);
+ function setType(type:CatalogType){setForm(x=>({...x,type,includedTestIds:[],customTestNames:''}));setTestQuery('')}
+ function toggleSample(sample:string){setForm(x=>({...x,sampleTypes:x.sampleTypes.includes(sample)?x.sampleTypes.filter(s=>s!==sample):[...x.sampleTypes,sample]}))}
+ function toggleTest(id:string){setForm(x=>({...x,includedTestIds:x.includedTestIds.includes(id)?x.includedTestIds.filter(v=>v!==id):[...x.includedTestIds,id]}))}
+ function edit(x:Item){const saved=x.sampleTypes||[];const standard=saved.filter(s=>SAMPLE_TYPES.includes(s as any));const custom=saved.filter(s=>!SAMPLE_TYPES.includes(s as any));setForm({id:x.id,type:x.type,name:x.name,price:String(x.price),mrp:String(x.mrp||x.price),description:x.description||'',tat:x.tat||'',fastingNeeded:x.fastingNeeded,sampleTypes:standard,customSampleTypes:custom.join(', '),includedTestIds:(x.includedTests||[]).map(t=>t.id),customTestNames:'',active:x.active});setTestQuery('');window.scrollTo({top:0,behavior:'smooth'})}
+ function reset(){setForm(blank);setTestQuery('')}
+ async function save(e:React.FormEvent){e.preventDefault();setSaving(true);setError('');try{const customTestNames=form.customTestNames.split(/[,\n]/).map(x=>x.trim()).filter(Boolean);const customSamples=form.customSampleTypes.split(/[,\n]/).map(x=>x.trim()).filter(Boolean);const isGroup=form.type!=='TEST';const payload={...form,price:Number(form.price)||0,mrp:Number(form.mrp)||Number(form.price)||0,sampleTypes:[...new Set([...form.sampleTypes,...customSamples])],includedTestIds:isGroup?form.includedTestIds:[],customTestNames:isGroup?customTestNames:[]};const r=await fetch('/api/admin/thyrocare/catalog',{method:form.id?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Unable to save item.');reset();await load()}catch(e){setError(e instanceof Error?e.message:'Unable to save item.')}finally{setSaving(false)}}
+ async function remove(x:Item){if(!confirm(`Delete ${x.name} from active Thyrocare catalogue?`))return;setError('');try{const r=await fetch('/api/admin/thyrocare/catalog',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:x.id,type:x.type})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Unable to delete item.');await load()}catch(e){setError(e instanceof Error?e.message:'Unable to delete item.')}}
+ async function restore(x:Item){setError('');try{const r=await fetch('/api/admin/thyrocare/catalog',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({...x,active:true,description:x.description||'',tat:x.tat||'',sampleTypes:x.sampleTypes||[],includedTestIds:(x.includedTests||[]).map(t=>t.id),customTestNames:[]})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Unable to restore item.');await load()}catch(e){setError(e instanceof Error?e.message:'Unable to restore item.')}}
+ const groupMode=form.type==='PACKAGE'||form.type==='PROFILE';
+ return <main style={{minHeight:'100vh',background:'#f5f7f9',fontFamily:'Arial,sans-serif',color:'#1f2937'}}><div style={{maxWidth:1400,margin:'0 auto',padding:22}}>
+  <div style={{display:'flex',justifyContent:'space-between',gap:16,alignItems:'center',flexWrap:'wrap'}}><div><div style={{fontSize:12,fontWeight:900,color:'#087f6f'}}>THYROCARE • MANUAL CATALOGUE</div><h1 style={{margin:'5px 0'}}>Tests, Packages & Profiles</h1><div style={{color:'#64748b'}}>Manage Thyrocare tests, packages, profiles, prices, samples and included tests.</div></div><a href="/manual" style={btnLight}>← Manual Dashboard</a></div>
+  {error&&<div style={err}>{error}</div>}
+  <section style={{display:'grid',gridTemplateColumns:'420px minmax(0,1fr)',gap:18,marginTop:18}}>
+   <form onSubmit={save} style={card}><h2 style={{marginTop:0,color:'#0d5f54'}}>{form.id?'Edit':'Add'} Test / Package / Profile</h2>
+    <label style={label}>Type<select value={form.type} onChange={e=>setType(e.target.value as CatalogType)} style={input}><option value="TEST">Test</option><option value="PACKAGE">Package</option><option value="PROFILE">Profile</option></select></label>
+    <label style={label}>Name *<input required value={form.name} onChange={e=>setForm(x=>({...x,name:e.target.value}))} style={input} placeholder={form.type==='PROFILE'?'e.g. Kidney Profile':'e.g. TSH / Aarogyam Package'}/></label>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}><label style={label}>Selling Price (₹) *<input required type="number" min="0" value={form.price} onChange={e=>setForm(x=>({...x,price:e.target.value}))} style={input}/></label><label style={label}>MRP (₹)<input type="number" min="0" value={form.mrp} onChange={e=>setForm(x=>({...x,mrp:e.target.value}))} style={input}/></label></div>
+    <label style={label}>TAT<input value={form.tat} onChange={e=>setForm(x=>({...x,tat:e.target.value}))} style={input} placeholder="e.g. 24 hours"/></label>
+    <div style={box}><b style={{color:'#0d5f54'}}>Sample Type(s)</b><div style={hint}>Select all required sample types.</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7,marginTop:8}}>{SAMPLE_TYPES.map(s=><label key={s} style={option}><input type="checkbox" checked={form.sampleTypes.includes(s)} onChange={()=>toggleSample(s)}/>{s}</label>)}</div><label style={label}>Others<input value={form.customSampleTypes} onChange={e=>setForm(x=>({...x,customSampleTypes:e.target.value}))} style={input} placeholder="Citrate Plasma, Swab, Stool"/></label></div>
+    {groupMode&&<div style={box}><b style={{color:'#0d5f54'}}>Tests Included in {form.type==='PROFILE'?'Profile':'Package'}</b><div style={hint}>Select tests already in the Thyrocare test list, or enter new test names manually.</div><input value={testQuery} onChange={e=>setTestQuery(e.target.value)} style={input} placeholder="Search existing test..."/><div style={{maxHeight:210,overflowY:'auto',border:'1px solid #dfe7e4',borderRadius:8,marginTop:8}}>{matches.length===0?<div style={{padding:10,color:'#64748b',fontSize:12}}>No matching test found.</div>:matches.map(t=><label key={t.id} style={testOption}><input type="checkbox" checked={form.includedTestIds.includes(t.id)} onChange={()=>toggleTest(t.id)}/><span>{t.name}</span></label>)}</div>{form.includedTestIds.length>0&&<div style={{...hint,color:'#087f6f',fontWeight:800,marginTop:7}}>{form.includedTestIds.length} existing test(s) selected</div>}<label style={label}>Enter Additional Test Names<textarea rows={4} value={form.customTestNames} onChange={e=>setForm(x=>({...x,customTestNames:e.target.value}))} style={{...input,resize:'vertical'}} placeholder="Enter test names separated by comma or new line"/></label><div style={hint}>New names are automatically added to the Thyrocare Test list with ₹0 price so you can update their price later.</div></div>}
+    <label style={label}>Description<textarea rows={4} value={form.description} onChange={e=>setForm(x=>({...x,description:e.target.value}))} style={{...input,resize:'vertical'}}/></label>
+    <label style={check}><input type="checkbox" checked={form.fastingNeeded} onChange={e=>setForm(x=>({...x,fastingNeeded:e.target.checked}))}/>Fasting required</label><label style={check}><input type="checkbox" checked={form.active} onChange={e=>setForm(x=>({...x,active:e.target.checked}))}/>Active</label>
+    <div style={{display:'flex',gap:8,marginTop:14}}><button disabled={saving} style={btnPrimary}>{saving?'Saving…':form.id?'Update':'Add Item'}</button><button type="button" onClick={reset} style={btnLight}>Clear</button></div>
+   </form>
+   <div style={card}><div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',flexWrap:'wrap'}}><div><h2 style={{margin:'0 0 4px',color:'#0d5f54'}}>Thyrocare Price List</h2><div style={hint}>{items.length} items</div></div><div style={{display:'flex',gap:8,flexWrap:'wrap'}}><input value={q} onChange={e=>setQ(e.target.value)} style={{...input,width:260,marginTop:0}} placeholder="Search test/package/profile"/><select value={filter} onChange={e=>setFilter(e.target.value)} style={{...input,width:150,marginTop:0}}><option value="ALL">All</option><option value="TEST">Tests</option><option value="PACKAGE">Packages</option><option value="PROFILE">Profiles</option></select></div></div>
+    <div style={{overflowX:'auto',marginTop:14}}><table style={{width:'100%',borderCollapse:'collapse',minWidth:900}}><thead><tr>{['Type','Name / Included Tests','MRP','Price','TAT','Fasting','Status','Actions'].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead><tbody>{loading?<tr><td colSpan={8} style={td}>Loading…</td></tr>:shown.length===0?<tr><td colSpan={8} style={td}>No catalogue items found.</td></tr>:shown.map(x=><tr key={`${x.type}-${x.id}`}><td style={td}><span style={pill}>{x.type==='TEST'?'Test':x.type==='PROFILE'?'Profile':'Package'}</span></td><td style={td}><b>{x.name}</b>{x.sampleTypes?.length>0&&<div style={sub}>Sample: {x.sampleTypes.join(', ')}</div>}{x.type!=='TEST'&&<div style={{...sub,marginTop:5,color:'#475569'}}><b>Includes:</b> {(x.includedTests||[]).length?(x.includedTests||[]).map(t=>t.name).join(', '):'No tests linked yet'}</div>}</td><td style={td}>₹{(x.mrp||x.price).toLocaleString('en-IN')}</td><td style={{...td,fontWeight:900,color:'#087f6f'}}>₹{x.price.toLocaleString('en-IN')}</td><td style={td}>{x.tat||'—'}</td><td style={td}>{x.fastingNeeded?'Yes':'No'}</td><td style={td}>{x.active?<span style={active}>Active</span>:<span style={inactive}>Deleted</span>}</td><td style={td}><div style={{display:'flex',gap:6}}><button onClick={()=>edit(x)} style={blue}>Edit</button>{x.active?<button onClick={()=>void remove(x)} style={red}>Delete</button>:<button onClick={()=>void restore(x)} style={green}>Restore</button>}</div></td></tr>)}</tbody></table></div>
+   </div>
+  </section>
+ </div></main>
 }
 
-const card = { background:'#fff',border:'1px solid #dfe5e9',borderRadius:12,padding:16,boxShadow:'0 4px 18px rgba(15,23,42,.05)' } as const;
-const label = { display:'block',fontSize:12,fontWeight:800,marginTop:10 } as const;
-const input = { display:'block',width:'100%',boxSizing:'border-box' as const,marginTop:5,padding:'10px 11px',border:'1px solid #cfd8df',borderRadius:8,font:'inherit',background:'#fff' } as const;
-const btnPrimary = { border:0,borderRadius:8,padding:'10px 14px',background:'#087f6f',color:'#fff',fontWeight:900,cursor:'pointer',textDecoration:'none' } as const;
-const btnLight = { border:'1px solid #d5dce1',borderRadius:8,padding:'10px 14px',background:'#fff',color:'#334155',fontWeight:800,cursor:'pointer',textDecoration:'none' } as const;
-const err = { marginTop:14,padding:12,borderRadius:10,background:'#fff1f2',border:'1px solid #fecdd3',color:'#9f1239' } as const;
-const packageBox = { marginTop:12,padding:12,border:'1px solid #cfe5df',borderRadius:10,background:'#f8fbfa' } as const;
-const testOption = { display:'flex',gap:8,alignItems:'center',padding:'8px 9px',borderBottom:'1px solid #edf0f2',fontSize:12,cursor:'pointer',background:'#fff' } as const;
-const sampleOption = { display:'flex',gap:7,alignItems:'center',padding:'8px 9px',border:'1px solid #dbe8e4',borderRadius:8,fontSize:12,cursor:'pointer',background:'#fff' } as const;
-const th = { textAlign:'left' as const,padding:'10px 8px',borderBottom:'1px solid #dbe3e8',background:'#fafcfd',fontSize:12 };
-const td = { padding:'10px 8px',borderBottom:'1px solid #e5e7eb',verticalAlign:'top' as const,fontSize:12 };
-const sub = { fontSize:10,color:'#64748b',marginTop:3 };
-const pill = { display:'inline-block',padding:'4px 7px',borderRadius:999,background:'#eef7f4',color:'#0d5f54',fontSize:10,fontWeight:900 };
-const activePill = { ...pill,background:'#dcfce7',color:'#166534' };
-const inactivePill = { ...pill,background:'#fee2e2',color:'#991b1b' };
-const smallBlue = { border:0,borderRadius:6,padding:'6px 9px',background:'#1688e8',color:'#fff',fontWeight:800,cursor:'pointer' } as const;
-const smallRed = { border:0,borderRadius:6,padding:'6px 9px',background:'#dc2626',color:'#fff',fontWeight:800,cursor:'pointer' } as const;
-const smallGreen = { border:0,borderRadius:6,padding:'6px 9px',background:'#16a34a',color:'#fff',fontWeight:800,cursor:'pointer' } as const;
+const card={background:'#fff',border:'1px solid #dfe5e9',borderRadius:12,padding:16,boxShadow:'0 4px 18px rgba(15,23,42,.05)'} as const;
+const label={display:'block',fontSize:12,fontWeight:800,marginTop:10} as const;
+const input={display:'block',width:'100%',boxSizing:'border-box' as const,marginTop:5,padding:'10px 11px',border:'1px solid #cfd8df',borderRadius:8,font:'inherit',background:'#fff'} as const;
+const btnPrimary={border:0,borderRadius:8,padding:'10px 14px',background:'#087f6f',color:'#fff',fontWeight:900,cursor:'pointer'} as const;
+const btnLight={border:'1px solid #d5dce1',borderRadius:8,padding:'10px 14px',background:'#fff',color:'#334155',fontWeight:800,cursor:'pointer',textDecoration:'none'} as const;
+const err={marginTop:14,padding:12,borderRadius:10,background:'#fff1f2',border:'1px solid #fecdd3',color:'#9f1239'} as const;
+const box={marginTop:12,padding:12,border:'1px solid #cfe5df',borderRadius:10,background:'#f8fbfa'} as const;
+const hint={fontSize:11,color:'#64748b',marginTop:4} as const;
+const option={display:'flex',gap:7,alignItems:'center',padding:'8px 9px',border:'1px solid #dbe8e4',borderRadius:8,fontSize:12,cursor:'pointer',background:'#fff'} as const;
+const testOption={display:'flex',gap:8,alignItems:'center',padding:'8px 9px',borderBottom:'1px solid #edf0f2',fontSize:12,cursor:'pointer',background:'#fff'} as const;
+const check={display:'flex',gap:8,alignItems:'center',fontSize:12,fontWeight:800,marginTop:10} as const;
+const th={textAlign:'left' as const,padding:'10px 8px',borderBottom:'1px solid #dbe3e8',background:'#fafcfd',fontSize:12};
+const td={padding:'10px 8px',borderBottom:'1px solid #e5e7eb',verticalAlign:'top' as const,fontSize:12};
+const sub={fontSize:10,color:'#64748b',marginTop:3};
+const pill={display:'inline-block',padding:'4px 7px',borderRadius:999,background:'#eef7f4',color:'#0d5f54',fontSize:10,fontWeight:900};
+const active={...pill,background:'#dcfce7',color:'#166534'};const inactive={...pill,background:'#fee2e2',color:'#991b1b'};
+const blue={border:0,borderRadius:6,padding:'6px 9px',background:'#1688e8',color:'#fff',fontWeight:800,cursor:'pointer'} as const;const red={...blue,background:'#dc2626'} as const;const green={...blue,background:'#16a34a'} as const;
