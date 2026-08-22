@@ -41,6 +41,11 @@ enum PaymentMode {
   OTHER
 }
 
+enum PaymentTiming {
+  ONLINE_NOW
+  SAMPLE_COLLECTION
+}
+
 model Patient {
   id        String    @id @default(cuid())
   name      String
@@ -141,7 +146,7 @@ model Booking {
   mode                   BookingMode
   source                 BookingSource        @default(WEBSITE)
   address                String?
-  pincode                String?
+  pincode                 String?
   doctorName             String?
   printedReport          Boolean              @default(false)
   printedReportFee       Int                  @default(0)
@@ -150,6 +155,7 @@ model Booking {
   status                 BookingStatus        @default(PENDING)
   paymentStatus          PaymentStatus        @default(PENDING)
   paymentMode            PaymentMode?
+  paymentTiming          PaymentTiming        @default(ONLINE_NOW)
   totalAmount            Int
   technician             String?
   technicianId           String?
@@ -191,6 +197,7 @@ model Booking {
   @@index([collectionDate])
   @@index([status])
   @@index([paymentStatus])
+  @@index([paymentTiming])
   @@index([source])
   @@index([workflowStatus])
 }
@@ -271,6 +278,12 @@ model AdminAuditLog {
   @@index([entityType])
   @@index([entityId])
   @@index([createdAt])
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 model ThyrocareCredential {
