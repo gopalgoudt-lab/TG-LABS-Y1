@@ -57,118 +57,50 @@ export default function PaymentCollectionEnhancer(){
         }
 
         const button=document.createElement('button');
-        button.type='button';
-        button.textContent=`Collect ${money(o.balance)}`;
+        button.type='button';button.textContent=`Collect ${money(o.balance)}`;
         button.style.cssText='border:0;border-radius:6px;background:#0f766e;color:white;padding:6px 8px;font-size:10px;font-weight:900;cursor:pointer;width:max-content';
-
         const panel=document.createElement('div');
         panel.style.cssText='display:none;grid-template-columns:1fr 78px;gap:5px;padding:7px;border:1px solid #dbe7e5;border-radius:7px;background:#f8fffd';
-
-        const discountTitle=document.createElement('div');
-        discountTitle.textContent='Additional Discount';
-        discountTitle.style.cssText='grid-column:1/-1;font-size:9px;font-weight:900;color:#334155';
-
-        const discount=document.createElement('input');
-        discount.type='number';discount.min='0';discount.value='0';discount.placeholder='Discount';
-        discount.style.cssText='width:100%;box-sizing:border-box;padding:6px;border:1px solid #cbd5e1;border-radius:5px;font-size:11px';
-
-        const percentLabel=document.createElement('label');
-        percentLabel.style.cssText='display:flex;align-items:center;justify-content:center;gap:4px;border:1px solid #cbd5e1;border-radius:5px;background:white;font-size:10px;font-weight:900;color:#0f766e;cursor:pointer';
-        const percent=document.createElement('input');percent.type='checkbox';percent.style.cssText='width:15px;height:15px;accent-color:#0f766e';
-        percentLabel.append(percent,document.createTextNode('%'));
-
-        const discountHint=document.createElement('div');
-        discountHint.style.cssText='grid-column:1/-1;font-size:8px;color:#64748b;font-weight:700';
-
-        const amountTitle=document.createElement('div');
-        amountTitle.textContent='Amount Received';
-        amountTitle.style.cssText='grid-column:1/-1;font-size:9px;font-weight:900;color:#334155;margin-top:2px';
-
-        const amount=document.createElement('input');
-        amount.type='number';amount.min='0';amount.max=String(o.balance);amount.value=String(o.balance);amount.placeholder='Amount';
-        amount.style.cssText='width:100%;box-sizing:border-box;padding:6px;border:1px solid #cbd5e1;border-radius:5px;font-size:11px';
-
-        const mode=document.createElement('select');
-        mode.style.cssText='width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:5px;font-size:11px;background:white';
+        const discountTitle=document.createElement('div');discountTitle.textContent='Additional Discount';discountTitle.style.cssText='grid-column:1/-1;font-size:9px;font-weight:900;color:#334155';
+        const discount=document.createElement('input');discount.type='number';discount.min='0';discount.value='0';discount.placeholder='Discount';discount.style.cssText='width:100%;box-sizing:border-box;padding:6px;border:1px solid #cbd5e1;border-radius:5px;font-size:11px';
+        const percentLabel=document.createElement('label');percentLabel.style.cssText='display:flex;align-items:center;justify-content:center;gap:4px;border:1px solid #cbd5e1;border-radius:5px;background:white;font-size:10px;font-weight:900;color:#0f766e;cursor:pointer';
+        const percent=document.createElement('input');percent.type='checkbox';percent.style.cssText='width:15px;height:15px;accent-color:#0f766e';percentLabel.append(percent,document.createTextNode('%'));
+        const discountHint=document.createElement('div');discountHint.style.cssText='grid-column:1/-1;font-size:8px;color:#64748b;font-weight:700';
+        const amountTitle=document.createElement('div');amountTitle.textContent='Amount Received';amountTitle.style.cssText='grid-column:1/-1;font-size:9px;font-weight:900;color:#334155;margin-top:2px';
+        const amount=document.createElement('input');amount.type='number';amount.min='0';amount.max=String(o.balance);amount.value=String(o.balance);amount.placeholder='Amount';amount.style.cssText='width:100%;box-sizing:border-box;padding:6px;border:1px solid #cbd5e1;border-radius:5px;font-size:11px';
+        const mode=document.createElement('select');mode.style.cssText='width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:5px;font-size:11px;background:white';
         for(const x of ['CASH','UPI','CARD']){const op=document.createElement('option');op.value=x;op.textContent=x==='CASH'?'Cash':x==='UPI'?'UPI':'Card';mode.append(op)}
+        const reference=document.createElement('input');reference.placeholder='Reference / UTR (optional)';reference.style.cssText='grid-column:1/-1;width:100%;box-sizing:border-box;padding:6px;border:1px solid #cbd5e1;border-radius:5px;font-size:10px';
+        const waLabel=document.createElement('label');waLabel.style.cssText='grid-column:1/-1;display:flex;align-items:center;gap:5px;font-size:9px;font-weight:800;color:#334155';
+        const waCheck=document.createElement('input');waCheck.type='checkbox';waCheck.checked=true;waLabel.append(waCheck,document.createTextNode('Send WhatsApp payment confirmation'));
+        const save=document.createElement('button');save.type='button';save.textContent='Apply & Record Payment';save.style.cssText='grid-column:1/-1;border:0;border-radius:6px;background:#15803d;color:white;padding:7px;font-size:10px;font-weight:900;cursor:pointer';
+        const message=document.createElement('div');message.style.cssText='grid-column:1/-1;font-size:9px;font-weight:800;color:#b91c1c;display:none';
 
-        const reference=document.createElement('input');
-        reference.placeholder='Reference / UTR (optional)';
-        reference.style.cssText='grid-column:1/-1;width:100%;box-sizing:border-box;padding:6px;border:1px solid #cbd5e1;border-radius:5px;font-size:10px';
-
-        const waLabel=document.createElement('label');
-        waLabel.style.cssText='grid-column:1/-1;display:flex;align-items:center;gap:5px;font-size:9px;font-weight:800;color:#334155';
-        const waCheck=document.createElement('input');waCheck.type='checkbox';waCheck.checked=true;
-        waLabel.append(waCheck,document.createTextNode('Send WhatsApp payment confirmation'));
-
-        const save=document.createElement('button');
-        save.type='button';save.textContent='Apply & Record Payment';
-        save.style.cssText='grid-column:1/-1;border:0;border-radius:6px;background:#15803d;color:white;padding:7px;font-size:10px;font-weight:900;cursor:pointer';
-
-        const message=document.createElement('div');
-        message.style.cssText='grid-column:1/-1;font-size:9px;font-weight:800;color:#b91c1c;display:none';
-
-        function discountAmount(){
-          const raw=Math.max(0,Number(discount.value)||0);
-          return percent.checked?Math.round(Number(o.balance)*Math.min(100,raw)/100):Math.round(raw);
-        }
+        function discountAmount(){const raw=Math.max(0,Number(discount.value)||0);return percent.checked?Math.round(Number(o?.balance||0)*Math.min(100,raw)/100):Math.round(raw)}
         function recalc(){
-          const extra=Math.min(Number(o.balance),discountAmount());
-          const adjusted=Math.max(0,Number(o.balance)-extra);
-          amount.max=String(adjusted);
-          amount.value=String(adjusted);
-          if(percent.checked){
-            const pct=Math.min(100,Math.max(0,Number(discount.value)||0));
-            discountHint.textContent=`${pct}% of pending ${money(o.balance)} = ${money(extra)} discount. New pending: ${money(adjusted)}.`;
-          }else{
-            discountHint.textContent=`Discount ${money(extra)}. New pending: ${money(adjusted)}.`;
-          }
+          const balance=Number(o?.balance||0);const extra=Math.min(balance,discountAmount());const adjusted=Math.max(0,balance-extra);
+          amount.max=String(adjusted);amount.value=String(adjusted);
+          if(percent.checked){const pct=Math.min(100,Math.max(0,Number(discount.value)||0));discountHint.textContent=`${pct}% of pending ${money(balance)} = ${money(extra)} discount. New pending: ${money(adjusted)}.`}
+          else discountHint.textContent=`Discount ${money(extra)}. New pending: ${money(adjusted)}.`;
         }
-        recalc();
-        discount.addEventListener('input',recalc);
-        percent.addEventListener('change',()=>{discount.max=percent.checked?'100':String(o.balance);recalc()});
-
+        recalc();discount.addEventListener('input',recalc);percent.addEventListener('change',()=>{discount.max=percent.checked?'100':String(o?.balance||0);recalc()});
         button.addEventListener('click',()=>{panel.style.display=panel.style.display==='grid'?'none':'grid'});
         save.addEventListener('click',async()=>{
-          const extra=Math.min(Number(o.balance),discountAmount());
-          const adjustedBalance=Math.max(0,Number(o.balance)-extra);
-          const value=Math.round(Number(amount.value)||0);
+          const balance=Number(o?.balance||0);const extra=Math.min(balance,discountAmount());const adjustedBalance=Math.max(0,balance-extra);const value=Math.round(Number(amount.value)||0);
           if(value<0||value>adjustedBalance){message.textContent=`Enter an amount from ₹0 to ${money(adjustedBalance)}.`;message.style.display='block';return}
           if(value===0&&extra===0){message.textContent='Enter a payment amount or discount.';message.style.display='block';return}
           save.disabled=true;save.textContent='Saving…';message.style.display='none';
           try{
-            const r=await fetch(`/api/admin/thyrocare/orders/${encodeURIComponent(o.id)}/payment`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:value,additionalDiscount:extra,mode:mode.value,reference:reference.value})});
-            const d=await r.json();
-            if(!r.ok)throw new Error(d.error||'Unable to record payment.');
-            if(waCheck.checked){
-              const status=Number(d.balance)<=0?'PAID':'PARTIALLY PAID';
-              const text=`Dear ${o.patient.name},\n\nPayment update confirmed.\nBill No: ${o.billNumber||'-'}\nOrder ID: ${o.orderId||o.id}${Number(d.additionalDiscount)>0?`\nAdditional discount: ${money(d.additionalDiscount)}`:''}\nUpdated bill amount: ${money(d.netAmount)}\nAmount received: ${money(d.amount)}\nTotal paid: ${money(d.paidAmount)}\nBalance: ${money(d.balance)}\nPayment mode: ${mode.options[mode.selectedIndex]?.text||mode.value}\nPayment status: ${status}${reference.value.trim()?`\nReference: ${reference.value.trim()}`:''}\n\nThank you.\nThyrocare Support: 9701162302`;
-              window.open(`https://wa.me/91${String(o.patient.phone||'').replace(/\D/g,'').slice(-10)}?text=${encodeURIComponent(text)}`,'_blank');
-            }
+            const r=await fetch(`/api/admin/thyrocare/orders/${encodeURIComponent(o.id)}/payment`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:value,additionalDiscount:extra,mode:mode.value,reference:reference.value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Unable to record payment.');
+            if(waCheck.checked){const status=Number(d.balance)<=0?'PAID':'PARTIALLY PAID';const text=`Dear ${o.patient.name},\n\nPayment update confirmed.\nBill No: ${o.billNumber||'-'}\nOrder ID: ${o.orderId||o.id}${Number(d.additionalDiscount)>0?`\nAdditional discount: ${money(d.additionalDiscount)}`:''}\nUpdated bill amount: ${money(d.netAmount)}\nAmount received: ${money(d.amount)}\nTotal paid: ${money(d.paidAmount)}\nBalance: ${money(d.balance)}\nPayment mode: ${mode.options[mode.selectedIndex]?.text||mode.value}\nPayment status: ${status}${reference.value.trim()?`\nReference: ${reference.value.trim()}`:''}\n\nThank you.\nThyrocare Support: 9701162302`;window.open(`https://wa.me/91${String(o.patient.phone||'').replace(/\D/g,'').slice(-10)}?text=${encodeURIComponent(text)}`,'_blank')}
             window.setTimeout(()=>window.location.reload(),350);
           }catch(e){message.textContent=e instanceof Error?e.message:'Unable to record payment.';message.style.display='block';save.disabled=false;save.textContent='Apply & Record Payment'}
         });
-
-        panel.append(discountTitle,discount,percentLabel,discountHint,amountTitle,amount,mode,reference,waLabel,save,message);
-        wrap.append(button,panel);
-        cell.append(wrap);
+        panel.append(discountTitle,discount,percentLabel,discountHint,amountTitle,amount,mode,reference,waLabel,save,message);wrap.append(button,panel);cell.append(wrap);
       }
     }
-
-    async function load(){
-      try{
-        const r=await fetch('/api/admin/thyrocare/orders',{cache:'no-store'});const d=await r.json();
-        if(!r.ok)return;
-        orders.clear();
-        for(const o of d.orders||[])orders.set(String(o.id),o);
-        inject();
-      }catch{}
-    }
-
-    load();
-    const timer=window.setInterval(()=>{inject()},1200);
-    const onChange=()=>window.setTimeout(load,300);
-    document.addEventListener('change',onChange,true);
+    async function load(){try{const r=await fetch('/api/admin/thyrocare/orders',{cache:'no-store'});const d=await r.json();if(!r.ok)return;orders.clear();for(const o of d.orders||[])orders.set(String(o.id),o);inject()}catch{}}
+    load();const timer=window.setInterval(()=>{inject()},1200);const onChange=()=>window.setTimeout(load,300);document.addEventListener('change',onChange,true);
     return()=>{stopped=true;window.clearInterval(timer);document.removeEventListener('change',onChange,true)};
   },[pathname]);
   return null;
