@@ -3,7 +3,7 @@
 import {useEffect} from 'react';
 import {usePathname} from 'next/navigation';
 
-// Fresh post-reconnect deployment trigger for compact Manual Dashboard layout.
+// Fresh deployment trigger after disconnecting duplicate Vercel project Git integration.
 export default function CompactOrderActionsEnhancer(){
   const pathname=usePathname();
 
