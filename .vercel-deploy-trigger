@@ -1,1 +1,1 @@
-Trigger Vercel deployment for manual pending payment UI commit 8e07d8f3a37e7b21264c3c08ca2567a0d5825fcc.
+Retrigger Vercel production deployment for compact workflow commit 166c852 and pending payment UI commit 8e07d8f. Includes latest main changes.
