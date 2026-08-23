@@ -3,6 +3,7 @@
 import {useEffect} from 'react';
 import {usePathname} from 'next/navigation';
 
+// Compact Manual Dashboard action-column layout. Deployment retrigger: 2026-08-23.
 export default function CompactOrderActionsEnhancer(){
   const pathname=usePathname();
   useEffect(()=>{
