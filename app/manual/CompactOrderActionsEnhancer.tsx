@@ -3,6 +3,7 @@
 import {useEffect} from 'react';
 import {usePathname} from 'next/navigation';
 
+// Fresh post-Vercel-settings deployment trigger for compact Manual Dashboard layout.
 export default function CompactOrderActionsEnhancer(){
   const pathname=usePathname();
 
