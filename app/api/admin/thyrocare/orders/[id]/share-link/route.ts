@@ -21,10 +21,10 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     const body=bodySchema.parse(await request.json());
     const exists=await prisma.booking.findFirst({where:{id,createdByAdmin:'THYROCARE_MANUAL'},select:{id:true}});
     if(!exists)return NextResponse.json({error:'Manual order not found.'},{status:404});
-    const payload=Buffer.from(JSON.stringify({id,type:body.type,documentId:body.documentId||null,exp:Date.now()+7*24*60*60*1000})).toString('base64url');
+    const payload=Buffer.from(JSON.stringify({id,type:body.type,documentId:body.documentId||null})).toString('base64url');
     const token=`${payload}.${sign(payload)}`;
     const origin=new URL(request.url).origin;
-    return NextResponse.json({ok:true,url:`${origin}/api/public/thyrocare/document?token=${encodeURIComponent(token)}`,expiresInHours:168});
+    return NextResponse.json({ok:true,url:`${origin}/api/public/thyrocare/document?token=${encodeURIComponent(token)}`,expires:false});
   }catch(error){
     if(error instanceof z.ZodError)return NextResponse.json({error:'Invalid share request.'},{status:400});
     const e=thyrocareAuthError(error);
