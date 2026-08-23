@@ -25,7 +25,7 @@ export default function OrderWorkflowEnhancer(){
       const s=document.createElement('span');
       const colors=state==='done'?['#dcfce7','#166534','#86efac']:state==='active'?['#fef3c7','#92400e','#fcd34d']:['#f1f5f9','#64748b','#cbd5e1'];
       s.textContent=text;
-      s.style.cssText=`display:inline-flex;align-items:center;padding:4px 7px;border-radius:999px;background:${colors[0]};color:${colors[1]};border:1px solid ${colors[2]};font-size:9px;font-weight:900;white-space:nowrap`;
+      s.style.cssText=`display:inline-flex;align-items:center;justify-content:center;padding:3px 6px;border-radius:999px;background:${colors[0]};color:${colors[1]};border:1px solid ${colors[2]};font-size:8px;line-height:1.15;font-weight:900;white-space:nowrap`;
       return s;
     }
     function inject(){
@@ -45,8 +45,8 @@ export default function OrderWorkflowEnhancer(){
         const paymentState=balance<=0?'done':paid>0?'active':'pending';
         const wrap=document.createElement('div');
         wrap.dataset.orderWorkflow=o.id;
-        wrap.style.cssText='margin-top:7px;padding:7px;border:1px solid #dbe7e5;border-radius:8px;background:#f8fffd;display:flex;flex-wrap:wrap;gap:5px;min-width:240px';
-        const title=document.createElement('div');title.textContent='ORDER WORKFLOW';title.style.cssText='width:100%;font-size:9px;font-weight:900;color:#0f766e;letter-spacing:.04em;margin-bottom:1px';
+        wrap.style.cssText='margin-top:5px;padding:5px 6px;border:1px solid #dbe7e5;border-radius:7px;background:#f8fffd;display:grid;grid-template-columns:repeat(3,max-content);align-items:center;gap:4px 5px;width:max-content;max-width:100%;min-width:0';
+        const title=document.createElement('div');title.textContent='ORDER WORKFLOW';title.style.cssText='grid-column:1/-1;font-size:8px;line-height:1;font-weight:900;color:#0f766e;letter-spacing:.04em;margin-bottom:1px';
         wrap.append(title);
         wrap.append(
           pill('1 Order Created','done'),
