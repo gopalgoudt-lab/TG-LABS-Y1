@@ -33,8 +33,9 @@ export default function DiscountPercentEnhancer(){
       for(const label of labels){
         const heading=label.childNodes[0]?.textContent?.trim()||'';
         if(heading!=='Discount'&&heading!=='Discount (₹)')continue;
-        const hiddenDiscountInput=label.querySelector('input[type="number"]') as HTMLInputElement|null;
-        if(!hiddenDiscountInput||label.querySelector('[data-discount-checkbox-ui="1"]'))continue;
+        const foundDiscountInput=label.querySelector('input[type="number"]') as HTMLInputElement|null;
+        if(!foundDiscountInput||label.querySelector('[data-discount-checkbox-ui="1"]'))continue;
+        const hiddenDiscountInput:HTMLInputElement=foundDiscountInput;
 
         hiddenDiscountInput.style.display='none';
 
