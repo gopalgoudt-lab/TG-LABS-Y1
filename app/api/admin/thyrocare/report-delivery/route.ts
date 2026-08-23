@@ -15,7 +15,7 @@ export async function GET(request:Request){
     await requireThyrocareRole(request,['ADMIN','STAFF']);
     const rows=await prisma.booking.findMany({
       where:{createdByAdmin:'THYROCARE_MANUAL'},
-      select:{id:true,adminNotes:true},
+      select:{id:true,adminNotes:true,printedReport:true},
       orderBy:{createdAt:'desc'},
       take:250,
     });
@@ -23,6 +23,9 @@ export async function GET(request:Request){
       const meta=parseMeta(row.adminNotes);
       return {
         id:row.id,
+        printed:row.printedReport===true,
+        printedAt:meta.reportPrintedAt||null,
+        printedByRole:meta.reportPrintedByRole||null,
         delivered:meta.reportDelivered===true,
         deliveredAt:meta.reportDeliveredAt||null,
         deliveredByRole:meta.reportDeliveredByRole||null,
@@ -34,7 +37,11 @@ export async function GET(request:Request){
   }
 }
 
-const patchSchema=z.object({id:z.string().min(1),delivered:z.boolean()});
+const patchSchema=z.object({
+  id:z.string().min(1),
+  printed:z.boolean().optional(),
+  delivered:z.boolean().optional(),
+}).refine(v=>typeof v.printed==='boolean'||typeof v.delivered==='boolean',{message:'Select a report status to update.'});
 
 export async function PATCH(request:Request){
   try{
@@ -44,26 +51,30 @@ export async function PATCH(request:Request){
     if(!booking)return NextResponse.json({error:'Order not found.'},{status:404});
     const meta=parseMeta(booking.adminNotes);
     const now=new Date().toISOString();
+    const printed=typeof body.printed==='boolean'?body.printed:booking.printedReport;
+    const delivered=typeof body.delivered==='boolean'?body.delivered:meta.reportDelivered===true;
     const updated={
       ...meta,
-      reportDelivered:body.delivered,
-      reportDeliveredAt:body.delivered?now:null,
-      reportDeliveredByRole:body.delivered?identity.role:null,
+      reportPrintedAt:typeof body.printed==='boolean'?(body.printed?now:null):(meta.reportPrintedAt||null),
+      reportPrintedByRole:typeof body.printed==='boolean'?(body.printed?identity.role:null):(meta.reportPrintedByRole||null),
+      reportDelivered:delivered,
+      reportDeliveredAt:typeof body.delivered==='boolean'?(body.delivered?now:null):(meta.reportDeliveredAt||null),
+      reportDeliveredByRole:typeof body.delivered==='boolean'?(body.delivered?identity.role:null):(meta.reportDeliveredByRole||null),
     };
-    await prisma.booking.update({where:{id:booking.id},data:{adminNotes:JSON.stringify(updated)}});
+    await prisma.booking.update({where:{id:booking.id},data:{printedReport:printed,adminNotes:JSON.stringify(updated)}});
     await writeAdminAudit(request,{
-      action:'THYROCARE_REPORT_DELIVERY_UPDATED',
+      action:'THYROCARE_REPORT_STATUS_UPDATED',
       entityType:'Booking',
       entityId:booking.id,
-      summary:`${identity.role} marked report delivered ${body.delivered?'Yes':'No'} for ${booking.id}`,
-      metadata:{role:identity.role,reportDelivered:body.delivered,reportDeliveredAt:body.delivered?now:null},
+      summary:`${identity.role} updated report status for ${booking.id}`,
+      metadata:{role:identity.role,reportPrinted:printed,reportDelivered:delivered,reportPrintedAt:updated.reportPrintedAt,reportDeliveredAt:updated.reportDeliveredAt},
     });
-    return NextResponse.json({ok:true,id:booking.id,delivered:body.delivered,deliveredAt:body.delivered?now:null});
+    return NextResponse.json({ok:true,id:booking.id,printed,printedAt:updated.reportPrintedAt,delivered,deliveredAt:updated.reportDeliveredAt});
   }catch(error){
-    if(error instanceof z.ZodError)return NextResponse.json({error:'Invalid report delivery value.'},{status:400});
+    if(error instanceof z.ZodError)return NextResponse.json({error:error.issues[0]?.message||'Invalid report status value.'},{status:400});
     const e=thyrocareAuthError(error);
     if(error instanceof Error&&['FORBIDDEN','UNAUTHENTICATED','THYROCARE_AUTH_NOT_CONFIGURED'].includes(error.message))return NextResponse.json({error:e.error},{status:e.status});
     console.error('PATCH /api/admin/thyrocare/report-delivery failed',error);
-    return NextResponse.json({error:'Unable to update report delivery status.'},{status:500});
+    return NextResponse.json({error:'Unable to update report status.'},{status:500});
   }
 }
