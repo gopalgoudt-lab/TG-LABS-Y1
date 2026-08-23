@@ -1,43 +1,52 @@
-.thyrocare-manual{font-size:15px;background:#f4f7f6;min-height:100vh;color:#1f2937}
+.thyrocare-manual{font-size:15px;background:#eef4f2;min-height:100vh;color:#1f2937}
 .thyrocare-manual *{box-sizing:border-box}
-.thyrocare-manual main{background:#f4f7f6!important;overflow-x:hidden}
-.thyrocare-manual main>div{grid-template-columns:232px minmax(0,1fr)!important;min-height:100vh;max-width:1600px!important;width:100%!important;margin:0 auto!important}
-.thyrocare-manual aside{background:#fff!important;box-shadow:4px 0 18px rgba(15,23,42,.04);z-index:2}
-.thyrocare-manual aside a{font-size:13px!important;padding:11px 12px!important;transition:background .16s ease,color .16s ease}
-.thyrocare-manual aside a:hover{background:#f0f8f5!important;color:#0d6b5d!important}
-.thyrocare-manual aside div{line-height:1.35}
-.thyrocare-manual section>div{max-width:1600px;margin:0 auto;min-width:0}
-.thyrocare-manual header{box-shadow:0 10px 26px rgba(8,127,111,.14)}
+.thyrocare-manual main{background:linear-gradient(180deg,#f6faf8 0,#eef4f2 100%)!important;overflow-x:hidden}
+.thyrocare-manual main>div{min-height:100vh;max-width:1640px!important;width:100%!important;margin:0 auto!important}
+.thyrocare-manual header{box-shadow:0 12px 30px rgba(8,127,111,.16);border:1px solid rgba(255,255,255,.16)}
 .thyrocare-manual input,.thyrocare-manual select,.thyrocare-manual textarea,.thyrocare-manual button{font-size:14px!important}
 .thyrocare-manual input,.thyrocare-manual select{min-height:42px}
-.thyrocare-manual input,.thyrocare-manual select,.thyrocare-manual textarea{transition:border-color .16s ease,box-shadow .16s ease;max-width:100%}
-.thyrocare-manual input:focus,.thyrocare-manual select:focus,.thyrocare-manual textarea:focus{outline:none!important;border-color:#0c8a78!important;box-shadow:0 0 0 3px rgba(12,138,120,.11)!important}
+.thyrocare-manual input,.thyrocare-manual select,.thyrocare-manual textarea{transition:border-color .16s ease,box-shadow .16s ease,background .16s ease;max-width:100%}
+.thyrocare-manual input:focus,.thyrocare-manual select:focus,.thyrocare-manual textarea:focus{outline:none!important;border-color:#0c8a78!important;box-shadow:0 0 0 3px rgba(12,138,120,.11)!important;background:#fff!important}
 .thyrocare-manual textarea{line-height:1.48;min-height:106px}
 .thyrocare-manual label{font-size:13px!important;color:#334155}
 .thyrocare-manual h1{font-size:30px!important;letter-spacing:-.5px}
-.thyrocare-manual h2{font-size:20px!important}
-.thyrocare-manual h3{font-size:16px!important}
-.thyrocare-manual button{min-height:38px}
-.thyrocare-manual form,.thyrocare-manual form+div{box-shadow:0 8px 24px rgba(15,23,42,.055)!important;border-color:#dbe5e1!important;min-width:0}
-.thyrocare-manual main>div>section{grid-template-columns:minmax(320px,380px) minmax(0,1fr)!important;align-items:start}
-.thyrocare-manual main>div>section>form{width:100%!important;min-width:0!important}
-.thyrocare-manual main>div>section>form+div{width:100%!important;min-width:0!important;overflow-x:auto!important;overflow-y:visible!important;overscroll-behavior-inline:contain}
-.thyrocare-manual table{font-size:13px!important;border-collapse:separate!important;border-spacing:0!important;min-width:1080px!important;width:max-content!important;max-width:none!important}
-.thyrocare-manual thead th{position:sticky;top:0;z-index:1;background:#f1f7f5!important;color:#334155;font-size:12px!important;white-space:nowrap;border-top:1px solid #dbe5e1!important;border-bottom:1px solid #dbe5e1!important}
-.thyrocare-manual tbody tr:nth-child(even){background:#fbfdfc}
-.thyrocare-manual tbody tr:hover{background:#f2faf7}
-.thyrocare-manual td{font-size:13px!important;line-height:1.45!important;vertical-align:top}
-.thyrocare-manual table button,.thyrocare-manual table a,.thyrocare-manual table label{font-size:12px!important;white-space:nowrap}
+.thyrocare-manual h2{font-size:20px!important;letter-spacing:-.2px}
+.thyrocare-manual button{min-height:38px;transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}
+.thyrocare-manual button:hover{filter:brightness(.98)}
+.thyrocare-manual button:active{transform:translateY(1px)}
+.thyrocare-manual main>div>section{grid-template-columns:minmax(330px,390px) minmax(0,1fr)!important;align-items:start;gap:18px!important}
+.thyrocare-manual main>div>section>form,.thyrocare-manual main>div>section>form+div{border:1px solid #dce8e4!important;border-radius:14px!important;background:rgba(255,255,255,.96)!important;box-shadow:0 10px 28px rgba(15,23,42,.055)!important;min-width:0}
+.thyrocare-manual main>div>section>form{width:100%!important;position:sticky;top:70px}
+.thyrocare-manual main>div>section>form+div{width:100%!important;overflow-x:auto!important;overflow-y:visible!important;overscroll-behavior-inline:contain;padding:16px!important}
+.thyrocare-manual main>div>section>form h2,.thyrocare-manual main>div>section>form+div h2{padding-bottom:9px;border-bottom:1px solid #e7efec;margin-bottom:10px!important}
+.thyrocare-manual main>div>section>form+div>form{background:linear-gradient(180deg,#f7fcfa,#f1f8f5)!important;border:1px solid #cfe4dc!important;box-shadow:none!important;border-radius:12px!important;padding:12px!important}
+.thyrocare-manual main>div>section>form+div>div:first-child{position:sticky;left:0;z-index:3;background:#fff;padding-bottom:3px}
+.thyrocare-manual table{font-size:13px!important;border-collapse:separate!important;border-spacing:0 7px!important;min-width:1500px!important;width:max-content!important;max-width:none!important}
+.thyrocare-manual thead th{position:sticky;top:0;z-index:4;background:#eaf5f1!important;color:#24433c;font-size:11px!important;text-transform:uppercase;letter-spacing:.35px;white-space:nowrap;border-top:1px solid #d3e5df!important;border-bottom:1px solid #d3e5df!important;padding:10px 8px!important}
+.thyrocare-manual tbody tr{background:#fff;box-shadow:0 2px 8px rgba(15,23,42,.045);transition:background .14s ease,box-shadow .14s ease}
+.thyrocare-manual tbody tr:nth-child(even){background:#fcfefd}
+.thyrocare-manual tbody tr:hover{background:#f5fbf8;box-shadow:0 5px 14px rgba(15,23,42,.07)}
+.thyrocare-manual td{font-size:12px!important;line-height:1.45!important;vertical-align:top;padding:10px 8px!important;border-top:1px solid #e7eeeb;border-bottom:1px solid #e7eeeb!important}
+.thyrocare-manual th:first-child,.thyrocare-manual td:first-child{position:sticky;left:0;z-index:3;background:inherit;min-width:210px;max-width:230px;box-shadow:5px 0 10px rgba(15,23,42,.035)}
+.thyrocare-manual thead th:first-child{z-index:6;background:#eaf5f1!important}
+.thyrocare-manual th:nth-child(2),.thyrocare-manual td:nth-child(2){position:sticky;left:210px;z-index:2;background:inherit;min-width:112px;box-shadow:4px 0 8px rgba(15,23,42,.025)}
+.thyrocare-manual thead th:nth-child(2){z-index:5;background:#eaf5f1!important}
+.thyrocare-manual td:nth-child(4){min-width:165px}.thyrocare-manual td:nth-child(7){min-width:190px;max-width:260px}.thyrocare-manual td:nth-child(8){min-width:95px}
+.thyrocare-manual table button,.thyrocare-manual table a,.thyrocare-manual table label{font-size:11px!important;white-space:nowrap}
+.thyrocare-manual table td:first-child>div{gap:6px!important}
+.thyrocare-manual table td:first-child button,.thyrocare-manual table td:first-child a,.thyrocare-manual table td:first-child label{border-radius:7px!important;font-weight:800!important;box-shadow:0 1px 2px rgba(15,23,42,.08)}
+.thyrocare-manual table td:first-child select{min-height:34px!important;font-size:11px!important;background:#fbfdfc!important}
+.thyrocare-manual table td:last-child span{display:inline-flex!important;align-items:center;gap:5px;padding:5px 8px!important;border-radius:999px!important;font-weight:900!important}
+.thyrocare-manual ::-webkit-scrollbar{height:10px;width:9px}
+.thyrocare-manual ::-webkit-scrollbar-thumb{background:#b7cbc4;border-radius:999px;border:2px solid #edf4f1}
+.thyrocare-manual ::-webkit-scrollbar-track{background:#edf4f1}
 .thyrocare-manual footer{font-size:12px!important}
-.thyrocare-manual ::-webkit-scrollbar{height:9px;width:9px}
-.thyrocare-manual ::-webkit-scrollbar-thumb{background:#cbd8d4;border-radius:999px}
-.thyrocare-manual ::-webkit-scrollbar-track{background:#edf2f0}
 .thyrocare-manual aside a[href="/admin/logout"]{display:none!important}
 [data-thyrocare-role="STAFF"] .thyrocare-manual a[href="/manual/catalog"],[data-thyrocare-role="STAFF"] .thyrocare-manual a[href="/admin"],[data-thyrocare-role="STAFF"] .thyrocare-manual a[href="/admin/audit"]{display:none!important}
 
-@media (min-width:1280px){.thyrocare-manual main>div>section{grid-template-columns:minmax(340px,390px) minmax(0,1fr)!important}.thyrocare-manual form{min-width:0!important}}
-@media (min-width:1500px){.thyrocare-manual main>div>section{grid-template-columns:minmax(360px,410px) minmax(0,1fr)!important}.thyrocare-manual form{min-width:0!important}}
-@media (max-width:1180px){.thyrocare-manual main{padding:16px!important}.thyrocare-manual main>div>section{grid-template-columns:minmax(300px,340px) minmax(0,1fr)!important}.thyrocare-manual aside a{font-size:12px!important;padding:9px 10px!important}.thyrocare-manual h1{font-size:27px!important}}
-@media (max-width:980px){.thyrocare-manual main>div>section{grid-template-columns:1fr!important}.thyrocare-manual main>div>section>form{max-width:none!important}.thyrocare-manual main>div>section>form+div{overflow-x:auto!important}.thyrocare-manual table{min-width:980px!important}}
-@media (max-width:900px){.thyrocare-manual main{padding:12px!important}.thyrocare-manual main>div{display:block!important;min-height:auto!important}.thyrocare-manual aside{position:static!important;height:auto!important;border-right:0!important;border-bottom:1px solid #e5e7eb}.thyrocare-manual aside nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.thyrocare-manual section>div{padding-left:0!important;padding-right:0!important}.thyrocare-manual section section{grid-template-columns:1fr!important}.thyrocare-manual header{border-radius:10px!important}.thyrocare-manual table{min-width:940px!important}}
-@media (max-width:640px){.thyrocare-manual{font-size:14px}.thyrocare-manual aside nav{grid-template-columns:repeat(2,minmax(0,1fr))}.thyrocare-manual h1{font-size:24px!important}.thyrocare-manual input,.thyrocare-manual select,.thyrocare-manual textarea,.thyrocare-manual button{font-size:16px!important}.thyrocare-manual main{padding:8px!important}.thyrocare-manual main>div>section{gap:10px!important}.thyrocare-manual table{min-width:900px!important}}
+@media (min-width:1280px){.thyrocare-manual main>div>section{grid-template-columns:minmax(350px,400px) minmax(0,1fr)!important}}
+@media (min-width:1500px){.thyrocare-manual main>div>section{grid-template-columns:minmax(365px,415px) minmax(0,1fr)!important}}
+@media (max-width:1180px){.thyrocare-manual main{padding:16px!important}.thyrocare-manual main>div>section{grid-template-columns:minmax(300px,340px) minmax(0,1fr)!important}.thyrocare-manual h1{font-size:27px!important}.thyrocare-manual table{min-width:1420px!important}.thyrocare-manual main>div>section>form{position:static}}
+@media (max-width:980px){.thyrocare-manual main>div>section{grid-template-columns:1fr!important}.thyrocare-manual main>div>section>form{max-width:none!important;position:static}.thyrocare-manual main>div>section>form+div{overflow-x:auto!important}.thyrocare-manual table{min-width:1380px!important}}
+@media (max-width:900px){.thyrocare-manual main{padding:12px!important}.thyrocare-manual main>div{display:block!important;min-height:auto!important}.thyrocare-manual header{border-radius:10px!important}.thyrocare-manual table{min-width:1320px!important}.thyrocare-manual th:first-child,.thyrocare-manual td:first-child{min-width:190px;max-width:200px}.thyrocare-manual th:nth-child(2),.thyrocare-manual td:nth-child(2){left:190px}}
+@media (max-width:640px){.thyrocare-manual{font-size:14px}.thyrocare-manual h1{font-size:24px!important}.thyrocare-manual input,.thyrocare-manual select,.thyrocare-manual textarea,.thyrocare-manual button{font-size:16px!important}.thyrocare-manual main{padding:8px!important}.thyrocare-manual main>div>section{gap:10px!important}.thyrocare-manual main>div>section>form,.thyrocare-manual main>div>section>form+div{border-radius:10px!important;padding:12px!important}.thyrocare-manual table{min-width:1260px!important}.thyrocare-manual th:first-child,.thyrocare-manual td:first-child{position:static;min-width:190px}.thyrocare-manual th:nth-child(2),.thyrocare-manual td:nth-child(2){position:static}.thyrocare-manual thead th{position:sticky;top:0}}
