@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("NEON_DATABASE_URL")
-  directUrl = env("NEON_DATABASE_URL_UNPOOLED")
+  provider = "postgresql"
+  url      = env("NEON_DATABASE_URL")
 }
 
 enum BookingMode {
@@ -79,7 +78,7 @@ model DiagnosticPackage {
   name              String
   description       String?
   mrp               Int              @default(0)
-  price              Int
+  price             Int
   imageData         String?
   diagnosticPartner String?
   tat               String?
