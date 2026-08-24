@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
@@ -26,6 +27,7 @@ function indiaTodayAsUtcDate() {
 }
 
 const bookingSchema = z.object({
+  idempotencyKey: z.string().uuid(),
   name: z.string().trim().min(2).max(120),
   phone: z.string().regex(/^[0-9]{10}$/),
   email: z.string().trim().email().max(200),
@@ -51,9 +53,42 @@ const bookingSchema = z.object({
   { message: 'Address and 6-digit pincode are required for home collection.', path: ['pincode'] },
 );
 
+function bookingPayload(booking: {
+  id: string;
+  status: string;
+  paymentStatus: string;
+  totalAmount: number;
+  printedReport: boolean;
+  printedReportFee: number;
+  doctorName: string | null;
+  mode: string;
+  collectionDate: Date;
+  slot: string;
+}, diagnosticAmount?: number) {
+  return {
+    id: booking.id,
+    status: booking.status,
+    paymentStatus: booking.paymentStatus,
+    totalAmount: booking.totalAmount,
+    diagnosticAmount: diagnosticAmount ?? booking.totalAmount - booking.printedReportFee,
+    printedReport: booking.printedReport,
+    printedReportFee: booking.printedReportFee,
+    doctorName: booking.doctorName,
+    mode: booking.mode,
+    collectionDate: booking.collectionDate.toISOString(),
+    slot: booking.slot,
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const body = bookingSchema.parse(await request.json());
+
+    const existing = await prisma.booking.findUnique({ where: { idempotencyKey: body.idempotencyKey } });
+    if (existing) {
+      return NextResponse.json({ booking: bookingPayload(existing), duplicate: true }, { status: 200 });
+    }
+
     const collectionDate = new Date(`${body.date}T00:00:00.000Z`);
     if (Number.isNaN(collectionDate.getTime())) {
       return NextResponse.json({ error: 'Invalid collection date.' }, { status: 400 });
@@ -102,15 +137,15 @@ export async function POST(request: Request) {
 
     const packageTestIds = new Set(packages.flatMap((pkg) => pkg.tests.map((item) => item.test.id)));
     const chargeableDirectTests = directTests.filter((test) => !packageTestIds.has(test.id));
-    const uniqueTests = new Map<string, { id: string; price: number; includedByPackage: boolean }>();
+    const uniqueTests = new Map<string, { id: string; price: number }>();
 
     for (const pkg of packages) {
       for (const item of pkg.tests) {
-        uniqueTests.set(item.test.id, { id: item.test.id, price: 0, includedByPackage: true });
+        uniqueTests.set(item.test.id, { id: item.test.id, price: 0 });
       }
     }
     for (const test of directTests) {
-      if (!uniqueTests.has(test.id)) uniqueTests.set(test.id, { id: test.id, price: test.price, includedByPackage: false });
+      if (!uniqueTests.has(test.id)) uniqueTests.set(test.id, { id: test.id, price: test.price });
     }
 
     const diagnosticAmount =
@@ -125,42 +160,39 @@ export async function POST(request: Request) {
       create: { name: body.name, phone: body.phone, email: body.email, age: body.age, gender: body.gender },
     });
 
-    const booking = await prisma.booking.create({
-      data: {
-        patientId: patient.id,
-        mode: body.mode === 'home' ? 'HOME' : 'CENTRE',
-        address: body.mode === 'home' ? body.address : null,
-        pincode: body.mode === 'home' ? body.pincode : null,
-        doctorName: body.doctorName || null,
-        printedReport: body.printedReport,
-        printedReportFee,
-        collectionDate,
-        slot: body.slot,
-        totalAmount,
-        items: {
-          create: Array.from(uniqueTests.values()).map((test) => ({ testId: test.id, price: test.price })),
+    try {
+      const booking = await prisma.booking.create({
+        data: {
+          idempotencyKey: body.idempotencyKey,
+          patientId: patient.id,
+          mode: body.mode === 'home' ? 'HOME' : 'CENTRE',
+          address: body.mode === 'home' ? body.address : null,
+          pincode: body.mode === 'home' ? body.pincode : null,
+          doctorName: body.doctorName || null,
+          printedReport: body.printedReport,
+          printedReportFee,
+          collectionDate,
+          slot: body.slot,
+          totalAmount,
+          items: {
+            create: Array.from(uniqueTests.values()).map((test) => ({ testId: test.id, price: test.price })),
+          },
+          packages: {
+            create: packages.map((pkg) => ({ packageId: pkg.id, price: pkg.price })),
+          },
         },
-        packages: {
-          create: packages.map((pkg) => ({ packageId: pkg.id, price: pkg.price })),
-        },
-      },
-    });
+      });
 
-    return NextResponse.json({
-      booking: {
-        id: booking.id,
-        status: booking.status,
-        paymentStatus: booking.paymentStatus,
-        totalAmount: booking.totalAmount,
-        diagnosticAmount,
-        printedReport: booking.printedReport,
-        printedReportFee: booking.printedReportFee,
-        doctorName: booking.doctorName,
-        mode: booking.mode,
-        collectionDate: booking.collectionDate.toISOString(),
-        slot: booking.slot,
-      },
-    }, { status: 201 });
+      return NextResponse.json({ booking: bookingPayload(booking, diagnosticAmount) }, { status: 201 });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const duplicate = await prisma.booking.findUnique({ where: { idempotencyKey: body.idempotencyKey } });
+        if (duplicate) {
+          return NextResponse.json({ booking: bookingPayload(duplicate), duplicate: true }, { status: 200 });
+        }
+      }
+      throw error;
+    }
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Please check the booking details and try again.', fields: error.flatten().fieldErrors }, { status: 400 });
