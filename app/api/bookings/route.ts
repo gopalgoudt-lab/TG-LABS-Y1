@@ -35,6 +35,8 @@ const bookingSchema = z.object({
   gender: z.enum(['MALE', 'FEMALE', 'OTHERS']),
   doctorName: z.string().trim().max(160).optional(),
   printedReport: z.boolean().optional().default(false),
+  paymentOption: z.enum(['ONLINE', 'QR', 'COLLECTION']).optional().default('ONLINE'),
+  collectionPaymentMethod: z.enum(['CASH', 'UPI']).optional(),
   mode: z.enum(['home', 'centre']),
   address: z.string().trim().max(500).optional(),
   pincode: z.string().regex(/^[1-9][0-9]{5}$/).optional(),
@@ -51,12 +53,16 @@ const bookingSchema = z.object({
 ).refine(
   (v) => v.mode !== 'home' || Boolean(v.address && v.pincode),
   { message: 'Address and 6-digit pincode are required for home collection.', path: ['pincode'] },
+).refine(
+  (v) => v.paymentOption !== 'COLLECTION' || Boolean(v.collectionPaymentMethod),
+  { message: 'Choose Cash or UPI for payment at sample collection.', path: ['collectionPaymentMethod'] },
 );
 
 function bookingPayload(booking: {
   id: string;
   status: string;
   paymentStatus: string;
+  paymentMode: string | null;
   totalAmount: number;
   printedReport: boolean;
   printedReportFee: number;
@@ -69,6 +75,7 @@ function bookingPayload(booking: {
     id: booking.id,
     status: booking.status,
     paymentStatus: booking.paymentStatus,
+    paymentMode: booking.paymentMode,
     totalAmount: booking.totalAmount,
     diagnosticAmount: diagnosticAmount ?? booking.totalAmount - booking.printedReportFee,
     printedReport: booking.printedReport,
@@ -160,6 +167,14 @@ export async function POST(request: Request) {
       create: { name: body.name, phone: body.phone, email: body.email, age: body.age, gender: body.gender },
     });
 
+    const payAtCollection = body.paymentOption === 'COLLECTION';
+    const paymentMode = payAtCollection
+      ? `COLLECTION_${body.collectionPaymentMethod}`
+      : body.paymentOption === 'QR'
+        ? 'QR_UPI'
+        : 'ONLINE';
+    const now = new Date();
+
     try {
       const booking = await prisma.booking.create({
         data: {
@@ -171,6 +186,11 @@ export async function POST(request: Request) {
           doctorName: body.doctorName || null,
           printedReport: body.printedReport,
           printedReportFee,
+          paymentMode,
+          status: payAtCollection ? 'CONFIRMED' : 'PENDING',
+          paymentStatus: 'PENDING',
+          workflowStatus: payAtCollection ? 'BOOKING_CONFIRMED' : 'BOOKING_CREATED',
+          bookingConfirmedAt: payAtCollection ? now : null,
           collectionDate,
           slot: body.slot,
           totalAmount,
