@@ -135,6 +135,7 @@ model TechnicianSession {
 
 model Booking {
   id                     String               @id @default(cuid())
+  idempotencyKey         String?              @unique
   patientId              String
   patient                Patient              @relation(fields: [patientId], references: [id])
   mode                   BookingMode

@@ -7,10 +7,94 @@ import { writeAdminAudit } from '@/lib/admin-audit';
 export const dynamic = 'force-dynamic';
 
 const WORKFLOW = ['BOOKING_CREATED','BOOKING_CONFIRMED','TECHNICIAN_ASSIGNED','TECHNICIAN_ACCEPTED','ON_THE_WAY','REACHED_PATIENT','SAMPLE_COLLECTED','SAMPLE_RECEIVED_AT_LAB','PROCESSING','REPORT_READY','REPORT_DELIVERED'] as const;
+type WorkflowStatus = typeof WORKFLOW[number];
 const patchSchema = z.object({ bookingId:z.string().min(1), technicianId:z.string().min(1).nullable().optional(), workflowStatus:z.enum(WORKFLOW).optional() });
 
-export async function GET(){const[bookings,technicians]=await Promise.all([prisma.booking.findMany({where:{status:{not:'CANCELLED'}},orderBy:[{collectionDate:'asc'},{slot:'asc'}],take:150,include:{patient:true,assignedTechnician:{select:{id:true,name:true,phone:true,employeeCode:true}},items:{include:{test:{select:{name:true,fastingNeeded:true,sampleTypes:true}}}}}}),prisma.technician.findMany({where:{active:true},orderBy:{name:'asc'},select:{id:true,name:true,phone:true,employeeCode:true,pincodes:true}})]);return NextResponse.json({bookings,technicians})}
+const NEXT: Record<WorkflowStatus, readonly WorkflowStatus[]> = {
+ BOOKING_CREATED:['BOOKING_CONFIRMED'],
+ BOOKING_CONFIRMED:['TECHNICIAN_ASSIGNED'],
+ TECHNICIAN_ASSIGNED:['TECHNICIAN_ACCEPTED'],
+ TECHNICIAN_ACCEPTED:['ON_THE_WAY'],
+ ON_THE_WAY:['REACHED_PATIENT'],
+ REACHED_PATIENT:['SAMPLE_COLLECTED'],
+ SAMPLE_COLLECTED:['SAMPLE_RECEIVED_AT_LAB'],
+ SAMPLE_RECEIVED_AT_LAB:['PROCESSING','REPORT_READY'],
+ PROCESSING:['REPORT_READY'],
+ REPORT_READY:['REPORT_DELIVERED'],
+ REPORT_DELIVERED:[],
+};
 
-export async function PATCH(request:Request){try{const body=patchSchema.parse(await request.json());const existing=await prisma.booking.findUnique({where:{id:body.bookingId}});if(!existing)return NextResponse.json({error:'Booking not found.'},{status:404});if((body.workflowStatus==='REPORT_READY'||body.workflowStatus==='REPORT_DELIVERED')&&!existing.reportData)return NextResponse.json({error:'Upload the diagnostic PDF before marking this booking as Report Ready or Delivered.'},{status:409});const data:Record<string,unknown>={};const now=new Date();if(body.technicianId!==undefined){if(body.technicianId){const technician=await prisma.technician.findFirst({where:{id:body.technicianId,active:true}});if(!technician)return NextResponse.json({error:'Technician is unavailable.'},{status:400});data.technicianId=technician.id;data.technician=technician.name;data.workflowStatus='TECHNICIAN_ASSIGNED';data.technicianAssignedAt=existing.technicianAssignedAt??now}else{data.technicianId=null;data.technician=null}}
-if(body.workflowStatus){data.workflowStatus=body.workflowStatus;if(body.workflowStatus==='BOOKING_CONFIRMED')data.bookingConfirmedAt=existing.bookingConfirmedAt??now;if(body.workflowStatus==='TECHNICIAN_ASSIGNED')data.technicianAssignedAt=existing.technicianAssignedAt??now;if(body.workflowStatus==='TECHNICIAN_ACCEPTED')data.technicianAcceptedAt=existing.technicianAcceptedAt??now;if(body.workflowStatus==='ON_THE_WAY')data.technicianOnTheWayAt=existing.technicianOnTheWayAt??now;if(body.workflowStatus==='REACHED_PATIENT')data.technicianReachedAt=existing.technicianReachedAt??now;if(body.workflowStatus==='SAMPLE_COLLECTED')data.sampleCollectedAt=existing.sampleCollectedAt??now;if(body.workflowStatus==='SAMPLE_RECEIVED_AT_LAB')data.sampleReceivedAt=existing.sampleReceivedAt??now;if(body.workflowStatus==='PROCESSING')data.processingStartedAt=existing.processingStartedAt??now;if(body.workflowStatus==='REPORT_READY')data.reportReadyAt=existing.reportReadyAt??now;if(body.workflowStatus==='REPORT_DELIVERED'){data.reportDeliveredAt=existing.reportDeliveredAt??now;data.status='COMPLETED'}else if(body.workflowStatus!=='BOOKING_CREATED'&&existing.status!=='CANCELLED')data.status='CONFIRMED'}
-const booking=await prisma.booking.update({where:{id:body.bookingId},data,include:{patient:true,assignedTechnician:{select:{id:true,name:true,phone:true,employeeCode:true}},items:{include:{test:true}}}});await writeAdminAudit(request,{action:'BOOKING_WORKFLOW_UPDATE',entityType:'Booking',entityId:booking.id,summary:`Workflow updated from ${existing.workflowStatus} to ${booking.workflowStatus}`,metadata:{previousWorkflow:existing.workflowStatus,newWorkflow:booking.workflowStatus,previousTechnicianId:existing.technicianId,newTechnicianId:booking.technicianId}});if(booking.workflowStatus!==existing.workflowStatus){try{await sendWorkflowStatusWhatsApp(booking)}catch(notificationError){console.error('Workflow updated but WhatsApp notification failed',notificationError)}}return NextResponse.json({booking})}catch(error){if(error instanceof z.ZodError)return NextResponse.json({error:'Invalid operations update.'},{status:400});console.error('PATCH /api/admin/operations failed',error);return NextResponse.json({error:'Unable to update operations workflow.'},{status:500})}}
+function canTransition(from:string,to:WorkflowStatus){
+ if(from===to)return true;
+ return (NEXT[from as WorkflowStatus]||[]).includes(to);
+}
+
+export async function GET(){
+ const[bookings,technicians]=await Promise.all([
+  prisma.booking.findMany({where:{status:{not:'CANCELLED'}},orderBy:[{collectionDate:'asc'},{slot:'asc'}],take:150,include:{patient:true,assignedTechnician:{select:{id:true,name:true,phone:true,employeeCode:true}},items:{include:{test:{select:{name:true,fastingNeeded:true,sampleTypes:true}}}}}}),
+  prisma.technician.findMany({where:{active:true},orderBy:{name:'asc'},select:{id:true,name:true,phone:true,employeeCode:true,pincodes:true}})
+ ]);
+ return NextResponse.json({bookings,technicians});
+}
+
+export async function PATCH(request:Request){
+ try{
+  const body=patchSchema.parse(await request.json());
+  const existing=await prisma.booking.findUnique({where:{id:body.bookingId}});
+  if(!existing)return NextResponse.json({error:'Booking not found.'},{status:404});
+  if(existing.status==='CANCELLED')return NextResponse.json({error:'Cancelled bookings cannot be advanced or reassigned.'},{status:409});
+  if(existing.status==='COMPLETED'&&existing.workflowStatus==='REPORT_DELIVERED')return NextResponse.json({error:'Completed bookings cannot be changed.'},{status:409});
+
+  if(body.workflowStatus&&!canTransition(existing.workflowStatus,body.workflowStatus)){
+   return NextResponse.json({error:`Invalid workflow transition from ${existing.workflowStatus} to ${body.workflowStatus}.`},{status:409});
+  }
+  if(body.workflowStatus==='TECHNICIAN_ASSIGNED'&&!body.technicianId&&!existing.technicianId){
+   return NextResponse.json({error:'Assign a technician before moving the booking to Technician Assigned.'},{status:409});
+  }
+  if(body.workflowStatus&&['TECHNICIAN_ACCEPTED','ON_THE_WAY','REACHED_PATIENT','SAMPLE_COLLECTED','SAMPLE_RECEIVED_AT_LAB'].includes(body.workflowStatus)&&!existing.technicianId){
+   return NextResponse.json({error:'A technician must be assigned before collection workflow can continue.'},{status:409});
+  }
+  if((body.workflowStatus==='REPORT_READY'||body.workflowStatus==='REPORT_DELIVERED')&&!existing.reportData){
+   return NextResponse.json({error:'Upload the diagnostic PDF before marking this booking as Report Ready or Delivered.'},{status:409});
+  }
+
+  const data:Record<string,unknown>={};
+  const now=new Date();
+  if(body.technicianId!==undefined){
+   if(body.technicianId){
+    const technician=await prisma.technician.findFirst({where:{id:body.technicianId,active:true}});
+    if(!technician)return NextResponse.json({error:'Technician is unavailable.'},{status:400});
+    if(!['BOOKING_CONFIRMED','TECHNICIAN_ASSIGNED'].includes(existing.workflowStatus))return NextResponse.json({error:'Technician assignment can only be changed before the technician accepts the job.'},{status:409});
+    data.technicianId=technician.id;data.technician=technician.name;data.workflowStatus='TECHNICIAN_ASSIGNED';data.technicianAssignedAt=existing.technicianAssignedAt??now;
+   }else{
+    if(!['BOOKING_CONFIRMED','TECHNICIAN_ASSIGNED'].includes(existing.workflowStatus))return NextResponse.json({error:'Technician cannot be removed after the job has started.'},{status:409});
+    data.technicianId=null;data.technician=null;
+    if(existing.workflowStatus==='TECHNICIAN_ASSIGNED')data.workflowStatus='BOOKING_CONFIRMED';
+   }
+  }
+
+  if(body.workflowStatus){
+   data.workflowStatus=body.workflowStatus;
+   if(body.workflowStatus==='BOOKING_CONFIRMED')data.bookingConfirmedAt=existing.bookingConfirmedAt??now;
+   if(body.workflowStatus==='TECHNICIAN_ASSIGNED')data.technicianAssignedAt=existing.technicianAssignedAt??now;
+   if(body.workflowStatus==='TECHNICIAN_ACCEPTED')data.technicianAcceptedAt=existing.technicianAcceptedAt??now;
+   if(body.workflowStatus==='ON_THE_WAY')data.technicianOnTheWayAt=existing.technicianOnTheWayAt??now;
+   if(body.workflowStatus==='REACHED_PATIENT')data.technicianReachedAt=existing.technicianReachedAt??now;
+   if(body.workflowStatus==='SAMPLE_COLLECTED')data.sampleCollectedAt=existing.sampleCollectedAt??now;
+   if(body.workflowStatus==='SAMPLE_RECEIVED_AT_LAB')data.sampleReceivedAt=existing.sampleReceivedAt??now;
+   if(body.workflowStatus==='PROCESSING')data.processingStartedAt=existing.processingStartedAt??now;
+   if(body.workflowStatus==='REPORT_READY')data.reportReadyAt=existing.reportReadyAt??now;
+   if(body.workflowStatus==='REPORT_DELIVERED'){data.reportDeliveredAt=existing.reportDeliveredAt??now;data.status='COMPLETED'}
+   else if(body.workflowStatus!=='BOOKING_CREATED')data.status='CONFIRMED';
+  }
+
+  const booking=await prisma.booking.update({where:{id:body.bookingId},data,include:{patient:true,assignedTechnician:{select:{id:true,name:true,phone:true,employeeCode:true}},items:{include:{test:true}}}});
+  await writeAdminAudit(request,{action:'BOOKING_WORKFLOW_UPDATE',entityType:'Booking',entityId:booking.id,summary:`Workflow updated from ${existing.workflowStatus} to ${booking.workflowStatus}`,metadata:{previousWorkflow:existing.workflowStatus,newWorkflow:booking.workflowStatus,previousTechnicianId:existing.technicianId,newTechnicianId:booking.technicianId}});
+  if(booking.workflowStatus!==existing.workflowStatus){try{await sendWorkflowStatusWhatsApp(booking)}catch(notificationError){console.error('Workflow updated but WhatsApp notification failed',notificationError)}}
+  return NextResponse.json({booking});
+ }catch(error){
+  if(error instanceof z.ZodError)return NextResponse.json({error:'Invalid operations update.'},{status:400});
+  console.error('PATCH /api/admin/operations failed',error);
+  return NextResponse.json({error:'Unable to update operations workflow.'},{status:500});
+ }
+}
