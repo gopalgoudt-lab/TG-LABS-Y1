@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { PaymentMode, Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
@@ -168,11 +168,11 @@ export async function POST(request: Request) {
     });
 
     const payAtCollection = body.paymentOption === 'COLLECTION';
-    const paymentMode = payAtCollection
-      ? `COLLECTION_${body.collectionPaymentMethod}`
+    const paymentMode: PaymentMode = payAtCollection
+      ? body.collectionPaymentMethod === 'UPI' ? PaymentMode.UPI : PaymentMode.CASH
       : body.paymentOption === 'QR'
-        ? 'QR_UPI'
-        : 'ONLINE';
+        ? PaymentMode.UPI
+        : PaymentMode.ONLINE;
     const now = new Date();
 
     try {
