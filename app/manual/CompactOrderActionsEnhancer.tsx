@@ -28,6 +28,9 @@ export default function CompactOrderActionsEnhancer(){
       x.style.margin='0';
       x.style.boxSizing='border-box';
       x.style.maxWidth='100%';
+      x.style.overflow='hidden';
+      x.style.textOverflow='ellipsis';
+      x.style.whiteSpace='nowrap';
     }
 
     function compactNow(){
@@ -42,20 +45,21 @@ export default function CompactOrderActionsEnhancer(){
       const headCells=table.querySelectorAll('thead th');
       if(headCells[0]){
         const h=headCells[0] as HTMLElement;
-        h.style.width='330px';
-        h.style.minWidth='330px';
-        h.style.maxWidth='330px';
+        h.style.width='300px';
+        h.style.minWidth='300px';
+        h.style.maxWidth='300px';
       }
 
       for(const row of [...table.querySelectorAll('tbody tr')]){
         const cells=row.querySelectorAll('td');
         if(!cells.length)continue;
         const action=cells[0] as HTMLElement;
-        action.style.width='330px';
-        action.style.minWidth='330px';
-        action.style.maxWidth='330px';
+        action.style.width='300px';
+        action.style.minWidth='300px';
+        action.style.maxWidth='300px';
         action.style.padding='5px';
         action.style.verticalAlign='top';
+        action.style.overflow='hidden';
 
         const base=action.firstElementChild as HTMLElement|null;
         if(base){
@@ -64,9 +68,10 @@ export default function CompactOrderActionsEnhancer(){
           base.style.gap='3px';
           base.style.alignItems='start';
           base.style.width='100%';
-          base.style.maxWidth='330px';
+          base.style.maxWidth='300px';
           base.style.margin='0';
           base.style.lineHeight='1.05';
+          base.style.overflow='hidden';
 
           [...base.children].forEach((child)=>{
             const x=child as HTMLElement;
@@ -75,12 +80,13 @@ export default function CompactOrderActionsEnhancer(){
             x.style.margin='0';
             x.style.gridColumn='auto';
             x.style.lineHeight='1.05';
+            x.style.overflow='hidden';
             const text=(x.textContent||'').trim().toUpperCase();
             if(text.startsWith('UPLOADED REPORTS')){
               x.style.gridColumn='1 / -1';
               x.style.fontSize='8px';
               x.style.lineHeight='1.05';
-              x.style.maxHeight='28px';
+              x.style.maxHeight='26px';
               x.style.overflow='hidden';
             }
             if(text==='UPLOAD ORIGINAL BILL(S)'||text==='DELETE UPLOADED REPORT'){
@@ -105,11 +111,13 @@ export default function CompactOrderActionsEnhancer(){
           share.style.width='100%';
           share.style.minWidth='0';
           share.style.gridColumn='span 2';
+          share.style.overflow='hidden';
           [...share.children].forEach(ch=>{
             const x=ch as HTMLElement;
             x.style.width='100%';
             x.style.minWidth='0';
             x.style.margin='0';
+            x.style.overflow='hidden';
           });
         }
 
@@ -121,11 +129,13 @@ export default function CompactOrderActionsEnhancer(){
           del.style.width='100%';
           del.style.minWidth='0';
           del.style.gridColumn='span 2';
+          del.style.overflow='hidden';
           [...del.children].forEach(ch=>{
             const x=ch as HTMLElement;
             x.style.width='100%';
             x.style.minWidth='0';
             x.style.margin='0';
+            x.style.overflow='hidden';
           });
         }
 
@@ -138,6 +148,7 @@ export default function CompactOrderActionsEnhancer(){
           flow.style.maxWidth='100%';
           flow.style.gridColumn='1 / -1';
           flow.style.margin='1px 0 0';
+          flow.style.overflow='hidden';
           flow.querySelectorAll('*').forEach(el=>{
             const x=el as HTMLElement;
             x.style.fontSize='7px';
@@ -145,6 +156,7 @@ export default function CompactOrderActionsEnhancer(){
             x.style.margin='0';
             x.style.padding='2px 4px';
             x.style.minHeight='0';
+            x.style.whiteSpace='nowrap';
           });
         }
 
