@@ -93,6 +93,24 @@ export default function CompactOrderActionsEnhancer(){
               x.style.fontSize='8px';
               x.style.lineHeight='1';
             }
+            if(text.includes('CHANGE PAGE NOS.')){
+              x.style.gridColumn='span 2';
+              x.style.display='flex';
+              x.style.alignItems='center';
+              x.style.gap='7px';
+              x.style.minHeight='30px';
+              x.style.padding='5px 7px';
+              x.style.fontSize='10px';
+              x.style.fontWeight='700';
+              x.style.lineHeight='1.15';
+              x.style.whiteSpace='normal';
+              x.style.overflow='visible';
+              x.style.textOverflow='clip';
+              x.style.cursor='pointer';
+              x.style.background='#f8fafc';
+              x.style.border='1px solid #cbd5e1';
+              x.style.borderRadius='5px';
+            }
           });
         }
 
@@ -101,6 +119,48 @@ export default function CompactOrderActionsEnhancer(){
           const x=el as HTMLElement;
           x.style.width='100%';
           x.style.minWidth='0';
+        });
+
+        // Keep the page-number checkbox a real visible checkbox. The generic
+        // compact input rules otherwise stretch it to 100% width and make the
+        // control difficult to see/click.
+        action.querySelectorAll('input[type="checkbox"]').forEach(el=>{
+          const x=el as HTMLInputElement;
+          x.style.width='16px';
+          x.style.minWidth='16px';
+          x.style.maxWidth='16px';
+          x.style.height='16px';
+          x.style.minHeight='16px';
+          x.style.padding='0';
+          x.style.margin='0';
+          x.style.flex='0 0 16px';
+          x.style.overflow='visible';
+          x.style.cursor='pointer';
+          x.style.accentColor='#087f6f';
+        });
+
+        action.querySelectorAll('label').forEach(el=>{
+          const x=el as HTMLElement;
+          const text=(x.textContent||'').trim().toUpperCase();
+          if(text.includes('CHANGE PAGE NOS.')){
+            x.style.gridColumn='span 2';
+            x.style.display='flex';
+            x.style.alignItems='center';
+            x.style.gap='7px';
+            x.style.minHeight='30px';
+            x.style.height='auto';
+            x.style.padding='5px 7px';
+            x.style.fontSize='10px';
+            x.style.fontWeight='700';
+            x.style.lineHeight='1.15';
+            x.style.whiteSpace='normal';
+            x.style.overflow='visible';
+            x.style.textOverflow='clip';
+            x.style.cursor='pointer';
+            x.style.background='#f8fafc';
+            x.style.border='1px solid #cbd5e1';
+            x.style.borderRadius='5px';
+          }
         });
 
         const share=action.querySelector('[data-bill-share]') as HTMLElement|null;
