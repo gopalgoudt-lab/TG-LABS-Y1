@@ -2,7 +2,7 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
-const siteUrl = 'https://www.tglabs.in';
+const siteUrl = 'https://tglabs.in';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
