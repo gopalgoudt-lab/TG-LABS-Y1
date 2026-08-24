@@ -6,6 +6,25 @@ export const dynamic = 'force-dynamic';
 
 const PRINTED_REPORT_FEE = 100;
 
+function fmt(minutes: number) {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const displayHour = hours % 12 || 12;
+  return `${displayHour}:${String(mins).padStart(2, '0')} ${period}`;
+}
+
+const BOOKING_SLOTS = Array.from(
+  { length: 26 },
+  (_, index) => `${fmt(360 + index * 30)} - ${fmt(390 + index * 30)}`,
+);
+
+function indiaTodayAsUtcDate() {
+  const now = new Date();
+  const india = new Date(now.getTime() + 330 * 60 * 1000);
+  return new Date(Date.UTC(india.getUTCFullYear(), india.getUTCMonth(), india.getUTCDate()));
+}
+
 const bookingSchema = z.object({
   name: z.string().trim().min(2).max(120),
   phone: z.string().regex(/^[0-9]{10}$/),
@@ -18,7 +37,9 @@ const bookingSchema = z.object({
   address: z.string().trim().max(500).optional(),
   pincode: z.string().regex(/^[1-9][0-9]{5}$/).optional(),
   date: z.string().date(),
-  slot: z.string().trim().min(3).max(60),
+  slot: z.string().refine((value) => BOOKING_SLOTS.includes(value), {
+    message: 'Please choose an available collection slot.',
+  }),
   testIds: z.array(z.string().min(1)).max(20).optional(),
   testNames: z.array(z.string().trim().min(1)).max(20).optional(),
   packageIds: z.array(z.string().min(1)).max(10).optional(),
@@ -36,6 +57,16 @@ export async function POST(request: Request) {
     const collectionDate = new Date(`${body.date}T00:00:00.000Z`);
     if (Number.isNaN(collectionDate.getTime())) {
       return NextResponse.json({ error: 'Invalid collection date.' }, { status: 400 });
+    }
+
+    const today = indiaTodayAsUtcDate();
+    const latestAllowedDate = new Date(today);
+    latestAllowedDate.setUTCDate(latestAllowedDate.getUTCDate() + 90);
+    if (collectionDate < today) {
+      return NextResponse.json({ error: 'Collection date cannot be in the past.' }, { status: 400 });
+    }
+    if (collectionDate > latestAllowedDate) {
+      return NextResponse.json({ error: 'Please choose a collection date within the next 90 days.' }, { status: 400 });
     }
 
     const [directTests, packages] = await Promise.all([
