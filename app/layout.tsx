@@ -1,4 +1,5 @@
 import './globals.css';
+import './brand-logo.css';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
