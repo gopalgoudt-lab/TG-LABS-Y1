@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 210" role="img" aria-labelledby="title desc">
+  <title id="title">TG Labs</title>
+  <desc id="desc">TG Labs diagnostics and home collection logo</desc>
+  <defs>
+    <linearGradient id="teal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#08a8a2"/><stop offset="1" stop-color="#06958f"/></linearGradient>
+    <linearGradient id="navy" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#073c66"/><stop offset="1" stop-color="#052f55"/></linearGradient>
+  </defs>
+  <g transform="translate(8 10)">
+    <path d="M18 18h120v31H94v85c0 34-25 55-55 55-12 0-22-2-31-7V42H18z" fill="url(#navy)"/>
+    <path d="M82 75h82v70c0 28-22 46-50 46-17 0-32-7-41-18 15-9 23-24 23-45V103H82z" fill="url(#teal)"/>
+    <rect x="58" y="45" width="31" height="100" rx="14" fill="#fff"/>
+    <rect x="55" y="41" width="37" height="9" rx="4.5" fill="#fff"/>
+    <path d="M73.5 103c9 15 14 23 14 32a14 14 0 1 1-28 0c0-9 5-17 14-32z" fill="#ef2f35"/>
+  </g>
+  <text x="206" y="123" font-family="Arial,Helvetica,sans-serif" font-size="108" font-weight="900" letter-spacing="-4" fill="#073c66">TG</text>
+  <text x="390" y="123" font-family="Arial,Helvetica,sans-serif" font-size="108" font-weight="900" letter-spacing="-3" fill="#08a19b">LABS</text>
+  <text x="208" y="173" font-family="Arial,Helvetica,sans-serif" font-size="25" font-weight="700" letter-spacing="8" fill="#073c66">DIAGNOSTICS</text>
+  <circle cx="502" cy="165" r="6" fill="#08a19b"/>
+  <text x="526" y="173" font-family="Arial,Helvetica,sans-serif" font-size="25" font-weight="700" letter-spacing="6" fill="#073c66">HOME COLLECTION</text>
+</svg>
