@@ -974,8 +974,11 @@ select:focus-visible {
 /* Authoritative final PR #16 mobile layout safeguards */
 @media (max-width: 760px) {
   :root {
-    --mobile-header-clearance: 112px;
-    --mobile-cta-clearance: calc(74px + max(12px, env(safe-area-inset-bottom)));
+    --mobile-header-height: 64px;
+    --mobile-header-clearance: calc(var(--mobile-header-height) + 24px);
+    --mobile-cta-height: 50px;
+    --mobile-cta-edge: max(12px, env(safe-area-inset-bottom));
+    --mobile-cta-clearance: calc(var(--mobile-cta-height) + var(--mobile-cta-edge));
   }
 
   html {
@@ -994,7 +997,8 @@ select:focus-visible {
 
   main section,
   main section[id],
-  main section .sectionTop {
+  main section .sectionTop,
+  main section .sectionTop h2 {
     scroll-margin-top: var(--mobile-header-clearance);
   }
 
@@ -1007,10 +1011,14 @@ select:focus-visible {
     padding-bottom: 0;
   }
 
+  .floatingBook {
+    min-height: var(--mobile-cta-height);
+    bottom: var(--mobile-cta-edge);
+  }
+
   .marketFooter {
     min-height: 0;
-    padding-top: 28px;
-    padding-bottom: 0;
+    padding: 24px 0 0;
   }
 
   .footerGrid {
@@ -1025,10 +1033,10 @@ select:focus-visible {
 
 @media (max-width: 390px) {
   :root {
-    --mobile-header-clearance: 104px;
+    --mobile-header-height: 60px;
   }
 
   .marketFooter {
-    padding-top: 24px;
+    padding-top: 20px;
   }
 }
