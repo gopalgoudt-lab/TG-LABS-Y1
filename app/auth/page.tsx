@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { ConfirmationResult, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { getFirebaseAuth } from "../../lib/firebase";
+import BrandLogo from "../../components/BrandLogo";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -93,6 +94,7 @@ export default function AuthPage() {
   return (
     <main className="wrap" style={{ padding: "72px 0", maxWidth: 560 }}>
       <div className="card" style={{ padding: 28 }}>
+        <a href="/" className="standaloneBrand" aria-label="TG Labs home"><BrandLogo className="brandLogoAuth" priority /></a>
         <p style={{ margin: 0, fontWeight: 700, color: "#087f6b" }}>TG LABS SECURE LOGIN</p>
         <h1 style={{ marginBottom: 8 }}>Sign in with mobile OTP</h1>
         <p style={{ marginTop: 0 }}>Use your mobile number to securely access bookings, reports and your patient account.</p>

@@ -1,0 +1,1103 @@
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.heroAssurance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.heroAssurance span {
+  border: 1px solid #d9e6e2;
+  background: #fff;
+  border-radius: 999px;
+  padding: 9px 13px;
+  color: #5f6d70;
+  font-size: 11px;
+}
+
+.heroAssurance b {
+  color: var(--blue);
+}
+
+.categoryTabs span {
+  flex: 0 0 auto;
+  border: 1px solid #e1e5e5;
+  background: #fff;
+  border-radius: 24px;
+  padding: 12px 20px;
+  font-weight: 700;
+}
+
+.partnerFilterLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #5c696d;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.detailNote {
+  color: var(--teal);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.catalogStatus {
+  border: 1px solid #dfe7e5;
+  background: #fff;
+  border-radius: 10px;
+  padding: 24px;
+  text-align: center;
+  color: #657377;
+}
+
+.addBlue:focus-visible,
+.navCart:focus-visible,
+.categoryCard:focus-visible,
+.healthBottom button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid #f1b94b;
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .heroAssurance {
+    display: grid;
+  }
+
+  .partnerFilterLabel {
+    width: 100%;
+  }
+
+  .partnerSelect {
+    display: block;
+    width: 100%;
+  }
+}
+
+/* Production polish: branding, rhythm and responsive conversion */
+.marketHero {
+  padding: 58px 0 52px;
+}
+
+.discoverSection,
+.compareSection,
+.popularChecks,
+.labPartnerSection {
+  padding: 56px 0;
+}
+
+.sectionTop {
+  margin-bottom: 24px;
+}
+
+.comparisonCard {
+  align-items: stretch;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(20, 55, 65, 0.04);
+}
+
+.testInfo {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.testInfo h3 {
+  color: var(--blue);
+  line-height: 1.15;
+}
+
+.testInfo p {
+  margin: 0 0 12px;
+}
+
+.partnerChoices {
+  justify-content: center;
+}
+
+.addBlue {
+  align-self: center;
+  min-width: 138px;
+}
+
+.healthCard {
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.healthCard .healthBottom {
+  margin-top: auto;
+}
+
+.healthDiscoveryCard {
+  min-height: 260px;
+  border-color: #d7e5e2;
+  background: linear-gradient(160deg, #fff 0%, #f4faf8 100%);
+}
+
+.healthDiscoveryCard .healthIcon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #e5f6f1;
+  color: var(--teal);
+  font-size: 22px;
+}
+
+.discoveryLabel {
+  margin-top: 20px;
+  color: var(--teal);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.4px;
+}
+
+.healthDiscoveryCard h3 {
+  margin: 10px 0 8px;
+}
+
+.healthDiscoveryCard p {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.healthDiscoveryCard button {
+  margin-top: auto;
+  border: 1px solid var(--blue);
+  border-radius: 7px;
+  padding: 13px 16px;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 800;
+  text-align: left;
+}
+
+.labGrid {
+  align-items: stretch;
+}
+
+.labCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 26px;
+}
+
+.partnerLogo {
+  height: 70px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.partnerLogo img {
+  width: 100%;
+  height: 64px;
+  object-fit: contain;
+  object-position: left center;
+  margin: 0;
+}
+
+.labCard h3,
+.labCard p,
+.labStats {
+  margin-top: 0;
+}
+
+.labCard .labStats {
+  margin-top: auto;
+}
+
+.labCard > a {
+  margin-top: 0;
+}
+
+.marketFooter {
+  position: relative;
+  z-index: 36;
+}
+
+.footerBrand {
+  display: inline-flex !important;
+  max-width: 100%;
+}
+
+.footerBrand img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 1050px) {
+  .comparisonCard {
+    gap: 18px;
+  }
+
+  .addBlue {
+    width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    padding-bottom: 72px;
+  }
+
+  .marketWrap {
+    width: min(100% - 28px, 1260px);
+  }
+
+  .marketNav {
+    gap: 10px;
+  }
+
+  .marketActions .navCart {
+    padding: 10px 11px;
+    font-size: 12px;
+  }
+
+  .marketHero {
+    padding: 38px 0 40px;
+  }
+
+  .heroLayout {
+    gap: 34px;
+  }
+
+  .heroCopy h1 {
+    margin: 15px 0;
+    font-size: clamp(38px, 11vw, 48px);
+    letter-spacing: -1px;
+  }
+
+  .heroSearch {
+    margin-top: 24px;
+  }
+
+  .heroSearch input {
+    min-width: 0;
+  }
+
+  .heroServiceCard {
+    min-height: 0;
+    padding: 24px;
+  }
+
+  .discoverSection,
+  .compareSection,
+  .popularChecks,
+  .labPartnerSection {
+    padding: 42px 0;
+  }
+
+  .sectionTop {
+    display: grid;
+    gap: 18px;
+  }
+
+  .sectionTop h2 {
+    font-size: 32px;
+    line-height: 1.12;
+  }
+
+  .categoryGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .categoryCard {
+    min-height: 150px;
+    padding: 20px 16px;
+  }
+
+  .comparisonCard {
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .choice {
+    padding: 12px;
+  }
+
+  .healthGrid,
+  .labGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .healthCard,
+  .healthDiscoveryCard {
+    min-height: 0;
+  }
+
+  .floatingBook {
+    right: 14px;
+    bottom: 12px;
+    left: 14px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 14px;
+  }
+
+  .footerGrid {
+    gap: 24px;
+  }
+}
+
+@media (max-width: 390px) {
+  .marketActions .navCart {
+    padding: 9px;
+    font-size: 11px;
+  }
+
+  .heroSearch a {
+    padding-inline: 14px;
+  }
+
+  .categoryGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile conversion polish: compact, readable and safe-area aware */
+@media (max-width: 760px) {
+  html {
+    scroll-padding-top: 76px;
+  }
+
+  .marketHeader {
+    box-shadow: 0 4px 18px rgba(18, 62, 114, 0.06);
+  }
+
+  .marketNav {
+    min-height: 70px;
+    gap: 8px;
+  }
+
+  .marketBrand {
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+
+  .brandLogoHeader {
+    width: min(142px, 42vw);
+    max-height: 62px;
+  }
+
+  .marketActions {
+    flex: 0 0 auto;
+    gap: 6px;
+  }
+
+  .marketActions .navCart {
+    min-height: 42px;
+    white-space: nowrap;
+  }
+
+  .heroCopy h1 {
+    font-size: clamp(34px, 10vw, 44px);
+    line-height: 1.04;
+  }
+
+  .heroCopy p {
+    margin-bottom: 0;
+    line-height: 1.6;
+  }
+
+  .heroSearch {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    border-radius: 10px;
+  }
+
+  .heroSearch span,
+  .heroSearch input {
+    min-height: 50px;
+  }
+
+  .heroSearch a {
+    grid-column: 1 / -1;
+    padding: 14px 18px;
+    text-align: center;
+  }
+
+  .popularLine {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px 4px;
+    line-height: 1.6;
+  }
+
+  .popularLine button {
+    min-height: 34px;
+    padding: 4px 7px;
+  }
+
+  .heroAssurance {
+    gap: 8px;
+    margin-top: 18px;
+  }
+
+  .heroAssurance span {
+    padding: 10px 12px;
+    font-size: 11px;
+  }
+
+  .heroServiceCard h3 {
+    margin: 12px 0 18px;
+    font-size: 27px;
+  }
+
+  .heroServiceCard ol {
+    margin: 18px 0;
+  }
+
+  .categoryTabs {
+    margin: 16px -14px 18px;
+    padding: 0 14px 6px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .categoryTabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .categoryTabs span {
+    scroll-snap-align: start;
+    padding: 10px 15px;
+    white-space: nowrap;
+  }
+
+  .categoryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .categoryCard {
+    min-height: 128px;
+    padding: 18px 14px;
+  }
+
+  .categoryCard > span {
+    margin-bottom: 7px;
+  }
+
+  .categoryCard small {
+    font-size: 11px;
+  }
+
+  .comparisonList {
+    gap: 16px;
+  }
+
+  .comparisonCard {
+    gap: 16px;
+    padding: 18px;
+  }
+
+  .testInfo h3 {
+    font-size: 23px;
+  }
+
+  .partnerChoices {
+    gap: 9px;
+  }
+
+  .choice {
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .choice strong {
+    grid-column: 2;
+    justify-self: start;
+    font-size: 16px;
+  }
+
+  .choice em {
+    position: static;
+    grid-column: 2;
+    justify-self: start;
+    width: max-content;
+    margin-top: 2px;
+  }
+
+  .addBlue {
+    min-height: 48px;
+  }
+
+  .healthCard,
+  .healthDiscoveryCard,
+  .labCard {
+    padding: 20px;
+  }
+
+  .healthCard h3 {
+    margin-top: 22px;
+  }
+
+  .healthBottom {
+    gap: 14px;
+  }
+
+  .healthBottom button {
+    min-height: 46px;
+    padding-inline: 18px;
+  }
+
+  .partnerLogo {
+    height: 58px;
+  }
+
+  .partnerLogo img {
+    height: 54px;
+  }
+
+  .labStats span {
+    padding: 13px 0;
+  }
+
+  .responsibility {
+    padding: 48px 0;
+  }
+
+  .responsibility h2 {
+    font-size: 31px;
+    line-height: 1.15;
+  }
+
+  .stepsRow {
+    gap: 0;
+  }
+
+  .stepsRow div {
+    padding: 14px 0;
+  }
+
+  .floatingBook {
+    bottom: max(12px, env(safe-area-inset-bottom));
+    min-height: 50px;
+    box-shadow: 0 10px 30px rgba(0, 86, 75, 0.3);
+  }
+
+  .marketFooter {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
+  .footerBrand {
+    max-width: min(260px, 78vw);
+  }
+
+  .cartPanel {
+    padding: 22px 18px calc(24px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 390px) {
+  .marketWrap {
+    width: min(100% - 24px, 1260px);
+  }
+
+  .brandLogoHeader {
+    width: min(132px, 40vw);
+  }
+
+  .marketActions .navCart {
+    padding-inline: 9px;
+  }
+
+  .marketHero {
+    padding-top: 30px;
+  }
+
+  .sectionTop h2 {
+    font-size: 29px;
+  }
+
+  .categoryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .categoryCard {
+    min-height: 122px;
+    padding: 16px 12px;
+  }
+
+  .categoryCard small {
+    line-height: 1.35;
+  }
+
+  .healthBottom {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .healthBottom button {
+    width: 100%;
+  }
+}
+
+/* Final PR #16 mobile refinement: responsive layout only */
+@media (max-width: 760px) {
+  .marketNav {
+    min-height: 64px;
+    gap: 6px;
+  }
+
+  .brandLogoHeader {
+    width: min(124px, 38vw);
+    max-height: 56px;
+  }
+
+  .marketActions .navCart {
+    min-height: 40px;
+    padding: 9px 10px;
+    line-height: 1;
+  }
+
+  .heroCopy,
+  .heroServiceCard,
+  .sectionTop > div,
+  .testInfo,
+  .partnerChoices,
+  .healthCard,
+  .labCard,
+  .footerGrid > div {
+    min-width: 0;
+  }
+
+  .heroCopy h1,
+  .heroServiceCard h3,
+  .sectionTop h2,
+  .testInfo h3,
+  .healthCard h3,
+  .labCard h3,
+  .responsibility h2 {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .heroCopy h1 br {
+    display: none;
+  }
+
+  .heroSearch {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .heroSearch input {
+    width: 100%;
+    min-width: 0;
+    padding-right: 12px;
+    text-overflow: ellipsis;
+  }
+
+  .heroSearch a {
+    min-height: 46px;
+    display: grid;
+    place-items: center;
+  }
+
+  .comparisonCard {
+    gap: 13px;
+    padding: 16px;
+  }
+
+  .testInfo h3 {
+    margin-bottom: 6px;
+    font-size: 22px;
+    line-height: 1.18;
+  }
+
+  .testInfo p {
+    margin-bottom: 8px;
+    line-height: 1.45;
+  }
+
+  .detailNote {
+    line-height: 1.4;
+  }
+
+  .choice {
+    padding: 10px;
+  }
+
+  .choice b,
+  .choice small,
+  .choice strong {
+    overflow-wrap: anywhere;
+  }
+
+  .addBlue {
+    min-height: 46px;
+    padding: 13px 12px;
+  }
+
+  .footerBrand {
+    max-width: min(190px, 58vw);
+  }
+
+  .brandLogoFooter {
+    width: 190px;
+    max-height: 108px;
+  }
+
+  .marketFooter {
+    padding-top: 36px;
+    padding-bottom: calc(124px + env(safe-area-inset-bottom));
+  }
+
+  .floatingBook {
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 390px) {
+  .marketNav {
+    min-height: 60px;
+  }
+
+  .brandLogoHeader {
+    width: min(116px, 36vw);
+    max-height: 52px;
+  }
+
+  .marketActions .navCart {
+    padding-inline: 8px;
+    font-size: 10px;
+  }
+
+  .heroCopy h1 {
+    font-size: clamp(32px, 9.6vw, 38px);
+  }
+
+  .heroSearch span {
+    padding-left: 14px;
+  }
+
+  .heroSearch input {
+    padding-left: 6px;
+    font-size: 14px;
+  }
+
+  .comparisonCard {
+    padding: 14px;
+  }
+
+  .choice {
+    padding: 9px;
+  }
+
+  .footerBrand {
+    max-width: min(168px, 54vw);
+  }
+
+  .brandLogoFooter {
+    width: 168px;
+  }
+}
+
+/* Final mobile overlap correction for PR #16 */
+@media (max-width: 760px) {
+  html {
+    scroll-padding-top: 82px;
+    scroll-padding-bottom: calc(82px + env(safe-area-inset-bottom));
+  }
+
+  body {
+    padding-bottom: calc(78px + env(safe-area-inset-bottom));
+  }
+
+  #tests,
+  #packages,
+  #partners,
+  #how,
+  .discoverSection {
+    scroll-margin-top: 82px;
+  }
+
+  #tests .sectionTop,
+  #packages .sectionTop,
+  #partners .sectionTop {
+    scroll-margin-top: 82px;
+  }
+
+  .discoverSection,
+  .compareSection,
+  .popularChecks,
+  .labPartnerSection,
+  .responsibility {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+
+  .marketFooter {
+    padding-bottom: 36px;
+  }
+
+  .footerGrid {
+    padding-bottom: 0;
+  }
+}
+
+@media (max-width: 390px) {
+  html {
+    scroll-padding-top: 76px;
+  }
+
+  #tests,
+  #packages,
+  #partners,
+  #how,
+  .discoverSection,
+  #tests .sectionTop,
+  #packages .sectionTop,
+  #partners .sectionTop {
+    scroll-margin-top: 76px;
+  }
+
+  .marketFooter {
+    padding-bottom: 30px;
+  }
+}
+
+
+/* Mobile header/CTA clearance correction after visual review */
+@media (max-width: 760px) {
+  html {
+    scroll-padding-top: 112px;
+    scroll-padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+
+  body {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+
+  #tests,
+  #packages,
+  #partners,
+  #how,
+  .discoverSection,
+  #tests .sectionTop,
+  #packages .sectionTop,
+  #partners .sectionTop {
+    scroll-margin-top: 112px;
+  }
+
+  .discoverSection,
+  .compareSection,
+  .popularChecks,
+  .labPartnerSection,
+  .responsibility {
+    padding-bottom: calc(120px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 390px) {
+  html {
+    scroll-padding-top: 104px;
+  }
+
+  #tests,
+  #packages,
+  #partners,
+  #how,
+  .discoverSection,
+  #tests .sectionTop,
+  #packages .sectionTop,
+  #partners .sectionTop {
+    scroll-margin-top: 104px;
+  }
+}
+
+/* Mobile CTA clearance at actionable content boundaries */
+@media (max-width: 760px) {
+  html {
+    scroll-padding-bottom: calc(74px + max(12px, env(safe-area-inset-bottom)));
+  }
+
+  body,
+  main {
+    padding-bottom: 0;
+  }
+
+  .heroAssurance,
+  .comparisonList,
+  .labGrid {
+    padding-bottom: calc(74px + max(12px, env(safe-area-inset-bottom)));
+  }
+
+  .marketFooter {
+    padding-top: 28px;
+    padding-bottom: calc(74px + max(12px, env(safe-area-inset-bottom)));
+  }
+
+  .footerGrid {
+    gap: 16px;
+  }
+
+  .footerBrand {
+    max-width: min(144px, 46vw);
+  }
+
+  .brandLogoFooter {
+    width: 144px;
+    max-height: 82px;
+  }
+
+  .footerGrid p {
+    margin: 4px 0 8px;
+  }
+}
+
+/* Authoritative final PR #16 mobile layout safeguards */
+@media (max-width: 760px) {
+  :root {
+    --mobile-header-height: 64px;
+    --mobile-header-clearance: calc(var(--mobile-header-height) + 16px);
+    --mobile-cta-height: 50px;
+    --mobile-cta-edge: max(8px, env(safe-area-inset-bottom));
+    --mobile-cta-clearance: calc(var(--mobile-cta-height) + var(--mobile-cta-edge));
+  }
+
+  html {
+    scroll-padding-top: var(--mobile-header-clearance);
+    scroll-padding-bottom: var(--mobile-cta-clearance);
+  }
+
+  body {
+    padding-bottom: var(--mobile-cta-clearance);
+    background-color: #0d3155;
+  }
+
+  main {
+    padding-bottom: 0;
+  }
+
+  main section,
+  main section[id],
+  main section .sectionTop,
+  main section .sectionTop h2 {
+    scroll-margin-top: var(--mobile-header-clearance);
+  }
+
+  .discoverSection,
+  .compareSection,
+  .popularChecks,
+  .labPartnerSection {
+    padding: 36px 0;
+  }
+
+  .responsibility {
+    padding: 36px 0 28px;
+  }
+
+  .sectionTop {
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .heroAssurance,
+  .categoryGrid,
+  .comparisonList,
+  .healthGrid,
+  .labGrid,
+  .stepsRow {
+    padding-bottom: 0;
+  }
+
+  .floatingBook {
+    min-height: var(--mobile-cta-height);
+    bottom: var(--mobile-cta-edge);
+  }
+
+  .marketFooter {
+    min-height: 0;
+    padding: 12px 0 0;
+  }
+
+  .footerGrid {
+    gap: 10px;
+    padding: 0;
+  }
+
+  .footerGrid p {
+    margin: 2px 0 4px;
+  }
+}
+
+@media (max-width: 390px) {
+  :root {
+    --mobile-header-height: 60px;
+  }
+
+  .discoverSection,
+  .compareSection,
+  .popularChecks,
+  .labPartnerSection {
+    padding: 32px 0;
+  }
+
+  .responsibility {
+    padding: 32px 0 24px;
+  }
+
+  .marketFooter {
+    padding-top: 10px;
+  }
+}
+
+/* Final mobile CTA/footer clearance only — preserve approved content layout */
+@media (max-width: 760px) {
+  :root {
+    --mobile-cta-edge: max(4px, env(safe-area-inset-bottom));
+    --mobile-cta-clearance: calc(var(--mobile-cta-height) + var(--mobile-cta-edge));
+  }
+
+  body {
+    padding-bottom: var(--mobile-cta-clearance);
+  }
+
+  .marketFooter {
+    min-height: 0;
+    padding-top: 8px;
+    padding-bottom: 0;
+  }
+
+  .footerGrid {
+    gap: 8px;
+    padding-bottom: 0;
+  }
+
+  .footerGrid p {
+    margin-top: 0;
+    margin-bottom: 2px;
+  }
+}
+
+@media (max-width: 390px) {
+  .marketFooter {
+    padding-top: 6px;
+  }
+}

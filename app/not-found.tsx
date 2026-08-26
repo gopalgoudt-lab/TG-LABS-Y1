@@ -1,9 +1,9 @@
+import BrandLogo from '@/components/BrandLogo';
+
 export default function NotFound() {
   return (
     <main className="dashboard" style={{ maxWidth: 760, margin: '0 auto', padding: '72px 20px' }}>
-      <a href="/" className="brand" aria-label="TG Labs home">
-        <span className="logo">TG</span>TG LABS
-      </a>
+      <a href="/" className="standaloneBrand" aria-label="TG Labs home"><BrandLogo className="brandLogoStandalone" priority /></a>
       <section className="card" style={{ marginTop: 36, padding: 32 }}>
         <span className="ey">PAGE NOT FOUND</span>
         <h1>We couldn&apos;t find that page.</h1>

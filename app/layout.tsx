@@ -1,4 +1,6 @@
 import './globals.css';
+import './brand-logo.css';
+import './premium-polish.css';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
@@ -7,19 +9,19 @@ const siteUrl = 'https://tglabs.in';
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'TG Labs — Diagnostics that move at the speed of care.',
+    default: 'TG Labs — One booking. Trusted NABL labs. Quality reports.',
     template: '%s | TG Labs',
   },
   description:
-    'Book diagnostic tests and health packages, arrange home sample collection, and access digital reports with TG Labs.',
+    'Book diagnostic tests and health packages from trusted NABL-accredited partner labs, arrange home sample collection, and access secure digital reports with TG Labs.',
   alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
     url: siteUrl,
     siteName: 'TG Labs',
-    title: 'TG Labs — Diagnostics that move at the speed of care.',
+    title: 'TG Labs — One booking. Trusted NABL labs. Quality reports.',
     description:
-      'Diagnostic tests, health packages, home sample collection and digital reports.',
+      'Compare diagnostic tests and health packages from trusted NABL-accredited partner labs, book home sample collection, and access secure digital reports.',
   },
   robots: {
     index: true,
