@@ -931,17 +931,18 @@ select:focus-visible {
   }
 }
 
-/* Reserve the complete fixed CTA footprint in the mobile page scroller */
+/* Global mobile reserve for the fixed CTA without creating a pre-footer band */
 @media (max-width: 760px) {
   html {
     scroll-padding-bottom: calc(74px + max(12px, env(safe-area-inset-bottom)));
   }
 
   body {
-    padding-bottom: 0;
+    padding-bottom: calc(74px + max(12px, env(safe-area-inset-bottom)));
+    background-color: #0d3155;
   }
 
   main {
-    padding-bottom: calc(74px + max(12px, env(safe-area-inset-bottom)));
+    padding-bottom: 0;
   }
 }
