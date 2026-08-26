@@ -975,9 +975,9 @@ select:focus-visible {
 @media (max-width: 760px) {
   :root {
     --mobile-header-height: 64px;
-    --mobile-header-clearance: calc(var(--mobile-header-height) + 24px);
+    --mobile-header-clearance: calc(var(--mobile-header-height) + 16px);
     --mobile-cta-height: 50px;
-    --mobile-cta-edge: max(12px, env(safe-area-inset-bottom));
+    --mobile-cta-edge: max(8px, env(safe-area-inset-bottom));
     --mobile-cta-clearance: calc(var(--mobile-cta-height) + var(--mobile-cta-edge));
   }
 
@@ -1002,6 +1002,22 @@ select:focus-visible {
     scroll-margin-top: var(--mobile-header-clearance);
   }
 
+  .discoverSection,
+  .compareSection,
+  .popularChecks,
+  .labPartnerSection {
+    padding: 36px 0;
+  }
+
+  .responsibility {
+    padding: 36px 0 28px;
+  }
+
+  .sectionTop {
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
   .heroAssurance,
   .categoryGrid,
   .comparisonList,
@@ -1018,16 +1034,16 @@ select:focus-visible {
 
   .marketFooter {
     min-height: 0;
-    padding: 24px 0 0;
+    padding: 12px 0 0;
   }
 
   .footerGrid {
-    gap: 14px;
-    padding-bottom: 0;
+    gap: 10px;
+    padding: 0;
   }
 
   .footerGrid p {
-    margin: 4px 0 6px;
+    margin: 2px 0 4px;
   }
 }
 
@@ -1036,7 +1052,18 @@ select:focus-visible {
     --mobile-header-height: 60px;
   }
 
+  .discoverSection,
+  .compareSection,
+  .popularChecks,
+  .labPartnerSection {
+    padding: 32px 0;
+  }
+
+  .responsibility {
+    padding: 32px 0 24px;
+  }
+
   .marketFooter {
-    padding-top: 20px;
+    padding-top: 10px;
   }
 }
