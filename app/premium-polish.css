@@ -656,3 +656,166 @@ select:focus-visible {
   }
 }
 
+/* Final PR #16 mobile refinement: responsive layout only */
+@media (max-width: 760px) {
+  .marketNav {
+    min-height: 64px;
+    gap: 6px;
+  }
+
+  .brandLogoHeader {
+    width: min(124px, 38vw);
+    max-height: 56px;
+  }
+
+  .marketActions .navCart {
+    min-height: 40px;
+    padding: 9px 10px;
+    line-height: 1;
+  }
+
+  .heroCopy,
+  .heroServiceCard,
+  .sectionTop > div,
+  .testInfo,
+  .partnerChoices,
+  .healthCard,
+  .labCard,
+  .footerGrid > div {
+    min-width: 0;
+  }
+
+  .heroCopy h1,
+  .heroServiceCard h3,
+  .sectionTop h2,
+  .testInfo h3,
+  .healthCard h3,
+  .labCard h3,
+  .responsibility h2 {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .heroCopy h1 br {
+    display: none;
+  }
+
+  .heroSearch {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .heroSearch input {
+    width: 100%;
+    min-width: 0;
+    padding-right: 12px;
+    text-overflow: ellipsis;
+  }
+
+  .heroSearch a {
+    min-height: 46px;
+    display: grid;
+    place-items: center;
+  }
+
+  .comparisonCard {
+    gap: 13px;
+    padding: 16px;
+  }
+
+  .testInfo h3 {
+    margin-bottom: 6px;
+    font-size: 22px;
+    line-height: 1.18;
+  }
+
+  .testInfo p {
+    margin-bottom: 8px;
+    line-height: 1.45;
+  }
+
+  .detailNote {
+    line-height: 1.4;
+  }
+
+  .choice {
+    padding: 10px;
+  }
+
+  .choice b,
+  .choice small,
+  .choice strong {
+    overflow-wrap: anywhere;
+  }
+
+  .addBlue {
+    min-height: 46px;
+    padding: 13px 12px;
+  }
+
+  .footerBrand {
+    max-width: min(190px, 58vw);
+  }
+
+  .brandLogoFooter {
+    width: 190px;
+    max-height: 108px;
+  }
+
+  .marketFooter {
+    padding-top: 36px;
+    padding-bottom: calc(124px + env(safe-area-inset-bottom));
+  }
+
+  .floatingBook {
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 390px) {
+  .marketNav {
+    min-height: 60px;
+  }
+
+  .brandLogoHeader {
+    width: min(116px, 36vw);
+    max-height: 52px;
+  }
+
+  .marketActions .navCart {
+    padding-inline: 8px;
+    font-size: 10px;
+  }
+
+  .heroCopy h1 {
+    font-size: clamp(32px, 9.6vw, 38px);
+  }
+
+  .heroSearch span {
+    padding-left: 14px;
+  }
+
+  .heroSearch input {
+    padding-left: 6px;
+    font-size: 14px;
+  }
+
+  .comparisonCard {
+    padding: 14px;
+  }
+
+  .choice {
+    padding: 9px;
+  }
+
+  .footerBrand {
+    max-width: min(168px, 54vw);
+  }
+
+  .brandLogoFooter {
+    width: 168px;
+  }
+}
+
