@@ -983,19 +983,18 @@ select:focus-visible {
     scroll-padding-bottom: var(--mobile-cta-clearance);
   }
 
-  body,
+  body {
+    padding-bottom: var(--mobile-cta-clearance);
+    background-color: #0d3155;
+  }
+
   main {
     padding-bottom: 0;
   }
 
-  #tests,
-  #packages,
-  #partners,
-  #how,
-  .discoverSection,
-  #tests .sectionTop,
-  #packages .sectionTop,
-  #partners .sectionTop {
+  main section,
+  main section[id],
+  main section .sectionTop {
     scroll-margin-top: var(--mobile-header-clearance);
   }
 
@@ -1005,26 +1004,18 @@ select:focus-visible {
   .healthGrid,
   .labGrid,
   .stepsRow {
-    padding-bottom: var(--mobile-cta-clearance);
+    padding-bottom: 0;
   }
 
   .marketFooter {
+    min-height: 0;
     padding-top: 28px;
-    padding-bottom: var(--mobile-cta-clearance);
+    padding-bottom: 0;
   }
 
   .footerGrid {
     gap: 14px;
     padding-bottom: 0;
-  }
-
-  .footerBrand {
-    max-width: min(144px, 46vw);
-  }
-
-  .brandLogoFooter {
-    width: 144px;
-    max-height: 82px;
   }
 
   .footerGrid p {
