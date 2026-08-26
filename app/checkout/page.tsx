@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import BrandLogo from '@/components/BrandLogo';
 
-type CartItem = { kind: 'test' | 'package'; id: string; name: string; price: number };
+type CartItem = { kind: 'test' | 'package'; id: string; name: string; price: number; offerId?: string; partnerId?: string; partnerName?: string; tat?: string | null };
 type CatalogPackage = { id: string; tests?: { id: string }[] };
 type PaymentOption = 'ONLINE' | 'QR' | 'COLLECTION';
 type CollectionPaymentMethod = 'CASH' | 'UPI';
@@ -41,7 +41,7 @@ export default function CheckoutPage() {
       try {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          setCart(parsed.filter((x: any) => x && typeof x === 'object' && (x.kind === 'test' || x.kind === 'package') && x.id && x.name));
+          setCart(parsed.filter((x: any) => x && typeof x === 'object' && x.id && x.name && (x.kind === 'package' || (x.kind === 'test' && x.offerId && x.partnerId && x.partnerName))));
         }
       } catch {
         setCart([]);
@@ -141,7 +141,7 @@ export default function CheckoutPage() {
     if (!idempotencyKey) setIdempotencyKey(requestKey);
 
     try {
-      const testIds = cart.filter((item) => item.kind === 'test').map((item) => item.id);
+      const testSelections = cart.filter((item) => item.kind === 'test').map((item) => ({ testId: item.id, offerId: item.offerId! }));
       const packageIds = cart.filter((item) => item.kind === 'package').map((item) => item.id);
       const response = await fetch('/api/bookings', {
         method: 'POST',
@@ -162,7 +162,7 @@ export default function CheckoutPage() {
           pincode: mode === 'home' ? form.pincode : undefined,
           date: form.date,
           slot: form.slot,
-          testIds,
+          testSelections,
           packageIds,
         }),
       });
@@ -230,7 +230,7 @@ export default function CheckoutPage() {
         <small className="secureNote">{paymentOption === 'COLLECTION' ? `Booking will be confirmed now. Payment will remain pending until ${collectionPaymentMethod === 'UPI' ? 'UPI' : 'cash'} is collected.` : 'You will be taken to Razorpay secure checkout after the booking is created.'}</small>
       </form>
     </section><aside className="card orderSummary"><small>ORDER SUMMARY</small>
-      {cart.map((item) => { const included = item.kind === 'test' && packageTestIds.has(item.id); return <div className="summaryRow" key={`${item.kind}-${item.id}`}><span>{item.name}<small style={{ display: 'block' }}>{included ? 'Included in selected package' : item.kind === 'package' ? 'Health package' : 'Diagnostic test'}</small></span><b>{included ? 'Included' : `₹${Number(item.price || 0).toLocaleString('en-IN')}`}</b></div>; })}
+      {cart.map((item) => { const included = item.kind === 'test' && packageTestIds.has(item.id); return <div className="summaryRow" key={`${item.kind}-${item.id}`}><span>{item.name}<small style={{ display: 'block' }}>{included ? `Included in selected package • ${item.partnerName}` : item.kind === 'package' ? 'Health package' : `${item.partnerName} • ${item.tat||'TAT confirmed before booking'}`}</small></span><b>{included ? 'Included' : `₹${Number(item.price || 0).toLocaleString('en-IN')}`}</b></div>; })}
       {printedReport && <div className="summaryRow printRow"><span>Printed Reports<small style={{ display: 'block' }}>Delivery in 24–48 hrs</small></span><b>₹100</b></div>}
       <div className="summaryTotal"><span>Total price</span><b>₹{total.toLocaleString('en-IN')}</b></div><div className="secureSummary">{paymentOption === 'COLLECTION' ? `Payment due at sample collection by ${collectionPaymentMethod === 'UPI' ? 'UPI' : 'cash'}.` : paymentOption === 'QR' ? 'Secure QR / UPI payment through Razorpay.' : 'Secure online payment via Razorpay.'}</div>
     </aside></div>

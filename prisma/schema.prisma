@@ -40,6 +40,12 @@ enum PaymentMode {
   OTHER
 }
 
+enum PartnerOfferAvailability {
+  AVAILABLE
+  CHECK_AVAILABILITY
+  UNAVAILABLE
+}
+
 model Patient {
   id        String    @id @default(cuid())
   name      String
@@ -70,6 +76,38 @@ model DiagnosticTest {
   updatedAt         DateTime      @updatedAt
   items             BookingItem[]
   packageItems      PackageItem[]
+  partnerOffers     TestPartnerOffer[]
+}
+
+model DiagnosticPartner {
+  id        String             @id @default(cuid())
+  slug      String             @unique
+  name      String             @unique
+  active    Boolean            @default(true)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  offers    TestPartnerOffer[]
+
+  @@index([active])
+}
+
+model TestPartnerOffer {
+  id           String                   @id @default(cuid())
+  testId       String
+  partnerId    String
+  price        Int
+  availability PartnerOfferAvailability @default(CHECK_AVAILABILITY)
+  tat          String?
+  active       Boolean                  @default(true)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  test         DiagnosticTest           @relation(fields: [testId], references: [id], onDelete: Cascade)
+  partner      DiagnosticPartner        @relation(fields: [partnerId], references: [id])
+  bookingItems BookingItem[]
+
+  @@unique([testId, partnerId])
+  @@index([partnerId, availability, active])
+  @@index([testId, availability, active])
 }
 
 model DiagnosticPackage {
@@ -232,14 +270,22 @@ model RazorpayWebhookEvent {
 }
 
 model BookingItem {
-  id        String         @id @default(cuid())
-  bookingId String
-  testId    String
-  price     Int
-  booking   Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  test      DiagnosticTest @relation(fields: [testId], references: [id])
+  id          String            @id @default(cuid())
+  bookingId   String
+  testId      String
+  offerId     String?
+  partnerId   String?
+  partnerName String?
+  partnerTat  String?
+  partnerAvailability PartnerOfferAvailability?
+  price       Int
+  booking     Booking           @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  test        DiagnosticTest    @relation(fields: [testId], references: [id])
+  offer       TestPartnerOffer? @relation(fields: [offerId], references: [id])
 
   @@unique([bookingId, testId])
+  @@index([offerId])
+  @@index([partnerId])
 }
 
 model BookingPackage {

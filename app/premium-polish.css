@@ -64,6 +64,7 @@
 }
 
 .addBlue:focus-visible,
+.choice:focus-visible,
 .navCart:focus-visible,
 .categoryCard:focus-visible,
 .healthBottom button:focus-visible,
@@ -72,6 +73,21 @@ input:focus-visible,
 select:focus-visible {
   outline: 3px solid #f1b94b;
   outline-offset: 3px;
+}
+
+button.choice {
+  width: 100%;
+  color: inherit;
+  text-align: left;
+}
+
+button.choice:disabled {
+  cursor: not-allowed;
+}
+
+.addBlue:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 @media (max-width: 640px) {
