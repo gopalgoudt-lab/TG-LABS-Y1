@@ -46,9 +46,10 @@ const bookingSchema = z.object({
   }),
   testIds: z.array(z.string().min(1)).max(20).optional(),
   testNames: z.array(z.string().trim().min(1)).max(20).optional(),
+  testSelections: z.array(z.object({ testId: z.string().min(1), offerId: z.string().min(1) })).max(20).optional(),
   packageIds: z.array(z.string().min(1)).max(10).optional(),
 }).refine(
-  (v) => Boolean(v.testIds?.length || v.testNames?.length || v.packageIds?.length),
+  (v) => Boolean(v.testSelections?.length || v.testIds?.length || v.testNames?.length || v.packageIds?.length),
   { message: 'At least one diagnostic test or package is required.', path: ['testIds'] },
 ).refine(
   (v) => v.mode !== 'home' || Boolean(v.address && v.pincode),
@@ -111,14 +112,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Please choose a collection date within the next 90 days.' }, { status: 400 });
     }
 
-    const [directTests, packages] = await Promise.all([
-      body.testIds?.length || body.testNames?.length
-        ? prisma.diagnosticTest.findMany({
+    if ((body.testIds?.length || body.testNames?.length) && !body.testSelections?.length) {
+      return NextResponse.json({ error: 'Please select an available diagnostic partner for every test.' }, { status: 400 });
+    }
+
+    const requestedSelections = body.testSelections ?? [];
+    if (new Set(requestedSelections.map((selection) => selection.testId)).size !== requestedSelections.length) {
+      return NextResponse.json({ error: 'Each diagnostic test must have exactly one selected partner offer.' }, { status: 400 });
+    }
+
+    const [directOffers, packages] = await Promise.all([
+      requestedSelections.length
+        ? prisma.testPartnerOffer.findMany({
             where: {
+              id: { in: requestedSelections.map((selection) => selection.offerId) },
               active: true,
-              ...(body.testIds?.length ? { id: { in: body.testIds } } : { name: { in: body.testNames } }),
+              availability: 'AVAILABLE',
+              test: { active: true },
+              partner: { active: true },
             },
-            select: { id: true, name: true, price: true },
+            select: {
+              id: true,
+              testId: true,
+              price: true,
+              tat: true,
+              partner: { select: { id: true, name: true } },
+            },
           })
         : Promise.resolve([]),
       body.packageIds?.length
@@ -134,30 +153,41 @@ export async function POST(request: Request) {
         : Promise.resolve([]),
     ]);
 
-    const requestedTestCount = body.testIds?.length ?? body.testNames?.length ?? 0;
-    if (directTests.length !== requestedTestCount) {
-      return NextResponse.json({ error: 'One or more selected tests are unavailable.' }, { status: 400 });
+    if (directOffers.length !== requestedSelections.length) {
+      return NextResponse.json({ error: 'One or more selected partner offers are unavailable.' }, { status: 400 });
+    }
+    const requestedOfferByTest = new Map(requestedSelections.map((selection) => [selection.testId, selection.offerId]));
+    if (directOffers.some((offer) => requestedOfferByTest.get(offer.testId) !== offer.id)) {
+      return NextResponse.json({ error: 'A selected partner offer does not match its diagnostic test.' }, { status: 400 });
     }
     if (packages.length !== (body.packageIds?.length ?? 0)) {
       return NextResponse.json({ error: 'One or more selected packages are unavailable.' }, { status: 400 });
     }
 
     const packageTestIds = new Set(packages.flatMap((pkg) => pkg.tests.map((item) => item.test.id)));
-    const chargeableDirectTests = directTests.filter((test) => !packageTestIds.has(test.id));
-    const uniqueTests = new Map<string, { id: string; price: number }>();
+    const chargeableDirectOffers = directOffers.filter((offer) => !packageTestIds.has(offer.testId));
+    const uniqueTests = new Map<string, { id: string; price: number; offerId?: string; partnerId?: string; partnerName?: string; partnerTat?: string | null; partnerAvailability?: 'AVAILABLE' }>();
 
     for (const pkg of packages) {
       for (const item of pkg.tests) {
         uniqueTests.set(item.test.id, { id: item.test.id, price: 0 });
       }
     }
-    for (const test of directTests) {
-      if (!uniqueTests.has(test.id)) uniqueTests.set(test.id, { id: test.id, price: test.price });
+    for (const offer of directOffers) {
+      uniqueTests.set(offer.testId, {
+        id: offer.testId,
+        price: packageTestIds.has(offer.testId) ? 0 : offer.price,
+        offerId: offer.id,
+        partnerId: offer.partner.id,
+        partnerName: offer.partner.name,
+        partnerTat: offer.tat,
+        partnerAvailability: 'AVAILABLE',
+      });
     }
 
     const diagnosticAmount =
       packages.reduce((sum, pkg) => sum + pkg.price, 0) +
-      chargeableDirectTests.reduce((sum, test) => sum + test.price, 0);
+      chargeableDirectOffers.reduce((sum, offer) => sum + offer.price, 0);
     const printedReportFee = body.printedReport ? PRINTED_REPORT_FEE : 0;
     const totalAmount = diagnosticAmount + printedReportFee;
 
@@ -195,7 +225,15 @@ export async function POST(request: Request) {
           slot: body.slot,
           totalAmount,
           items: {
-            create: Array.from(uniqueTests.values()).map((test) => ({ testId: test.id, price: test.price })),
+            create: Array.from(uniqueTests.values()).map((test) => ({
+              testId: test.id,
+              price: test.price,
+              offerId: test.offerId,
+              partnerId: test.partnerId,
+              partnerName: test.partnerName,
+              partnerTat: test.partnerTat,
+              partnerAvailability: test.partnerAvailability,
+            })),
           },
           packages: {
             create: packages.map((pkg) => ({ packageId: pkg.id, price: pkg.price })),

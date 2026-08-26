@@ -24,6 +24,17 @@ export async function GET(request: Request) {
           tat: true,
           fastingNeeded: true,
           sampleTypes: true,
+          partnerOffers: {
+            where: { active: true, partner: { active: true } },
+            orderBy: { partner: { name: 'asc' } },
+            select: {
+              id: true,
+              price: true,
+              availability: true,
+              tat: true,
+              partner: { select: { id: true, slug: true, name: true } },
+            },
+          },
         },
       }),
       prisma.diagnosticPackage.findMany({
@@ -51,7 +62,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       lab: thyrocare ? 'THYROCARE' : 'DEFAULT',
-      tests,
+      tests: tests.map(({ partnerOffers, ...test }) => ({ ...test, offers: partnerOffers })),
       packages: packages.map((pkg) => ({
         ...pkg,
         tests: pkg.tests.map((item) => item.test),
