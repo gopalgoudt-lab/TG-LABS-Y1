@@ -931,18 +931,42 @@ select:focus-visible {
   }
 }
 
-/* Global mobile reserve for the fixed CTA without creating a pre-footer band */
+/* Mobile CTA clearance at actionable content boundaries */
 @media (max-width: 760px) {
   html {
     scroll-padding-bottom: calc(74px + max(12px, env(safe-area-inset-bottom)));
   }
 
-  body {
-    padding-bottom: calc(74px + max(12px, env(safe-area-inset-bottom)));
-    background-color: #0d3155;
-  }
-
+  body,
   main {
     padding-bottom: 0;
+  }
+
+  .heroAssurance,
+  .comparisonList,
+  .labGrid {
+    padding-bottom: calc(74px + max(12px, env(safe-area-inset-bottom)));
+  }
+
+  .marketFooter {
+    padding-top: 28px;
+    padding-bottom: calc(74px + max(12px, env(safe-area-inset-bottom)));
+  }
+
+  .footerGrid {
+    gap: 16px;
+  }
+
+  .footerBrand {
+    max-width: min(144px, 46vw);
+  }
+
+  .brandLogoFooter {
+    width: 144px;
+    max-height: 82px;
+  }
+
+  .footerGrid p {
+    margin: 4px 0 8px;
   }
 }
