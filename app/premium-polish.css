@@ -1067,3 +1067,37 @@ select:focus-visible {
     padding-top: 10px;
   }
 }
+
+/* Final mobile CTA/footer clearance only — preserve approved content layout */
+@media (max-width: 760px) {
+  :root {
+    --mobile-cta-edge: max(4px, env(safe-area-inset-bottom));
+    --mobile-cta-clearance: calc(var(--mobile-cta-height) + var(--mobile-cta-edge));
+  }
+
+  body {
+    padding-bottom: var(--mobile-cta-clearance);
+  }
+
+  .marketFooter {
+    min-height: 0;
+    padding-top: 8px;
+    padding-bottom: 0;
+  }
+
+  .footerGrid {
+    gap: 8px;
+    padding-bottom: 0;
+  }
+
+  .footerGrid p {
+    margin-top: 0;
+    margin-bottom: 2px;
+  }
+}
+
+@media (max-width: 390px) {
+  .marketFooter {
+    padding-top: 6px;
+  }
+}
