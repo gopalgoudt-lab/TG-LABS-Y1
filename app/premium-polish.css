@@ -931,14 +931,17 @@ select:focus-visible {
   }
 }
 
-/* Reserve the fixed mobile CTA footprint plus a visible 20px content gap */
+/* Reserve the complete fixed CTA footprint in the mobile page scroller */
 @media (max-width: 760px) {
-  main {
-    padding-bottom: calc(82px + env(safe-area-inset-bottom));
+  html {
+    scroll-padding-bottom: calc(74px + max(12px, env(safe-area-inset-bottom)));
   }
 
-  .heroAssurance,
-  .comparisonList {
-    padding-bottom: calc(82px + env(safe-area-inset-bottom));
+  body {
+    padding-bottom: 0;
+  }
+
+  main {
+    padding-bottom: calc(74px + max(12px, env(safe-area-inset-bottom)));
   }
 }
