@@ -819,3 +819,66 @@ select:focus-visible {
   }
 }
 
+/* Final mobile overlap correction for PR #16 */
+@media (max-width: 760px) {
+  html {
+    scroll-padding-top: 82px;
+    scroll-padding-bottom: calc(82px + env(safe-area-inset-bottom));
+  }
+
+  body {
+    padding-bottom: calc(78px + env(safe-area-inset-bottom));
+  }
+
+  #tests,
+  #packages,
+  #partners,
+  #how,
+  .discoverSection {
+    scroll-margin-top: 82px;
+  }
+
+  #tests .sectionTop,
+  #packages .sectionTop,
+  #partners .sectionTop {
+    scroll-margin-top: 82px;
+  }
+
+  .discoverSection,
+  .compareSection,
+  .popularChecks,
+  .labPartnerSection,
+  .responsibility {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+
+  .marketFooter {
+    padding-bottom: 36px;
+  }
+
+  .footerGrid {
+    padding-bottom: 0;
+  }
+}
+
+@media (max-width: 390px) {
+  html {
+    scroll-padding-top: 76px;
+  }
+
+  #tests,
+  #packages,
+  #partners,
+  #how,
+  .discoverSection,
+  #tests .sectionTop,
+  #packages .sectionTop,
+  #partners .sectionTop {
+    scroll-margin-top: 76px;
+  }
+
+  .marketFooter {
+    padding-bottom: 30px;
+  }
+}
+
