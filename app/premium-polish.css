@@ -90,18 +90,6 @@ select:focus-visible {
 }
 
 /* Production polish: branding, rhythm and responsive conversion */
-.marketBrand {
-  width: 300px !important;
-  height: auto !important;
-  background: none !important;
-}
-
-.brandImage {
-  display: block;
-  width: 300px;
-  height: auto;
-}
-
 .marketHero {
   padding: 58px 0 52px;
 }
@@ -249,10 +237,7 @@ select:focus-visible {
 
 .footerBrand {
   display: inline-flex !important;
-  width: min(300px, 100%);
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: #fff;
+  max-width: 100%;
 }
 
 .footerBrand img {
@@ -262,11 +247,6 @@ select:focus-visible {
 }
 
 @media (max-width: 1050px) {
-  .marketBrand,
-  .brandImage {
-    width: 245px !important;
-  }
-
   .comparisonCard {
     gap: 18px;
   }
@@ -287,11 +267,6 @@ select:focus-visible {
 
   .marketNav {
     gap: 10px;
-  }
-
-  .marketBrand,
-  .brandImage {
-    width: 188px !important;
   }
 
   .marketActions .navCart {
@@ -387,11 +362,6 @@ select:focus-visible {
 }
 
 @media (max-width: 390px) {
-  .marketBrand,
-  .brandImage {
-    width: 158px !important;
-  }
-
   .marketActions .navCart {
     padding: 9px;
     font-size: 11px;

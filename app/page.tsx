@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import BrandLogo from '@/components/BrandLogo';
 import { useEffect, useMemo, useState } from 'react';
 
 type CatalogTest = { id:string; slug:string; name:string; description?:string|null; mrp:number; price:number; diagnosticPartner?:string|null; tat?:string|null; fastingNeeded:boolean; sampleTypes:string[] };
@@ -64,7 +65,7 @@ export default function Home(){
   return <>
     <div className="utilityBar"><div className="marketWrap utilityInner"><span>✓ Verified diagnostic partner network</span><span>Barcode tracking</span><span>Secure digital reports</span></div></div>
     <header className="marketHeader"><div className="marketWrap marketNav">
-      <a className="marketBrand" href="/" aria-label="TG Labs home"><Image className="brandImage" src="/tg-labs-logo.svg" alt="TG Labs Diagnostics and Home Collection" width={300} height={69} priority/><strong>TG LABS</strong><small>TRUSTED • ACCURATE • TRANSPARENT</small></a>
+      <a className="marketBrand" href="/" aria-label="TG Labs home"><BrandLogo className="brandLogoHeader" priority/></a>
       <nav className="marketLinks" aria-label="Primary navigation"><a href="#tests">Search Tests</a><a href="#partners">Lab Partners</a><a href="#packages">Health Packages</a><a href="#how">How It Works</a></nav>
       <div className="marketActions"><span className="location" aria-label="Service location Hyderabad">● Hyderabad</span><a className="outlineBtn" href="/checkout">Upload Prescription</a><a className="navLogin" href="/auth">Login</a><button className="navCart" type="button" onClick={()=>setShowCart(true)} aria-label={`Open cart with ${cart.length} items`}>Cart ({cart.length})</button></div>
     </div></header>
@@ -86,6 +87,6 @@ export default function Home(){
     </main>
 
     <a className="floatingBook" href="/checkout">⌂ Book Home Collection</a>
-    <footer className="marketFooter"><div className="marketWrap footerGrid"><div><a className="footerBrand" href="/" aria-label="TG Labs home"><Image src="/tg-labs-logo.svg" alt="TG Labs Diagnostics and Home Collection" width={300} height={69}/></a><p>Multi-lab diagnostic booking, home sample collection and digital reports in one patient-first journey.</p></div><div><b>Patients</b><a href="#tests">Search Tests</a><a href="#packages">Health Packages</a><a href="/patient">Reports</a></div><div><b>Partners</b><a href="#partners">Lab Partners</a><a href="/technician">Technician</a><a href="/admin">Admin</a></div><div><b>Book</b><a href="/checkout">Home Collection</a><a href="/auth">Login</a></div></div></footer>
+    <footer className="marketFooter"><div className="marketWrap footerGrid"><div><a className="footerBrand" href="/" aria-label="TG Labs home"><BrandLogo className="brandLogoFooter"/></a><p>Multi-lab diagnostic booking, home sample collection and digital reports in one patient-first journey.</p></div><div><b>Patients</b><a href="#tests">Search Tests</a><a href="#packages">Health Packages</a><a href="/patient">Reports</a></div><div><b>Partners</b><a href="#partners">Lab Partners</a><a href="/technician">Technician</a><a href="/admin">Admin</a></div><div><b>Book</b><a href="/checkout">Home Collection</a><a href="/auth">Login</a></div></div></footer>
   </>;
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import BrandLogo from '@/components/BrandLogo';
 
 type CartItem = { kind: 'test' | 'package'; id: string; name: string; price: number };
 type CatalogPackage = { id: string; tests?: { id: string }[] };
@@ -200,7 +201,7 @@ export default function CheckoutPage() {
   }
 
   return <main className="dashboard">
-    <a href="/" className="brand"><span className="logo">TG</span>TG LABS</a>
+    <a href="/" className="standaloneBrand" aria-label="TG Labs home"><BrandLogo className="brandLogoStandalone" priority /></a>
     <div className="checkoutLayout"><section className="checkoutMain">
       <div className="ey">BOOKING · PAYMENT · CONFIRMATION</div><h1>Complete your booking.</h1>
       <div className="modeGrid"><button type="button" className={`mode ${mode === 'home' ? 'selected' : ''}`} onClick={() => setMode('home')}><b>Home Collection</b><span>Sample collected at your address.</span></button><button type="button" className={`mode ${mode === 'centre' ? 'selected' : ''}`} onClick={() => setMode('centre')}><b>Lab Centre</b><span>Visit a TG Labs collection centre.</span></button></div>
