@@ -88,3 +88,320 @@ select:focus-visible {
     width: 100%;
   }
 }
+
+/* Production polish: branding, rhythm and responsive conversion */
+.marketBrand {
+  width: 300px !important;
+  height: auto !important;
+  background: none !important;
+}
+
+.brandImage {
+  display: block;
+  width: 300px;
+  height: auto;
+}
+
+.marketHero {
+  padding: 58px 0 52px;
+}
+
+.discoverSection,
+.compareSection,
+.popularChecks,
+.labPartnerSection {
+  padding: 56px 0;
+}
+
+.sectionTop {
+  margin-bottom: 24px;
+}
+
+.comparisonCard {
+  align-items: stretch;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(20, 55, 65, 0.04);
+}
+
+.testInfo {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.testInfo h3 {
+  color: var(--blue);
+  line-height: 1.15;
+}
+
+.testInfo p {
+  margin: 0 0 12px;
+}
+
+.partnerChoices {
+  justify-content: center;
+}
+
+.addBlue {
+  align-self: center;
+  min-width: 138px;
+}
+
+.healthCard {
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.healthCard .healthBottom {
+  margin-top: auto;
+}
+
+.healthDiscoveryCard {
+  min-height: 260px;
+  border-color: #d7e5e2;
+  background: linear-gradient(160deg, #fff 0%, #f4faf8 100%);
+}
+
+.healthDiscoveryCard .healthIcon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #e5f6f1;
+  color: var(--teal);
+  font-size: 22px;
+}
+
+.discoveryLabel {
+  margin-top: 20px;
+  color: var(--teal);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.4px;
+}
+
+.healthDiscoveryCard h3 {
+  margin: 10px 0 8px;
+}
+
+.healthDiscoveryCard p {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.healthDiscoveryCard button {
+  margin-top: auto;
+  border: 1px solid var(--blue);
+  border-radius: 7px;
+  padding: 13px 16px;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 800;
+  text-align: left;
+}
+
+.labGrid {
+  align-items: stretch;
+}
+
+.labCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 26px;
+}
+
+.partnerLogo {
+  height: 70px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.partnerLogo img {
+  width: 100%;
+  height: 64px;
+  object-fit: contain;
+  object-position: left center;
+  margin: 0;
+}
+
+.labCard h3,
+.labCard p,
+.labStats {
+  margin-top: 0;
+}
+
+.labCard .labStats {
+  margin-top: auto;
+}
+
+.labCard > a {
+  margin-top: 0;
+}
+
+.marketFooter {
+  position: relative;
+  z-index: 36;
+}
+
+.footerBrand {
+  display: inline-flex !important;
+  width: min(300px, 100%);
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.footerBrand img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 1050px) {
+  .marketBrand,
+  .brandImage {
+    width: 245px !important;
+  }
+
+  .comparisonCard {
+    gap: 18px;
+  }
+
+  .addBlue {
+    width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    padding-bottom: 72px;
+  }
+
+  .marketWrap {
+    width: min(100% - 28px, 1260px);
+  }
+
+  .marketNav {
+    gap: 10px;
+  }
+
+  .marketBrand,
+  .brandImage {
+    width: 188px !important;
+  }
+
+  .marketActions .navCart {
+    padding: 10px 11px;
+    font-size: 12px;
+  }
+
+  .marketHero {
+    padding: 38px 0 40px;
+  }
+
+  .heroLayout {
+    gap: 34px;
+  }
+
+  .heroCopy h1 {
+    margin: 15px 0;
+    font-size: clamp(38px, 11vw, 48px);
+    letter-spacing: -1px;
+  }
+
+  .heroSearch {
+    margin-top: 24px;
+  }
+
+  .heroSearch input {
+    min-width: 0;
+  }
+
+  .heroServiceCard {
+    min-height: 0;
+    padding: 24px;
+  }
+
+  .discoverSection,
+  .compareSection,
+  .popularChecks,
+  .labPartnerSection {
+    padding: 42px 0;
+  }
+
+  .sectionTop {
+    display: grid;
+    gap: 18px;
+  }
+
+  .sectionTop h2 {
+    font-size: 32px;
+    line-height: 1.12;
+  }
+
+  .categoryGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .categoryCard {
+    min-height: 150px;
+    padding: 20px 16px;
+  }
+
+  .comparisonCard {
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .choice {
+    padding: 12px;
+  }
+
+  .healthGrid,
+  .labGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .healthCard,
+  .healthDiscoveryCard {
+    min-height: 0;
+  }
+
+  .floatingBook {
+    right: 14px;
+    bottom: 12px;
+    left: 14px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 14px;
+  }
+
+  .footerGrid {
+    gap: 24px;
+  }
+}
+
+@media (max-width: 390px) {
+  .marketBrand,
+  .brandImage {
+    width: 158px !important;
+  }
+
+  .marketActions .navCart {
+    padding: 9px;
+    font-size: 11px;
+  }
+
+  .heroSearch a {
+    padding-inline: 14px;
+  }
+
+  .categoryGrid {
+    grid-template-columns: 1fr;
+  }
+}
