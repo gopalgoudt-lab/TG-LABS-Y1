@@ -882,3 +882,51 @@ select:focus-visible {
   }
 }
 
+
+/* Mobile header/CTA clearance correction after visual review */
+@media (max-width: 760px) {
+  html {
+    scroll-padding-top: 112px;
+    scroll-padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+
+  body {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+
+  #tests,
+  #packages,
+  #partners,
+  #how,
+  .discoverSection,
+  #tests .sectionTop,
+  #packages .sectionTop,
+  #partners .sectionTop {
+    scroll-margin-top: 112px;
+  }
+
+  .discoverSection,
+  .compareSection,
+  .popularChecks,
+  .labPartnerSection,
+  .responsibility {
+    padding-bottom: calc(120px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 390px) {
+  html {
+    scroll-padding-top: 104px;
+  }
+
+  #tests,
+  #packages,
+  #partners,
+  #how,
+  .discoverSection,
+  #tests .sectionTop,
+  #packages .sectionTop,
+  #partners .sectionTop {
+    scroll-margin-top: 104px;
+  }
+}
