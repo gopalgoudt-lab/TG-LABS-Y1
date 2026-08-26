@@ -930,3 +930,15 @@ select:focus-visible {
     scroll-margin-top: 104px;
   }
 }
+
+/* Reserve the fixed mobile CTA footprint plus a visible 20px content gap */
+@media (max-width: 760px) {
+  main {
+    padding-bottom: calc(82px + env(safe-area-inset-bottom));
+  }
+
+  .heroAssurance,
+  .comparisonList {
+    padding-bottom: calc(82px + env(safe-area-inset-bottom));
+  }
+}
