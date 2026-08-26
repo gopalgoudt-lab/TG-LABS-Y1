@@ -375,3 +375,284 @@ select:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* Mobile conversion polish: compact, readable and safe-area aware */
+@media (max-width: 760px) {
+  html {
+    scroll-padding-top: 76px;
+  }
+
+  .marketHeader {
+    box-shadow: 0 4px 18px rgba(18, 62, 114, 0.06);
+  }
+
+  .marketNav {
+    min-height: 70px;
+    gap: 8px;
+  }
+
+  .marketBrand {
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+
+  .brandLogoHeader {
+    width: min(142px, 42vw);
+    max-height: 62px;
+  }
+
+  .marketActions {
+    flex: 0 0 auto;
+    gap: 6px;
+  }
+
+  .marketActions .navCart {
+    min-height: 42px;
+    white-space: nowrap;
+  }
+
+  .heroCopy h1 {
+    font-size: clamp(34px, 10vw, 44px);
+    line-height: 1.04;
+  }
+
+  .heroCopy p {
+    margin-bottom: 0;
+    line-height: 1.6;
+  }
+
+  .heroSearch {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    border-radius: 10px;
+  }
+
+  .heroSearch span,
+  .heroSearch input {
+    min-height: 50px;
+  }
+
+  .heroSearch a {
+    grid-column: 1 / -1;
+    padding: 14px 18px;
+    text-align: center;
+  }
+
+  .popularLine {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px 4px;
+    line-height: 1.6;
+  }
+
+  .popularLine button {
+    min-height: 34px;
+    padding: 4px 7px;
+  }
+
+  .heroAssurance {
+    gap: 8px;
+    margin-top: 18px;
+  }
+
+  .heroAssurance span {
+    padding: 10px 12px;
+    font-size: 11px;
+  }
+
+  .heroServiceCard h3 {
+    margin: 12px 0 18px;
+    font-size: 27px;
+  }
+
+  .heroServiceCard ol {
+    margin: 18px 0;
+  }
+
+  .categoryTabs {
+    margin: 16px -14px 18px;
+    padding: 0 14px 6px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .categoryTabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .categoryTabs span {
+    scroll-snap-align: start;
+    padding: 10px 15px;
+    white-space: nowrap;
+  }
+
+  .categoryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .categoryCard {
+    min-height: 128px;
+    padding: 18px 14px;
+  }
+
+  .categoryCard > span {
+    margin-bottom: 7px;
+  }
+
+  .categoryCard small {
+    font-size: 11px;
+  }
+
+  .comparisonList {
+    gap: 16px;
+  }
+
+  .comparisonCard {
+    gap: 16px;
+    padding: 18px;
+  }
+
+  .testInfo h3 {
+    font-size: 23px;
+  }
+
+  .partnerChoices {
+    gap: 9px;
+  }
+
+  .choice {
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .choice strong {
+    grid-column: 2;
+    justify-self: start;
+    font-size: 16px;
+  }
+
+  .choice em {
+    position: static;
+    grid-column: 2;
+    justify-self: start;
+    width: max-content;
+    margin-top: 2px;
+  }
+
+  .addBlue {
+    min-height: 48px;
+  }
+
+  .healthCard,
+  .healthDiscoveryCard,
+  .labCard {
+    padding: 20px;
+  }
+
+  .healthCard h3 {
+    margin-top: 22px;
+  }
+
+  .healthBottom {
+    gap: 14px;
+  }
+
+  .healthBottom button {
+    min-height: 46px;
+    padding-inline: 18px;
+  }
+
+  .partnerLogo {
+    height: 58px;
+  }
+
+  .partnerLogo img {
+    height: 54px;
+  }
+
+  .labStats span {
+    padding: 13px 0;
+  }
+
+  .responsibility {
+    padding: 48px 0;
+  }
+
+  .responsibility h2 {
+    font-size: 31px;
+    line-height: 1.15;
+  }
+
+  .stepsRow {
+    gap: 0;
+  }
+
+  .stepsRow div {
+    padding: 14px 0;
+  }
+
+  .floatingBook {
+    bottom: max(12px, env(safe-area-inset-bottom));
+    min-height: 50px;
+    box-shadow: 0 10px 30px rgba(0, 86, 75, 0.3);
+  }
+
+  .marketFooter {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
+  .footerBrand {
+    max-width: min(260px, 78vw);
+  }
+
+  .cartPanel {
+    padding: 22px 18px calc(24px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 390px) {
+  .marketWrap {
+    width: min(100% - 24px, 1260px);
+  }
+
+  .brandLogoHeader {
+    width: min(132px, 40vw);
+  }
+
+  .marketActions .navCart {
+    padding-inline: 9px;
+  }
+
+  .marketHero {
+    padding-top: 30px;
+  }
+
+  .sectionTop h2 {
+    font-size: 29px;
+  }
+
+  .categoryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .categoryCard {
+    min-height: 122px;
+    padding: 16px 12px;
+  }
+
+  .categoryCard small {
+    line-height: 1.35;
+  }
+
+  .healthBottom {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .healthBottom button {
+    width: 100%;
+  }
+}
+
