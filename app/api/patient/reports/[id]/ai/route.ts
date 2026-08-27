@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { patientPhoneFromFirebase, verifyFirebasePatientRequest } from '@/lib/firebase-server';
+import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -33,7 +33,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   let openAIFileId = '';
   try {
     const identity = await verifyFirebasePatientRequest(request);
-    const phone = patientPhoneFromFirebase(identity.phone);
+    const phone = identity.databasePhone;
     const { id } = await params;
     let requestedLanguage: Language = 'en';
     try { const body = await request.json(); if (body?.language === 'te' || body?.language === 'hi' || body?.language === 'en') requestedLanguage = body.language; } catch {}

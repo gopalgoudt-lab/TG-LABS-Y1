@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { patientPhoneFromFirebase, verifyFirebasePatientRequest } from '@/lib/firebase-server';
+import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
     const identity = await verifyFirebasePatientRequest(request);
-    const phone = patientPhoneFromFirebase(identity.phone);
+    const phone = identity.databasePhone;
 
     const patient = await prisma.patient.findUnique({
       where: { phone },
