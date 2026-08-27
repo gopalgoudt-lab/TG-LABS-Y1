@@ -1,7 +1,8 @@
 name: Phase 2B Firebase Authentication Validation
 
 on:
-  workflow_dispatch:
+  pull_request:
+    types: [labeled]
 
 permissions:
   contents: read
@@ -12,6 +13,10 @@ concurrency:
 
 jobs:
   authenticate-fictional-phone:
+    if: >-
+      github.event.pull_request.number == 19 &&
+      github.event.pull_request.head.ref == 'feature/phase-2b-booking-payment-integrity' &&
+      github.event.label.name == 'phase2b-auth-validation'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -33,7 +38,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REF_NAME" = "$PHASE2B_EXPECTED_BRANCH"
+          test "$GITHUB_HEAD_REF" = "$PHASE2B_EXPECTED_BRANCH"
           git merge-base --is-ancestor "$PHASE2B_BASE_COMMIT" HEAD
           test -n "$PHASE2B_FIREBASE_TEST_PHONE"
           test -n "$PHASE2B_FIREBASE_TEST_CODE"
