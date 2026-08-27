@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { ConfirmationResult, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { getFirebaseAuth } from "../../lib/firebase";
+import { firebaseAuthErrorMessage } from "../../lib/firebase-auth-errors";
+import { useOtpCooldown } from "../../lib/use-otp-cooldown";
 import BrandLogo from "../../components/BrandLogo";
 
 export default function AuthPage() {
@@ -14,6 +16,7 @@ export default function AuthPage() {
   const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const { coolingDown, remaining, startCooldown } = useOtpCooldown();
 
   function resetRecaptcha() {
     try {
@@ -41,6 +44,7 @@ export default function AuthPage() {
 
   async function sendOtp(e: FormEvent) {
     e.preventDefault();
+    if (coolingDown) return;
     setLoading(true);
     setMessage("");
 
@@ -56,10 +60,11 @@ export default function AuthPage() {
 
       const result = await signInWithPhoneNumber(auth, normalizedPhone(), verifier.current);
       setConfirmation(result);
+      startCooldown();
       setMessage("OTP sent successfully. Enter the 6-digit code received by SMS.");
     } catch (error) {
       resetRecaptcha();
-      setMessage(error instanceof Error ? error.message : "Unable to send OTP. Please try again.");
+      setMessage(firebaseAuthErrorMessage(error, "Unable to send OTP safely. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -78,7 +83,7 @@ export default function AuthPage() {
       router.push("/patient");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Invalid OTP. Please check the code and try again.");
+      setMessage(firebaseAuthErrorMessage(error, "Unable to verify this OTP. Request a new code and try again."));
     } finally {
       setLoading(false);
     }
@@ -116,8 +121,8 @@ export default function AuthPage() {
                 style={{ flex: 1, padding: 12, border: "1px solid #cbd5e1", borderRadius: 10 }}
               />
             </div>
-            <button className="btn primary" type="submit" disabled={loading || phone.length !== 10} style={{ marginTop: 18 }}>
-              {loading ? "Sending OTP…" : "Send OTP"}
+            <button className="btn primary" type="submit" disabled={loading || coolingDown || phone.length !== 10} style={{ marginTop: 18 }}>
+              {loading ? "Sending OTP…" : coolingDown ? `Try again in ${remaining}s` : "Send OTP"}
             </button>
           </form>
         ) : (

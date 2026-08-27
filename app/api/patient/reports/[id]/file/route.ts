@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { patientPhoneFromFirebase, verifyFirebasePatientRequest } from '@/lib/firebase-server';
+import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +35,7 @@ function pdfResponse(bytes: BodyInit, fileName: string) {
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const identity = await verifyFirebasePatientRequest(request);
-    const phone = patientPhoneFromFirebase(identity.phone);
+    const phone = identity.databasePhone;
     const { id } = await params;
 
     const booking = await prisma.booking.findFirst({

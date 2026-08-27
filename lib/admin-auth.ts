@@ -1,11 +1,11 @@
 import { SignJWT, jwtVerify } from 'jose';
-import { verifyFirebasePatientRequest, patientPhoneFromFirebase } from '@/lib/firebase-server';
+import { normalizeIndianDatabasePhone, verifyFirebasePatientRequest } from '@/lib/firebase-server';
 
 export type AdminIdentity={uid:string;phone:string;role:'ADMIN'};
 export const ADMIN_SESSION_COOKIE='tg_admin_session';
 
 function allowedAdminPhones(){
- return (process.env.ADMIN_PHONE_NUMBERS||'').split(',').map(patientPhoneFromFirebase).filter(Boolean);
+ return (process.env.ADMIN_PHONE_NUMBERS||'').split(',').map(normalizeIndianDatabasePhone).filter(Boolean);
 }
 function sessionSecret(){
  const value=process.env.ADMIN_SESSION_SECRET||'';
@@ -15,7 +15,7 @@ function sessionSecret(){
 
 export async function verifyAdminRequest(request:Request):Promise<AdminIdentity>{
  const identity=await verifyFirebasePatientRequest(request);
- const phone=patientPhoneFromFirebase(identity.phone);
+ const phone=identity.databasePhone;
  const allowed=allowedAdminPhones();
  if(!allowed.length) throw new Error('ADMIN_NOT_CONFIGURED');
  if(!allowed.includes(phone)) throw new Error('ADMIN_FORBIDDEN');
@@ -36,7 +36,7 @@ export async function issueAdminSession(identity:AdminIdentity){
 export async function verifyAdminSessionToken(token:string):Promise<AdminIdentity>{
  const {payload}=await jwtVerify(token,sessionSecret(),{algorithms:['HS256'],issuer:'tg-labs-admin',audience:'tg-labs-admin-web'});
  const uid=typeof payload.sub==='string'?payload.sub:'';
- const phone=typeof payload.phone==='string'?patientPhoneFromFirebase(payload.phone):'';
+ const phone=typeof payload.phone==='string'?normalizeIndianDatabasePhone(payload.phone):'';
  if(!uid||!phone||payload.role!=='ADMIN') throw new Error('ADMIN_SESSION_INVALID');
  const allowed=allowedAdminPhones();
  if(!allowed.length) throw new Error('ADMIN_NOT_CONFIGURED');

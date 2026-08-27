@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged, signOut, type Auth } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { getFirebaseAuth } from '@/lib/firebase';
+import { firebaseAuthErrorMessage } from '@/lib/firebase-auth-errors';
 import AiReportView from '@/components/AiReportView';
 
 const FLOW = [
@@ -78,8 +79,8 @@ export default function PatientPage() {
   function authOrRedirect(): Auth | null {
     try {
       return getFirebaseAuth();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Firebase authentication is not configured.');
+    } catch {
+      setError('Secure patient sign-in is temporarily unavailable. Please try again later.');
       return null;
     }
   }
@@ -88,8 +89,8 @@ export default function PatientPage() {
     let auth: Auth;
     try {
       auth = getFirebaseAuth();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Firebase authentication is not configured.');
+    } catch {
+      setError('Secure patient sign-in is temporarily unavailable. Please try again later.');
       setLoading(false);
       return;
     }
@@ -138,8 +139,15 @@ export default function PatientPage() {
   async function handleSignOut() {
     const auth = authOrRedirect();
     if (!auth) return;
-    await signOut(auth);
-    router.replace('/auth');
+    setError('');
+    try {
+      await signOut(auth);
+    } catch (error) {
+      setError(firebaseAuthErrorMessage(error, 'The local session could not be cleared cleanly. The sign-in page has been reopened for safety.'));
+    } finally {
+      router.replace('/auth');
+      router.refresh();
+    }
   }
 
   async function viewReport(report: Report) {
