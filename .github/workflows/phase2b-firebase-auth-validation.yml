@@ -1,0 +1,68 @@
+name: Phase 2B Firebase Authentication Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase2b-firebase-auth-validation
+  cancel-in-progress: false
+
+jobs:
+  authenticate-fictional-phone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PHASE2B_PREVIEW_ORIGIN: https://tg-labs-y1-xn0nwmpmq-gopalgoudt-7623s-projects.vercel.app
+      PHASE2B_BASE_COMMIT: ab2840bc304b32cbbb6e28037cbaeaf74416b8fa
+      PHASE2B_EXPECTED_BRANCH: feature/phase-2b-booking-payment-integrity
+      PHASE2B_FIREBASE_TEST_PHONE: ${{ secrets.PHASE2B_FIREBASE_TEST_PHONE }}
+      PHASE2B_FIREBASE_TEST_CODE: ${{ secrets.PHASE2B_FIREBASE_TEST_CODE }}
+
+    steps:
+      - name: Check out the approved Phase 2B commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify immutable checkout and required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "$PHASE2B_EXPECTED_BRANCH"
+          git merge-base --is-ancestor "$PHASE2B_BASE_COMMIT" HEAD
+          test -n "$PHASE2B_FIREBASE_TEST_PHONE"
+          test -n "$PHASE2B_FIREBASE_TEST_CODE"
+          echo "::add-mask::$PHASE2B_FIREBASE_TEST_PHONE"
+          echo "::add-mask::$PHASE2B_FIREBASE_TEST_CODE"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate Prisma client without migrations
+        run: npx prisma generate
+
+      - name: Run Phase 2B integrity tests
+        run: npm run test:phase2b
+
+      - name: Run Firebase authentication tests
+        run: npm run test:auth
+
+      - name: Run typecheck
+        run: npm run typecheck
+
+      - name: Validate fictional Firebase authentication only
+        run: node tests/phase2b-firebase-auth-validation.mjs
