@@ -1,17 +1,11 @@
-import { createHmac, timingSafeEqual } from 'crypto';
 import { Prisma } from '@prisma/client';
-import { after, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendBookingConfirmationWhatsApp } from '@/lib/whatsapp';
+import { assertCapturedPayment, assertPaymentAssociation, paymentStatusAfterFailure, verifyRazorpayWebhookSignature, webhookClaimDecision } from '@/lib/payment-integrity';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
-
-function safeEqualHex(a: string, b: string) {
-  const left = Buffer.from(a, 'hex');
-  const right = Buffer.from(b, 'hex');
-  return left.length === right.length && timingSafeEqual(left, right);
-}
 
 type RazorpayPaymentEntity = {
   id?: string;
@@ -46,6 +40,16 @@ async function claimWebhookEvent(eventId: string, eventType: string, paymentId?:
     return true;
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      const existing = await prisma.razorpayWebhookEvent.findUnique({ where: { eventId } });
+      const decision = webhookClaimDecision(existing);
+      if (decision === 'DUPLICATE' || decision === 'IN_PROGRESS') return false;
+      if (decision === 'RETRY') {
+        await prisma.razorpayWebhookEvent.update({
+          where: { eventId },
+          data: { eventType, paymentId: paymentId ?? null, orderId: orderId ?? null, processedAt: null, processingError: null },
+        });
+        return true;
+      }
       return false;
     }
     throw error;
@@ -63,14 +67,13 @@ async function reconcileCapturedPayment(eventId: string, payment: RazorpayPaymen
   if (!booking) throw new Error(`No booking found for Razorpay order ${payment.order_id}.`);
 
   const expectedAmount = booking.totalAmount * 100;
-  if (payment.amount !== expectedAmount || payment.currency !== 'INR') {
-    throw new Error(`Payment amount/currency mismatch for booking ${booking.id}.`);
-  }
+  assertCapturedPayment(payment, payment.order_id, expectedAmount);
 
   const existingByPayment = await prisma.paymentTransaction.findUnique({
     where: { paymentId: payment.id },
-    select: { id: true },
+    select: { id: true, bookingId: true, orderId: true },
   });
+  assertPaymentAssociation(existingByPayment, booking.id, payment.order_id);
   const pendingByOrder = existingByPayment
     ? null
     : await prisma.paymentTransaction.findFirst({
@@ -160,8 +163,9 @@ async function reconcileFailedPayment(eventId: string, payment: RazorpayPaymentE
 
   const existingByPayment = await prisma.paymentTransaction.findUnique({
     where: { paymentId: payment.id },
-    select: { id: true },
+    select: { id: true, bookingId: true, orderId: true },
   });
+  assertPaymentAssociation(existingByPayment, booking.id, payment.order_id);
   const pendingByOrder = existingByPayment
     ? null
     : await prisma.paymentTransaction.findFirst({
@@ -175,7 +179,7 @@ async function reconcileFailedPayment(eventId: string, payment: RazorpayPaymentE
       ? prisma.paymentTransaction.update({
           where: { id: existingByPayment.id },
           data: {
-            status: booking.paymentStatus === 'PAID' ? 'PAID' : 'FAILED',
+            status: paymentStatusAfterFailure(booking.paymentStatus),
             source: 'WEBHOOK_FAILED',
             failureCode: payment.error_code ?? null,
             failureDescription: payment.error_description ?? null,
@@ -186,7 +190,7 @@ async function reconcileFailedPayment(eventId: string, payment: RazorpayPaymentE
             where: { id: pendingByOrder.id },
             data: {
               paymentId: payment.id,
-              status: booking.paymentStatus === 'PAID' ? 'PAID' : 'FAILED',
+              status: paymentStatusAfterFailure(booking.paymentStatus),
               source: 'WEBHOOK_FAILED',
               failureCode: payment.error_code ?? null,
               failureDescription: payment.error_description ?? null,
@@ -197,7 +201,7 @@ async function reconcileFailedPayment(eventId: string, payment: RazorpayPaymentE
               bookingId: booking.id,
               orderId: payment.order_id,
               paymentId: payment.id,
-              status: booking.paymentStatus === 'PAID' ? 'PAID' : 'FAILED',
+              status: paymentStatusAfterFailure(booking.paymentStatus),
               amount: typeof payment.amount === 'number' ? payment.amount : booking.totalAmount * 100,
               currency: payment.currency ?? 'INR',
               signatureVerified: false,
@@ -245,6 +249,7 @@ async function processWebhook(eventId: string, payload: RazorpayWebhookPayload) 
       where: { eventId },
       data: { processedAt: new Date(), processingError: message.slice(0, 1000) },
     }).catch(() => undefined);
+    throw error;
   }
 }
 
@@ -262,8 +267,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing Razorpay webhook headers.' }, { status: 400 });
   }
 
-  const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
-  if (!safeEqualHex(expected, signature)) {
+  if (!verifyRazorpayWebhookSignature(rawBody, signature, secret)) {
     return NextResponse.json({ error: 'Invalid webhook signature.' }, { status: 401 });
   }
 
@@ -281,6 +285,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true, duplicate: true });
   }
 
-  after(() => processWebhook(eventId, payload));
-  return NextResponse.json({ received: true });
+  try {
+    await processWebhook(eventId, payload);
+    return NextResponse.json({ received: true });
+  } catch {
+    return NextResponse.json({ error: 'Webhook reconciliation failed.' }, { status: 500 });
+  }
 }

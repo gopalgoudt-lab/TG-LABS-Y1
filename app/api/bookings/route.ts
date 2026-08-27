@@ -2,6 +2,8 @@ import { PaymentMode, Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
+import { assertBookingOwner, validateAndPriceBooking } from '@/lib/booking-integrity';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,10 +92,16 @@ function bookingPayload(booking: {
 
 export async function POST(request: Request) {
   try {
+    const identity = await verifyFirebasePatientRequest(request);
     const body = bookingSchema.parse(await request.json());
+    assertBookingOwner(body.phone, identity.databasePhone);
 
-    const existing = await prisma.booking.findUnique({ where: { idempotencyKey: body.idempotencyKey } });
+    const existing = await prisma.booking.findUnique({
+      where: { idempotencyKey: body.idempotencyKey },
+      include: { patient: { select: { phone: true } } },
+    });
     if (existing) {
+      assertBookingOwner(existing.patient.phone, identity.databasePhone);
       return NextResponse.json({ booking: bookingPayload(existing), duplicate: true }, { status: 200 });
     }
 
@@ -164,8 +172,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'One or more selected packages are unavailable.' }, { status: 400 });
     }
 
-    const packageTestIds = new Set(packages.flatMap((pkg) => pkg.tests.map((item) => item.test.id)));
-    const chargeableDirectOffers = directOffers.filter((offer) => !packageTestIds.has(offer.testId));
+    const pricing = validateAndPriceBooking(requestedSelections, directOffers, packages, body.printedReport ? PRINTED_REPORT_FEE : 0);
+    const packageTestIds = pricing.packageTestIds;
     const uniqueTests = new Map<string, { id: string; price: number; offerId?: string; partnerId?: string; partnerName?: string; partnerTat?: string | null; partnerAvailability?: 'AVAILABLE' }>();
 
     for (const pkg of packages) {
@@ -185,11 +193,9 @@ export async function POST(request: Request) {
       });
     }
 
-    const diagnosticAmount =
-      packages.reduce((sum, pkg) => sum + pkg.price, 0) +
-      chargeableDirectOffers.reduce((sum, offer) => sum + offer.price, 0);
+    const diagnosticAmount = pricing.diagnosticAmount;
     const printedReportFee = body.printedReport ? PRINTED_REPORT_FEE : 0;
-    const totalAmount = diagnosticAmount + printedReportFee;
+    const totalAmount = pricing.totalAmount;
 
     const patient = await prisma.patient.upsert({
       where: { phone: body.phone },
@@ -244,8 +250,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ booking: bookingPayload(booking, diagnosticAmount) }, { status: 201 });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        const duplicate = await prisma.booking.findUnique({ where: { idempotencyKey: body.idempotencyKey } });
+        const duplicate = await prisma.booking.findUnique({
+          where: { idempotencyKey: body.idempotencyKey },
+          include: { patient: { select: { phone: true } } },
+        });
         if (duplicate) {
+          assertBookingOwner(duplicate.patient.phone, identity.databasePhone);
           return NextResponse.json({ booking: bookingPayload(duplicate), duplicate: true }, { status: 200 });
         }
       }
@@ -254,6 +264,13 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Please check the booking details and try again.', fields: error.flatten().fieldErrors }, { status: 400 });
+    }
+    const message = error instanceof Error ? error.message : '';
+    if (message === 'FIREBASE_PROJECT_NOT_CONFIGURED') {
+      return NextResponse.json({ error: 'Authentication service is not configured.' }, { status: 503 });
+    }
+    if (message === 'BOOKING_FORBIDDEN' || message === 'UNAUTHENTICATED' || message.includes('FIREBASE_') || message.includes('PHONE_IDENTITY')) {
+      return NextResponse.json({ error: 'Please sign in with the patient mobile number before booking.' }, { status: 401 });
     }
     console.error('POST /api/bookings failed', error);
     return NextResponse.json({ error: 'Booking service is temporarily unavailable.' }, { status: 503 });

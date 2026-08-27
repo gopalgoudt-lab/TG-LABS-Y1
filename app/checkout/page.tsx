@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import BrandLogo from '@/components/BrandLogo';
+import { onAuthStateChanged } from 'firebase/auth';
+import { getFirebaseAuth } from '@/lib/firebase';
 
 type CartItem = { kind: 'test' | 'package'; id: string; name: string; price: number; offerId?: string; partnerId?: string; partnerName?: string; tat?: string | null };
 type CatalogPackage = { id: string; tests?: { id: string }[] };
@@ -36,6 +38,18 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({ name: '', phone: '', email: '', age: '', gender: '', doctorName: '', address: '', pincode: '', date: '', slot: '' });
 
   useEffect(() => {
+    let unsubscribe = () => {};
+    try {
+      unsubscribe = onAuthStateChanged(getFirebaseAuth(), (user) => {
+        if (!user) window.location.replace('/auth?next=/checkout');
+        else if (user.phoneNumber) {
+          const phone = user.phoneNumber.replace(/^\+91/, '');
+          setForm((current) => ({ ...current, phone }));
+        }
+      });
+    } catch {
+      setError('Secure patient sign-in is temporarily unavailable.');
+    }
     const stored = localStorage.getItem('tglabs-cart');
     if (stored) {
       try {
@@ -66,7 +80,17 @@ export default function CheckoutPage() {
       script.dataset.razorpayCheckout = 'true';
       document.body.appendChild(script);
     }
+    return unsubscribe;
   }, []);
+
+  async function authenticatedHeaders() {
+    const user = getFirebaseAuth().currentUser;
+    if (!user) {
+      window.location.assign('/auth?next=/checkout');
+      throw new Error('Please sign in before booking.');
+    }
+    return { 'Content-Type': 'application/json', Authorization: `Bearer ${await user.getIdToken()}` };
+  }
 
   const packageTestIds = useMemo(() => {
     const selectedPackageIds = new Set(cart.filter((item) => item.kind === 'package').map((item) => item.id));
@@ -93,7 +117,7 @@ export default function CheckoutPage() {
     setError('');
     try {
       const response = await fetch('/api/payments/razorpay/order', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookingId: id }),
+        method: 'POST', headers: await authenticatedHeaders(), body: JSON.stringify({ bookingId: id }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Unable to start payment.');
@@ -112,7 +136,7 @@ export default function CheckoutPage() {
         handler: async (payment: any) => {
           setPaying(true);
           const verifyResponse = await fetch('/api/payments/razorpay/verify', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookingId: id, ...payment }),
+            method: 'POST', headers: await authenticatedHeaders(), body: JSON.stringify({ bookingId: id, ...payment }),
           });
           const verified = await verifyResponse.json();
           if (!verifyResponse.ok) {
@@ -145,7 +169,7 @@ export default function CheckoutPage() {
       const packageIds = cart.filter((item) => item.kind === 'package').map((item) => item.id);
       const response = await fetch('/api/bookings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authenticatedHeaders(),
         body: JSON.stringify({
           idempotencyKey: requestKey,
           name: form.name,

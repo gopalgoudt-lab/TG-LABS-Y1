@@ -1,8 +1,10 @@
-import { createHmac, timingSafeEqual } from 'crypto';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { sendBookingConfirmationWhatsApp } from '@/lib/whatsapp';
+import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
+import { assertBookingOwner, assertOnlinePaymentEligible } from '@/lib/booking-integrity';
+import { assertCapturedPayment, verifyRazorpayPaymentSignature } from '@/lib/payment-integrity';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,12 +14,6 @@ const inputSchema = z.object({
   razorpay_order_id: z.string().min(1),
   razorpay_signature: z.string().min(1),
 });
-
-function safeEqualHex(a: string, b: string) {
-  const left = Buffer.from(a, 'hex');
-  const right = Buffer.from(b, 'hex');
-  return left.length === right.length && timingSafeEqual(left, right);
-}
 
 async function fetchRazorpayPayment(paymentId: string, keyId: string, keySecret: string) {
   const response = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}`, {
@@ -37,13 +33,18 @@ async function fetchRazorpayPayment(paymentId: string, keyId: string, keySecret:
 
 export async function POST(request: Request) {
   try {
+    const identity = await verifyFirebasePatientRequest(request);
     const body = inputSchema.parse(await request.json());
     const keyId = process.env.RAZORPAY_KEY_ID;
     const secret = process.env.RAZORPAY_KEY_SECRET;
     if (!keyId || !secret) return NextResponse.json({ error: 'Razorpay is not configured.' }, { status: 503 });
 
-    const booking = await prisma.booking.findUnique({ where: { id: body.bookingId } });
+    const booking = await prisma.booking.findUnique({
+      where: { id: body.bookingId },
+      include: { patient: { select: { phone: true } } },
+    });
     if (!booking) return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
+    assertBookingOwner(booking.patient.phone, identity.databasePhone);
     if (!booking.razorpayOrderId || booking.razorpayOrderId !== body.razorpay_order_id) {
       return NextResponse.json({ error: 'Payment order does not match this booking.' }, { status: 400 });
     }
@@ -61,12 +62,9 @@ export async function POST(request: Request) {
     if (booking.paymentStatus === 'PAID' && booking.razorpayPaymentId !== body.razorpay_payment_id) {
       return NextResponse.json({ error: 'This booking is already paid with a different payment.' }, { status: 409 });
     }
+    assertOnlinePaymentEligible(booking);
 
-    const expected = createHmac('sha256', secret)
-      .update(`${booking.razorpayOrderId}|${body.razorpay_payment_id}`)
-      .digest('hex');
-
-    if (!safeEqualHex(expected, body.razorpay_signature)) {
+    if (!verifyRazorpayPaymentSignature(booking.razorpayOrderId, body.razorpay_payment_id, body.razorpay_signature, secret)) {
       return NextResponse.json({ error: 'Payment signature verification failed.' }, { status: 400 });
     }
 
@@ -76,19 +74,10 @@ export async function POST(request: Request) {
     }
 
     const expectedAmount = booking.totalAmount * 100;
-    if (
-      payment.order_id !== booking.razorpayOrderId ||
-      payment.amount !== expectedAmount ||
-      payment.currency !== 'INR'
-    ) {
+    try {
+      assertCapturedPayment(payment, booking.razorpayOrderId, expectedAmount);
+    } catch {
       return NextResponse.json({ error: 'Razorpay payment details do not match this booking.' }, { status: 400 });
-    }
-
-    if (payment.status !== 'captured') {
-      return NextResponse.json({
-        error: 'Payment is verified but has not been captured yet. It will be reconciled automatically.',
-        paymentStatus: payment.status,
-      }, { status: 409 });
     }
 
     const now = new Date();
@@ -163,6 +152,12 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid payment verification request.' }, { status: 400 });
     }
+    const message = error instanceof Error ? error.message : '';
+    if (message === 'FIREBASE_PROJECT_NOT_CONFIGURED') return NextResponse.json({ error: 'Authentication service is not configured.' }, { status: 503 });
+    if (message === 'BOOKING_FORBIDDEN' || message === 'UNAUTHENTICATED' || message.includes('FIREBASE_') || message.includes('PHONE_IDENTITY')) {
+      return NextResponse.json({ error: 'Authentication is required for this booking.' }, { status: 401 });
+    }
+    if (message === 'BOOKING_NOT_ONLINE_PAYABLE') return NextResponse.json({ error: 'This booking is not eligible for online payment.' }, { status: 409 });
     console.error('POST /api/payments/razorpay/verify failed', error);
     return NextResponse.json({ error: 'Unable to verify payment.' }, { status: 503 });
   }

@@ -80,7 +80,9 @@ export default function AuthPage() {
       await confirmation.confirm(otp.trim());
       resetRecaptcha();
       setMessage("Mobile number verified. Opening your patient account…");
-      router.push("/patient");
+      const requestedNext = new URLSearchParams(window.location.search).get('next');
+      const next = requestedNext?.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : '/patient';
+      router.push(next);
       router.refresh();
     } catch (error) {
       setMessage(firebaseAuthErrorMessage(error, "Unable to verify this OTP. Request a new code and try again."));

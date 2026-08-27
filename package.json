@@ -10,6 +10,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test:auth": "node --import tsx --test tests/firebase-auth.test.ts",
+    "test:phase2b": "node --import tsx --test tests/phase2b-integrity.test.ts",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
