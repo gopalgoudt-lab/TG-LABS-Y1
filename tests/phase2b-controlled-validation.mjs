@@ -161,7 +161,7 @@ async function main() {
     const applicationOrigin = new URL(page.url()).origin;
     const scripts = await page.locator('script[src]').evaluateAll((nodes) => nodes.map((node) => node.src).filter(Boolean));
     const sources = await Promise.all(scripts.filter((url) => new URL(url).origin === applicationOrigin).map(async (url) => {
-      const response = await context.request.get(url, { headers: { 'x-vercel-protection-bypass': required('VERCEL_AUTOMATION_BYPASS_SECRET') } });
+      const response = await context.request.get(url, { headers: { 'x-vercel-protection-bypass': required('VERCEL_AUTOMATION_BYPASS_SECRET'), 'x-vercel-set-bypass-cookie': 'true' } });
       assert(response.ok(), 'Unable to read a Preview application asset.');
       return response.text();
     }));
