@@ -83,13 +83,35 @@ const navigationOrigin = target.origin;
 
 const phone = requiredEnvironment('PHASE2B_FIREBASE_TEST_PHONE');
 const code = requiredEnvironment('PHASE2B_FIREBASE_TEST_CODE');
-const secrets = [phone, code];
+const vercelBypassSecret = requiredEnvironment('VERCEL_AUTOMATION_BYPASS_SECRET');
+const secrets = [phone, code, vercelBypassSecret];
 let browser;
 
 try {
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
+  await page.route('**/*', async (route) => {
+    const request = route.request();
+    let requestOrigin;
+    try {
+      requestOrigin = new URL(request.url()).origin;
+    } catch {
+      await route.continue();
+      return;
+    }
+    if (!APPROVED_ORIGINS.has(requestOrigin)) {
+      await route.continue();
+      return;
+    }
+    await route.continue({
+      headers: {
+        ...request.headers(),
+        'x-vercel-protection-bypass': vercelBypassSecret,
+        'x-vercel-set-bypass-cookie': 'true',
+      },
+    });
+  });
   await page.goto(`${navigationOrigin}/auth`, { waitUntil: 'networkidle' });
 
   const applicationOrigin = new URL(page.url()).origin;
@@ -102,7 +124,12 @@ try {
   );
   const sameOriginScripts = scriptUrls.filter((url) => new URL(url).origin === applicationOrigin);
   const sources = await Promise.all(sameOriginScripts.map(async (url) => {
-    const response = await context.request.get(url);
+    const response = await context.request.get(url, {
+      headers: {
+        'x-vercel-protection-bypass': vercelBypassSecret,
+        'x-vercel-set-bypass-cookie': 'true',
+      },
+    });
     if (!response.ok()) throw new Error('Unable to read a Preview application asset.');
     return response.text();
   }));

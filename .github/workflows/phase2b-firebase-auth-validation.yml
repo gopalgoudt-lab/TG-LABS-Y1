@@ -25,6 +25,7 @@ jobs:
       PHASE2B_EXPECTED_BRANCH: feature/phase-2b-booking-payment-integrity
       PHASE2B_FIREBASE_TEST_PHONE: ${{ secrets.PHASE2B_FIREBASE_TEST_PHONE }}
       PHASE2B_FIREBASE_TEST_CODE: ${{ secrets.PHASE2B_FIREBASE_TEST_CODE }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
 
     steps:
       - name: Check out the approved Phase 2B commit
@@ -42,8 +43,10 @@ jobs:
           git merge-base --is-ancestor "$PHASE2B_BASE_COMMIT" HEAD
           test -n "$PHASE2B_FIREBASE_TEST_PHONE"
           test -n "$PHASE2B_FIREBASE_TEST_CODE"
+          test -n "$VERCEL_AUTOMATION_BYPASS_SECRET"
           echo "::add-mask::$PHASE2B_FIREBASE_TEST_PHONE"
           echo "::add-mask::$PHASE2B_FIREBASE_TEST_CODE"
+          echo "::add-mask::$VERCEL_AUTOMATION_BYPASS_SECRET"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
