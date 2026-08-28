@@ -2,6 +2,7 @@ import { createHmac, randomUUID } from 'node:crypto';
 import { build } from 'esbuild';
 import { chromium } from 'playwright';
 import { PrismaClient } from '@prisma/client';
+import { phase2bFirebasePublicConfig } from './phase2b-firebase-public-config.mjs';
 
 const EXPECTED = Object.freeze({
   projectId: 'still-lake-20474769',
@@ -66,13 +67,6 @@ async function fetchJson(url, init, label) {
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(`${label} failed with HTTP ${response.status}.`);
   return body;
-}
-
-function firebaseConfigFrom(source) {
-  const read = (key) => source.match(new RegExp(`["']?${key}["']?\\s*:\\s*["']([^"']+)["']`))?.[1];
-  const config = { apiKey: read('apiKey'), authDomain: read('authDomain'), projectId: read('projectId'), storageBucket: read('storageBucket'), messagingSenderId: read('messagingSenderId'), appId: read('appId') };
-  assert(config.apiKey && config.authDomain && config.projectId && config.appId, 'Unable to discover Preview Firebase configuration.');
-  return config;
 }
 
 async function verifyVercelDeployment(origin) {
@@ -159,13 +153,7 @@ async function main() {
     await page.goto(`${origin}/auth`, { waitUntil: 'networkidle' });
     assert(APPROVED_ORIGINS.has(new URL(page.url()).origin), 'Preview navigation left the exact origin allowlist.');
     const applicationOrigin = new URL(page.url()).origin;
-    const scripts = await page.locator('script[src]').evaluateAll((nodes) => nodes.map((node) => node.src).filter(Boolean));
-    const sources = await Promise.all(scripts.filter((url) => new URL(url).origin === applicationOrigin).map(async (url) => {
-      const response = await context.request.get(url, { headers: { 'x-vercel-protection-bypass': required('VERCEL_AUTOMATION_BYPASS_SECRET'), 'x-vercel-set-bypass-cookie': 'true' } });
-      assert(response.ok(), 'Unable to read a Preview application asset.');
-      return response.text();
-    }));
-    const config = firebaseConfigFrom(sources.join('\n'));
+    const config = phase2bFirebasePublicConfig();
     const bundle = await build({ stdin: { contents: `import { initializeApp, deleteApp } from 'firebase/app'; import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth'; globalThis.__controlledAuth = async (config, phone, code) => { const node=document.createElement('div'); node.id='phase2b-recaptcha'; document.body.appendChild(node); const app=initializeApp(config,'phase2b-controlled'); const auth=getAuth(app); auth.settings.appVerificationDisabledForTesting=true; const verifier=new RecaptchaVerifier(auth,node,{size:'invisible'}); try { await verifier.render(); const confirmation=await signInWithPhoneNumber(auth,phone,verifier); const credential=await confirmation.confirm(code); return credential.user.getIdToken(true); } finally { verifier.clear(); node.remove(); await deleteApp(app); } };`, resolveDir: process.cwd() }, bundle: true, format: 'iife', platform: 'browser', write: false, logLevel: 'silent' });
     await page.addScriptTag({ content: bundle.outputFiles[0].text });
     const token = await page.evaluate(async ({ config, phone, code }) => globalThis.__controlledAuth(config, phone, code), { config, phone: required('PHASE2B_FIREBASE_TEST_PHONE'), code: required('PHASE2B_FIREBASE_TEST_CODE') });

@@ -1,5 +1,6 @@
 import { build } from 'esbuild';
 import { chromium } from 'playwright';
+import { phase2bFirebasePublicConfig } from './phase2b-firebase-public-config.mjs';
 
 const ORIGINAL_APPROVED_ORIGIN = 'https://tg-labs-y1-xn0nwmpmq-gopalgoudt-7623s-projects.vercel.app';
 const DEPLOYMENT_REDIRECT_ORIGIN = 'https://tg-labs-y1-git-feature-phase-2-f71876-gopalgoudt-7623s-projects.vercel.app';
@@ -40,25 +41,6 @@ function redact(message, secrets) {
   return safe
     .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[REDACTED_TOKEN]')
     .replace(/\+\d{8,15}/g, '[REDACTED_PHONE]');
-}
-
-function extractPublicFirebaseConfig(source) {
-  const read = (key) => {
-    const pattern = new RegExp(`["']?${key}["']?\\s*:\\s*["']([^"']+)["']`);
-    return source.match(pattern)?.[1];
-  };
-  const config = {
-    apiKey: read('apiKey'),
-    authDomain: read('authDomain'),
-    projectId: read('projectId'),
-    storageBucket: read('storageBucket'),
-    messagingSenderId: read('messagingSenderId'),
-    appId: read('appId'),
-  };
-  if (!config.apiKey || !config.authDomain || !config.projectId || !config.appId) {
-    throw new Error('Unable to discover the Preview public Firebase configuration.');
-  }
-  return config;
 }
 
 const target = new URL(requiredEnvironment('PHASE2B_PREVIEW_ORIGIN'));
@@ -119,21 +101,7 @@ try {
     throw rejectedPreviewOrigin('initial navigation', page.url());
   }
 
-  const scriptUrls = await page.locator('script[src]').evaluateAll((elements) =>
-    elements.map((element) => element.src).filter(Boolean),
-  );
-  const sameOriginScripts = scriptUrls.filter((url) => new URL(url).origin === applicationOrigin);
-  const sources = await Promise.all(sameOriginScripts.map(async (url) => {
-    const response = await context.request.get(url, {
-      headers: {
-        'x-vercel-protection-bypass': vercelBypassSecret,
-        'x-vercel-set-bypass-cookie': 'true',
-      },
-    });
-    if (!response.ok()) throw new Error('Unable to read a Preview application asset.');
-    return response.text();
-  }));
-  const firebaseConfig = extractPublicFirebaseConfig(sources.join('\n'));
+  const firebaseConfig = phase2bFirebasePublicConfig();
 
   const browserBundle = await build({
     stdin: {

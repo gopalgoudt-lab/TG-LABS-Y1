@@ -25,6 +25,10 @@ jobs:
       PHASE2B_EXPECTED_BRANCH: feature/phase-2b-booking-payment-integrity
       PHASE2B_FIREBASE_TEST_PHONE: ${{ secrets.PHASE2B_FIREBASE_TEST_PHONE }}
       PHASE2B_FIREBASE_TEST_CODE: ${{ secrets.PHASE2B_FIREBASE_TEST_CODE }}
+      PHASE2B_FIREBASE_PUBLIC_API_KEY: ${{ vars.PHASE2B_FIREBASE_PUBLIC_API_KEY }}
+      PHASE2B_FIREBASE_PUBLIC_AUTH_DOMAIN: ${{ vars.PHASE2B_FIREBASE_PUBLIC_AUTH_DOMAIN }}
+      PHASE2B_FIREBASE_PUBLIC_PROJECT_ID: ${{ vars.PHASE2B_FIREBASE_PUBLIC_PROJECT_ID }}
+      PHASE2B_FIREBASE_PUBLIC_APP_ID: ${{ vars.PHASE2B_FIREBASE_PUBLIC_APP_ID }}
       VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
 
     steps:
@@ -47,6 +51,14 @@ jobs:
           echo "::add-mask::$PHASE2B_FIREBASE_TEST_PHONE"
           echo "::add-mask::$PHASE2B_FIREBASE_TEST_CODE"
           echo "::add-mask::$VERCEL_AUTOMATION_BYPASS_SECRET"
+          for name in \
+            PHASE2B_FIREBASE_PUBLIC_API_KEY \
+            PHASE2B_FIREBASE_PUBLIC_AUTH_DOMAIN \
+            PHASE2B_FIREBASE_PUBLIC_PROJECT_ID \
+            PHASE2B_FIREBASE_PUBLIC_APP_ID
+          do
+            test -n "${!name:-}"
+          done
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
