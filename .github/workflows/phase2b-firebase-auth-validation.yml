@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      PHASE2B_PREVIEW_ORIGIN: https://tg-labs-y1-xn0nwmpmq-gopalgoudt-7623s-projects.vercel.app
+      PHASE2B_PREVIEW_ORIGIN: https://tg-labs-y1-git-feature-phase-2-f71876-gopalgoudt-7623s-projects.vercel.app
       PHASE2B_BASE_COMMIT: ab2840bc304b32cbbb6e28037cbaeaf74416b8fa
       PHASE2B_EXPECTED_BRANCH: feature/phase-2b-booking-payment-integrity
       PHASE2B_FIREBASE_TEST_PHONE: ${{ secrets.PHASE2B_FIREBASE_TEST_PHONE }}

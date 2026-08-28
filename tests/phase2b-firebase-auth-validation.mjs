@@ -1,8 +1,19 @@
 import { build } from 'esbuild';
 import { chromium } from 'playwright';
 
-const APPROVED_ORIGIN = 'https://tg-labs-y1-xn0nwmpmq-gopalgoudt-7623s-projects.vercel.app';
+const ORIGINAL_APPROVED_ORIGIN = 'https://tg-labs-y1-xn0nwmpmq-gopalgoudt-7623s-projects.vercel.app';
+const DEPLOYMENT_REDIRECT_ORIGIN = 'https://tg-labs-y1-git-feature-phase-2-f71876-gopalgoudt-7623s-projects.vercel.app';
+const APPROVED_ORIGINS = new Set([ORIGINAL_APPROVED_ORIGIN, DEPLOYMENT_REDIRECT_ORIGIN]);
 const FORBIDDEN_HOSTS = new Set(['tglabs.in', 'www.tglabs.in']);
+
+function isApprovedPreviewOrigin(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.pathname === '/' && url.search === '' && url.hash === '' && APPROVED_ORIGINS.has(url.origin);
+  } catch {
+    return false;
+  }
+}
 
 function requiredEnvironment(name) {
   const value = process.env[name];
@@ -40,12 +51,24 @@ function extractPublicFirebaseConfig(source) {
 }
 
 const target = new URL(requiredEnvironment('PHASE2B_PREVIEW_ORIGIN'));
-if (target.origin !== APPROVED_ORIGIN || target.protocol !== 'https:') {
+if (!isApprovedPreviewOrigin(target.href)) {
   throw new Error('Preview origin does not exactly match the approved Phase 2B deployment.');
 }
 if (FORBIDDEN_HOSTS.has(target.hostname) || !target.hostname.endsWith('.vercel.app')) {
   throw new Error('Refusing a Production or unexpected hostname.');
 }
+for (const forbiddenOrigin of [
+  'https://tglabs.in',
+  'https://www.tglabs.in',
+  'https://tg-labs-y1.vercel.app',
+  'https://unrelated-preview.vercel.app',
+  'http://localhost:3000',
+  'https://localhost',
+]) {
+  if (isApprovedPreviewOrigin(forbiddenOrigin)) throw new Error('Preview origin guard accepted a forbidden hostname.');
+}
+
+const navigationOrigin = target.origin;
 
 const phone = requiredEnvironment('PHASE2B_FIREBASE_TEST_PHONE');
 const code = requiredEnvironment('PHASE2B_FIREBASE_TEST_CODE');
@@ -56,16 +79,17 @@ try {
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.goto(`${APPROVED_ORIGIN}/auth`, { waitUntil: 'networkidle' });
+  await page.goto(`${navigationOrigin}/auth`, { waitUntil: 'networkidle' });
 
-  if (new URL(page.url()).origin !== APPROVED_ORIGIN) {
+  const applicationOrigin = new URL(page.url()).origin;
+  if (!APPROVED_ORIGINS.has(applicationOrigin)) {
     throw new Error('Preview navigation left the approved origin.');
   }
 
   const scriptUrls = await page.locator('script[src]').evaluateAll((elements) =>
     elements.map((element) => element.src).filter(Boolean),
   );
-  const sameOriginScripts = scriptUrls.filter((url) => new URL(url).origin === APPROVED_ORIGIN);
+  const sameOriginScripts = scriptUrls.filter((url) => new URL(url).origin === applicationOrigin);
   const sources = await Promise.all(sameOriginScripts.map(async (url) => {
     const response = await context.request.get(url);
     if (!response.ok()) throw new Error('Unable to read a Preview application asset.');
@@ -127,12 +151,12 @@ try {
 
   await page.addInitScript({ content: browserBundle.outputFiles[0].text });
   await page.reload({ waitUntil: 'networkidle' });
-  if (new URL(page.url()).origin !== APPROVED_ORIGIN) {
+  if (new URL(page.url()).origin !== applicationOrigin) {
     throw new Error('Preview reload left the approved origin.');
   }
   const result = await page.evaluate(
     async (input) => globalThis.__phase2bAuthenticate(input),
-    { config: firebaseConfig, phone, code, approvedOrigin: APPROVED_ORIGIN },
+    { config: firebaseConfig, phone, code, approvedOrigin: applicationOrigin },
   );
 
   const expectedIssuer = `https://securetoken.google.com/${firebaseConfig.projectId}`;
