@@ -118,6 +118,12 @@ async function verifyRazorpayTestCredentials(origin, request) {
   assert(credentialCheck.ok, 'Razorpay TEST credentials failed read-only validation.');
   const raw = '{';
   const signature = createHmac('sha256', required('PHASE2B_RAZORPAY_TEST_WEBHOOK_SECRET')).update(raw).digest('hex');
+  const invalidSignature = `${signature.slice(0, -1)}${signature.endsWith('0') ? '1' : '0'}`;
+  const invalidResponse = await request.post(`${origin}/api/webhooks/razorpay`, {
+    data: Buffer.from(raw, 'utf8'),
+    headers: { 'content-type': 'application/json', 'x-razorpay-signature': invalidSignature, 'x-razorpay-event-id': `phase2b-invalid-signature-${randomUUID()}` },
+  });
+  assert(invalidResponse.status() === 401, 'Invalid Razorpay webhook signature was not denied.');
   const response = await request.post(`${origin}/api/webhooks/razorpay`, {
     data: Buffer.from(raw, 'utf8'),
     headers: { 'content-type': 'application/json', 'x-razorpay-signature': signature, 'x-razorpay-event-id': `phase2b-preflight-${randomUUID()}` },
@@ -171,7 +177,14 @@ async function main() {
     const cbc = catalog.tests?.find((test) => test.id === EXPECTED.testId);
     const offer = cbc?.offers?.find((item) => item.id === EXPECTED.offerId);
     assert(cbc && offer && offer.price === 300 && offer.availability === 'AVAILABLE' && offer.tat === '24 hrs' && offer.partner?.id === EXPECTED.partnerId, 'Preview catalog CBC offer mismatch.');
+    const webhookPreflightBefore = await prisma.$transaction([
+      prisma.booking.count(), prisma.bookingItem.count(), prisma.paymentTransaction.count(), prisma.razorpayWebhookEvent.count(), prisma.patient.count(),
+    ]);
     await verifyRazorpayTestCredentials(applicationOrigin, context.request);
+    const webhookPreflightAfter = await prisma.$transaction([
+      prisma.booking.count(), prisma.bookingItem.count(), prisma.paymentTransaction.count(), prisma.razorpayWebhookEvent.count(), prisma.patient.count(),
+    ]);
+    assert(webhookPreflightAfter.every((count, index) => count === webhookPreflightBefore[index]), 'Webhook preflight created database records.');
 
     const before = await prisma.$transaction([
       prisma.booking.count(), prisma.bookingItem.count(), prisma.paymentTransaction.count(), prisma.razorpayWebhookEvent.count(),
