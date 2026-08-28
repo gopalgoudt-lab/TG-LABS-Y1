@@ -15,6 +15,17 @@ function isApprovedPreviewOrigin(value) {
   }
 }
 
+function rejectedPreviewOrigin(stage, value) {
+  let origin = 'unparseable origin';
+  try {
+    const url = new URL(value);
+    origin = `${url.protocol}//${url.host}`;
+  } catch {
+    // Never include the rejected raw URL in diagnostic output.
+  }
+  return new Error(`Rejected Preview origin during ${stage}: ${origin}`);
+}
+
 function requiredEnvironment(name) {
   const value = process.env[name];
   if (!value) throw new Error(`Missing required environment variable: ${name}`);
@@ -83,7 +94,7 @@ try {
 
   const applicationOrigin = new URL(page.url()).origin;
   if (!APPROVED_ORIGINS.has(applicationOrigin)) {
-    throw new Error('Preview navigation left the approved origin.');
+    throw rejectedPreviewOrigin('initial navigation', page.url());
   }
 
   const scriptUrls = await page.locator('script[src]').evaluateAll((elements) =>
@@ -152,7 +163,7 @@ try {
   await page.addInitScript({ content: browserBundle.outputFiles[0].text });
   await page.reload({ waitUntil: 'networkidle' });
   if (new URL(page.url()).origin !== applicationOrigin) {
-    throw new Error('Preview reload left the approved origin.');
+    throw rejectedPreviewOrigin('document reload', page.url());
   }
   const result = await page.evaluate(
     async (input) => globalThis.__phase2bAuthenticate(input),
