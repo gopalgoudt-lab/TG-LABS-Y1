@@ -119,7 +119,7 @@ async function verifyRazorpayTestCredentials(origin, request) {
   const raw = '{';
   const signature = createHmac('sha256', required('PHASE2B_RAZORPAY_TEST_WEBHOOK_SECRET')).update(raw).digest('hex');
   const response = await request.post(`${origin}/api/webhooks/razorpay`, {
-    data: raw,
+    data: Buffer.from(raw, 'utf8'),
     headers: { 'content-type': 'application/json', 'x-razorpay-signature': signature, 'x-razorpay-event-id': `phase2b-preflight-${randomUUID()}` },
   });
   assert(response.status() === 400, 'Preview TEST webhook secret/configuration preflight failed.');
@@ -221,7 +221,7 @@ async function main() {
     assert((await prisma.booking.findUnique({ where: { id: bookingId } }))?.paymentStatus !== 'PAID', 'Negative tests improperly set the booking PAID.');
 
     const signWebhook = (raw) => createHmac('sha256', required('PHASE2B_RAZORPAY_TEST_WEBHOOK_SECRET')).update(raw).digest('hex');
-    const sendWebhook = (eventId, payload) => { const raw = JSON.stringify(payload); return context.request.post(`${applicationOrigin}/api/webhooks/razorpay`, { data: raw, headers: { 'content-type': 'application/json', 'x-razorpay-signature': signWebhook(raw), 'x-razorpay-event-id': eventId, 'x-vercel-protection-bypass': required('VERCEL_AUTOMATION_BYPASS_SECRET') } }); };
+    const sendWebhook = (eventId, payload) => { const raw = JSON.stringify(payload); return context.request.post(`${applicationOrigin}/api/webhooks/razorpay`, { data: Buffer.from(raw, 'utf8'), headers: { 'content-type': 'application/json', 'x-razorpay-signature': signWebhook(raw), 'x-razorpay-event-id': eventId, 'x-vercel-protection-bypass': required('VERCEL_AUTOMATION_BYPASS_SECRET') } }); };
     const failedPaymentId = `pay_phase2b_failed_${randomUUID()}`;
     const failedEventId = `evt_phase2b_failed_${randomUUID()}`;
     const failedPayload = { event: 'payment.failed', payload: { payment: { entity: { id: failedPaymentId, order_id: orderId, amount: 30000, currency: 'INR', status: 'failed', error_code: 'PHASE2B_SYNTHETIC_FAILURE', error_description: 'Synthetic staging validation failure' } } } };
