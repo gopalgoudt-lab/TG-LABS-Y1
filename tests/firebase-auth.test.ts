@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { indianFirebasePhoneToDatabase, validateFirebaseTokenClaims } from '../lib/firebase-server';
+import {
+  indianFirebasePhoneToDatabase,
+  validateFirebaseTokenClaims,
+  verifyFirebasePatientRequest,
+} from '../lib/firebase-server';
 import { firebaseAuthErrorMessage } from '../lib/firebase-auth-errors';
 
 const projectId = 'tg-labs-auth-test';
@@ -86,4 +90,58 @@ test('maps Firebase failures to safe user-facing messages without exposing raw d
     firebaseAuthErrorMessage(new Error('sensitive internal detail'), 'Safe fallback.'),
     'Safe fallback.',
   );
+});
+
+test('rejects missing and malformed bearer authorization before token verification', async () => {
+  for (const authorization of [undefined, 'Basic credential', 'Bearer ']) {
+    const headers = authorization ? { authorization } : undefined;
+    await assert.rejects(
+      () => verifyFirebasePatientRequest(new Request('https://example.invalid/api/bookings', { headers })),
+      /UNAUTHENTICATED/,
+    );
+  }
+});
+
+test('normalizes malformed or disallowed Firebase bearer tokens as authentication failures', async () => {
+  const previousProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = projectId;
+  try {
+    for (const token of [
+      'invalid-phase2b-token',
+      'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmb3JnZWQifQ.invalid-signature',
+    ]) {
+      await assert.rejects(
+        () => verifyFirebasePatientRequest(new Request('https://example.invalid/api/bookings', {
+          headers: { authorization: `Bearer ${token}` },
+        })),
+        /INVALID_FIREBASE_TOKEN/,
+      );
+    }
+  } finally {
+    if (previousProjectId === undefined) delete process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    else process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = previousProjectId;
+  }
+});
+
+test('booking route returns the documented 401 denial before parsing or writes', async () => {
+  const previousProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = projectId;
+  try {
+    const { POST } = await import('../app/api/bookings/route');
+    const response = await POST(new Request('https://example.invalid/api/bookings', {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer invalid-phase2b-token',
+        'content-type': 'application/json',
+      },
+      body: '{}',
+    }));
+    assert.equal(response.status, 401);
+    assert.deepEqual(await response.json(), {
+      error: 'Please sign in with the patient mobile number before booking.',
+    });
+  } finally {
+    if (previousProjectId === undefined) delete process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    else process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = previousProjectId;
+  }
 });

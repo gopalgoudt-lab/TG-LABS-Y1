@@ -1,4 +1,4 @@
-import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
+import { createRemoteJWKSet, errors, jwtVerify, type JWTPayload } from 'jose';
 
 const FIREBASE_JWKS = createRemoteJWKSet(
   new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'),
@@ -50,11 +50,17 @@ export async function verifyFirebaseIdToken(token: string): Promise<FirebasePati
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '';
   if (!projectId) throw new Error('FIREBASE_PROJECT_NOT_CONFIGURED');
 
-  const { payload } = await jwtVerify(token, FIREBASE_JWKS, {
-    algorithms: ['RS256'],
-    audience: projectId,
-    issuer: `https://securetoken.google.com/${projectId}`,
-  });
+  let payload: JWTPayload;
+  try {
+    ({ payload } = await jwtVerify(token, FIREBASE_JWKS, {
+      algorithms: ['RS256'],
+      audience: projectId,
+      issuer: `https://securetoken.google.com/${projectId}`,
+    }));
+  } catch (error) {
+    if (error instanceof errors.JOSEError) throw new Error('INVALID_FIREBASE_TOKEN');
+    throw error;
+  }
   return validateFirebaseTokenClaims(payload, projectId);
 }
 

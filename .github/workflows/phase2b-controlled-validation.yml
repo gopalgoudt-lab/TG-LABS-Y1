@@ -1,0 +1,107 @@
+name: Phase 2B Controlled Booking Payment Validation
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase2b-controlled-validation-pr-19
+  cancel-in-progress: false
+
+jobs:
+  controlled-preview-validation:
+    if: >-
+      github.event.pull_request.number == 19 &&
+      github.event.pull_request.head.ref == 'feature/phase-2b-booking-payment-integrity' &&
+      github.event.label.name == 'phase2b-controlled-validation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PHASE2B_PREVIEW_ORIGIN: https://tg-labs-y1-git-feature-phase-2-f71876-gopalgoudt-7623s-projects.vercel.app
+      PHASE2B_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PHASE2B_EXPECTED_BRANCH: feature/phase-2b-booking-payment-integrity
+      PHASE2B_FIREBASE_TEST_PHONE: ${{ secrets.PHASE2B_FIREBASE_TEST_PHONE }}
+      PHASE2B_FIREBASE_TEST_CODE: ${{ secrets.PHASE2B_FIREBASE_TEST_CODE }}
+      PHASE2B_FIREBASE_PUBLIC_API_KEY: ${{ vars.PHASE2B_FIREBASE_PUBLIC_API_KEY }}
+      PHASE2B_FIREBASE_PUBLIC_AUTH_DOMAIN: ${{ vars.PHASE2B_FIREBASE_PUBLIC_AUTH_DOMAIN }}
+      PHASE2B_FIREBASE_PUBLIC_PROJECT_ID: ${{ vars.PHASE2B_FIREBASE_PUBLIC_PROJECT_ID }}
+      PHASE2B_FIREBASE_PUBLIC_APP_ID: ${{ vars.PHASE2B_FIREBASE_PUBLIC_APP_ID }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      PHASE2B_VERCEL_API_TOKEN: ${{ secrets.PHASE2B_VERCEL_API_TOKEN }}
+      PHASE2B_NEON_API_KEY: ${{ secrets.PHASE2B_NEON_API_KEY }}
+      PHASE2B_STAGING_DATABASE_URL: ${{ secrets.PHASE2B_STAGING_DATABASE_URL }}
+      PHASE2B_RAZORPAY_TEST_KEY_ID: ${{ secrets.PHASE2B_RAZORPAY_TEST_KEY_ID }}
+      PHASE2B_RAZORPAY_TEST_KEY_SECRET: ${{ secrets.PHASE2B_RAZORPAY_TEST_KEY_SECRET }}
+      PHASE2B_RAZORPAY_TEST_WEBHOOK_SECRET: ${{ secrets.PHASE2B_RAZORPAY_TEST_WEBHOOK_SECRET }}
+      NEON_DATABASE_URL: ${{ secrets.PHASE2B_STAGING_DATABASE_URL }}
+
+    steps:
+      - name: Check out the exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify checkout and mask all credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_HEAD_REF" = "$PHASE2B_EXPECTED_BRANCH"
+          test "$(git rev-parse HEAD)" = "$PHASE2B_PR_HEAD_SHA"
+          for name in \
+            PHASE2B_FIREBASE_TEST_PHONE \
+            PHASE2B_FIREBASE_TEST_CODE \
+            VERCEL_AUTOMATION_BYPASS_SECRET \
+            PHASE2B_VERCEL_API_TOKEN \
+            PHASE2B_NEON_API_KEY \
+            PHASE2B_STAGING_DATABASE_URL \
+            PHASE2B_RAZORPAY_TEST_KEY_ID \
+            PHASE2B_RAZORPAY_TEST_KEY_SECRET \
+            PHASE2B_RAZORPAY_TEST_WEBHOOK_SECRET
+          do
+            value="${!name:-}"
+            test -n "$value"
+            echo "::add-mask::$value"
+          done
+          for name in \
+            PHASE2B_FIREBASE_PUBLIC_API_KEY \
+            PHASE2B_FIREBASE_PUBLIC_AUTH_DOMAIN \
+            PHASE2B_FIREBASE_PUBLIC_PROJECT_ID \
+            PHASE2B_FIREBASE_PUBLIC_APP_ID
+          do
+            test -n "${!name:-}"
+          done
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate Prisma client without migrations
+        run: npx prisma generate
+
+      - name: Run Phase 2B integrity tests
+        run: npm run test:phase2b
+
+      - name: Run Firebase authentication tests
+        run: npm run test:auth
+
+      - name: Run typecheck
+        run: npm run typecheck
+
+      - name: Reconfirm fictional Firebase authentication only
+        run: node tests/phase2b-firebase-auth-validation.mjs
+
+      - name: Run controlled Preview and staging validation
+        run: node tests/phase2b-controlled-validation.mjs

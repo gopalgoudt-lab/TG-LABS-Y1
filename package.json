@@ -10,6 +10,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test:auth": "node --import tsx --test tests/firebase-auth.test.ts",
+    "test:phase2b": "node --import tsx --test tests/phase2b-integrity.test.ts",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
@@ -30,6 +31,8 @@
   "devDependencies": {
     "typescript": "^5.8.3",
     "prisma": "^6.13.0",
+    "esbuild": "^0.25.0",
+    "playwright": "^1.55.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
+import { assertBookingOwner, assertOnlinePaymentEligible } from '@/lib/booking-integrity';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +31,7 @@ async function ensurePendingPaymentRecord(bookingId: string, orderId: string, am
 
 export async function POST(request: Request) {
   try {
+    const identity = await verifyFirebasePatientRequest(request);
     const { bookingId } = inputSchema.parse(await request.json());
     const keyId = process.env.RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -37,11 +40,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Razorpay credentials are not configured.' }, { status: 503 });
     }
 
-    const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { patient: { select: { phone: true } } },
+    });
     if (!booking) return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
-    if (booking.paymentStatus === 'PAID') {
-      return NextResponse.json({ error: 'This booking is already paid.' }, { status: 409 });
-    }
+    assertBookingOwner(booking.patient.phone, identity.databasePhone);
+    assertOnlinePaymentEligible(booking);
 
     const amount = booking.totalAmount * 100;
 
@@ -98,6 +103,13 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid payment request.' }, { status: 400 });
     }
+    const message = error instanceof Error ? error.message : '';
+    if (message === 'FIREBASE_PROJECT_NOT_CONFIGURED') return NextResponse.json({ error: 'Authentication service is not configured.' }, { status: 503 });
+    if (message === 'BOOKING_FORBIDDEN' || message === 'UNAUTHENTICATED' || message.includes('FIREBASE_') || message.includes('PHONE_IDENTITY')) {
+      return NextResponse.json({ error: 'Authentication is required for this booking.' }, { status: 401 });
+    }
+    if (message === 'BOOKING_ALREADY_PAID') return NextResponse.json({ error: 'This booking is already paid.' }, { status: 409 });
+    if (message === 'BOOKING_NOT_ONLINE_PAYABLE') return NextResponse.json({ error: 'This booking is not eligible for online payment.' }, { status: 409 });
     console.error('POST /api/payments/razorpay/order failed', error);
     return NextResponse.json({ error: 'Payment service is temporarily unavailable.' }, { status: 503 });
   }
