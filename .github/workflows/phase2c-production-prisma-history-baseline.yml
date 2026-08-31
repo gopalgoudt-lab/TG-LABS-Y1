@@ -161,9 +161,13 @@ jobs:
         run: |
           set -euo pipefail
           set +x
-          test -n "$NEON_DATABASE_URL"
-          test -n "$NEON_API_KEY"
-          test -n "$VERCEL_AUTOMATION_BYPASS_SECRET"
+          stage() { echo "STAGE: $1"; }
+          fail() { echo "FAIL: $1"; exit 1; }
+
+          stage 'runtime secret presence checks'
+          test -n "$NEON_DATABASE_URL" || fail 'Production database secret is unavailable'
+          test -n "$NEON_API_KEY" || fail 'Neon API secret is unavailable'
+          test -n "$VERCEL_AUTOMATION_BYPASS_SECRET" || fail 'Production health bypass secret is unavailable'
           echo "::add-mask::$NEON_DATABASE_URL"
           echo "::add-mask::$NEON_API_KEY"
           echo "::add-mask::$VERCEL_AUTOMATION_BYPASS_SECRET"
@@ -171,14 +175,35 @@ jobs:
           branches_json="$(mktemp)"
           endpoints_json="$(mktemp)"
           health_json="$(mktemp)"
-          curl --fail --silent --show-error -H "Authorization: Bearer $NEON_API_KEY" "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" > "$branches_json"
-          test "$(jq -r --arg id "$PRODUCTION_BRANCH_ID" '.branches[] | select(.id == $id) | .name' "$branches_json")" = "$PRODUCTION_BRANCH_NAME"
-          test "$(jq -r --arg id "$RECOVERY_CHECKPOINT_ID" '[.branches[] | select(.id == $id)] | length' "$branches_json")" = "1"
-          curl --fail --silent --show-error -H "Authorization: Bearer $NEON_API_KEY" "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/endpoints" > "$endpoints_json"
-          expected_host="$(jq -r --arg branch "$PRODUCTION_BRANCH_ID" '.endpoints[] | select(.branch_id == $branch and .type == "read_write") | .host' "$endpoints_json" | head -n1)"
-          actual_host="$(DATABASE_URL_FOR_PARSE="$NEON_DATABASE_URL" node -e 'const u=new URL(process.env.DATABASE_URL_FOR_PARSE); process.stdout.write(u.hostname)')"
-          test -n "$expected_host"
-          test "$actual_host" = "$expected_host"
+          stage 'Neon branch and recovery-checkpoint identity checks'
+          if ! curl --fail --silent --show-error -H "Authorization: Bearer $NEON_API_KEY" "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" > "$branches_json"; then
+            fail 'Neon branch identity request failed'
+          fi
+          test "$(jq -r --arg id "$PRODUCTION_BRANCH_ID" '.branches[] | select(.id == $id) | .name' "$branches_json")" = "$PRODUCTION_BRANCH_NAME" || fail 'Production branch identity mismatch'
+          test "$(jq -r --arg id "$RECOVERY_CHECKPOINT_ID" '[.branches[] | select(.id == $id)] | length' "$branches_json")" = "1" || fail 'Recovery checkpoint identity mismatch'
+
+          stage 'Neon read-write endpoint identity check'
+          if ! curl --fail --silent --show-error -H "Authorization: Bearer $NEON_API_KEY" "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/endpoints" > "$endpoints_json"; then
+            fail 'Neon endpoint identity request failed'
+          fi
+          endpoint_count="$(jq -r --arg branch "$PRODUCTION_BRANCH_ID" '[.endpoints[] | select(.branch_id == $branch and .type == "read_write")] | length' "$endpoints_json")"
+          test "$endpoint_count" = "1" || fail 'Production read-write endpoint count mismatch'
+          expected_host="$(jq -r --arg branch "$PRODUCTION_BRANCH_ID" '.endpoints[] | select(.branch_id == $branch and .type == "read_write") | .host' "$endpoints_json")"
+          [[ "$expected_host" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?[.][a-z0-9.-]+$ ]] || fail 'Production read-write endpoint format mismatch'
+          endpoint_label="${expected_host%%.*}"
+          endpoint_suffix="${expected_host#*.}"
+          test "$endpoint_suffix" != "$expected_host" || fail 'Production read-write endpoint format mismatch'
+          [[ "$endpoint_label" != *-pooler ]] || fail 'Neon API returned an unexpected pooled endpoint'
+          expected_pooler_host="${endpoint_label}-pooler.${endpoint_suffix}"
+          if ! actual_host="$(DATABASE_URL_FOR_PARSE="$NEON_DATABASE_URL" node -e 'const u=new URL(process.env.DATABASE_URL_FOR_PARSE); process.stdout.write(u.hostname)' 2>/dev/null)"; then
+            fail 'Production database hostname parsing failed'
+          fi
+          if [ "$actual_host" != "$expected_host" ] && [ "$actual_host" != "$expected_pooler_host" ]; then
+            fail 'Production database endpoint identity mismatch'
+          fi
+          stage 'Production database endpoint identity accepted'
+
+          stage 'Production health and database identity checks'
           curl --fail --silent --show-error -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" "$PRODUCTION_HEALTH_URL" > "$health_json"
           test "$(jq -r '.database // ""' "$health_json" | tr '[:upper:]' '[:lower:]')" = "ok"
           test "$(psql "$NEON_DATABASE_URL" -XAtqc 'SELECT current_database()')" = "$PRODUCTION_DATABASE"
