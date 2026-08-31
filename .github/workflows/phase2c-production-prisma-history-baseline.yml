@@ -3,20 +3,31 @@ name: Phase 2C Production Prisma History Baseline
 on:
   workflow_dispatch:
     inputs:
-      confirmation:
-        description: Type BASELINE_20_HISTORICAL_MIGRATIONS_ONLY
+      operation:
+        description: Select the separately authorized operation
         required: true
+        type: choice
+        options:
+          - READ_ONLY_PREFLIGHT
+          - BASELINE_20_HISTORICAL_MIGRATIONS_ONLY
+      typed_confirmation:
+        description: Required only for BASELINE mode
+        required: false
         type: string
-      expected_schema_sha256:
-        description: Approved preflight schema fingerprint excluding _prisma_migrations
-        required: true
+      approved_schema_sha256:
+        description: Required only for BASELINE mode; copy from a successful preflight
+        required: false
         type: string
-      expected_core_counts_sha256:
-        description: Approved preflight core row-count fingerprint
-        required: true
+      approved_core_counts_sha256:
+        description: Required only for BASELINE mode; copy from a successful preflight
+        required: false
         type: string
-      expected_application_data_sha256:
-        description: Approved preflight application-data fingerprint excluding _prisma_migrations
+      approved_application_data_sha256:
+        description: Required only for BASELINE mode; copy from a successful preflight
+        required: false
+        type: string
+      reviewed_workflow_sha256:
+        description: Exact SHA-256 of the reviewed workflow file
         required: true
         type: string
 
@@ -28,13 +39,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  baseline-history-only:
+  controlled-operation:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       APPROVED_SHA: 4643df644fef735c65d9cb9139f8b756d331309f
       EXPECTED_PR_HEAD: ad068cb4552ae5de0693faa9c1fc3589c67f49f2
-      WORKFLOW_BRANCH: ops/phase2c-production-prisma-baseline-prep
+      WORKFLOW_PATH: .github/workflows/phase2c-production-prisma-history-baseline.yml
       NEON_PROJECT_ID: still-lake-20474769
       PRODUCTION_BRANCH_ID: br-wandering-resonance-axwu851y
       PRODUCTION_BRANCH_NAME: production
@@ -44,59 +55,57 @@ jobs:
       PRODUCTION_HEALTH_URL: https://www.tglabs.in/api/health
 
     steps:
-      - name: Check out exactly the approved Production main SHA
+      - name: Check out dispatch commit for workflow-only guards
         uses: actions/checkout@v4
         with:
-          ref: 4643df644fef735c65d9cb9139f8b756d331309f
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Verify immutable GitHub identities and manual authorization
+      - name: Verify ancestry, restricted diff, workflow fingerprint and PR 21
         shell: bash
         env:
-          DISPATCH_CONFIRMATION: ${{ inputs.confirmation }}
+          OPERATION: ${{ inputs.operation }}
+          REVIEWED_WORKFLOW_SHA256: ${{ inputs.reviewed_workflow_sha256 }}
         run: |
           set -euo pipefail
           set +x
           test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
-          test "$GITHUB_REF_NAME" = "$WORKFLOW_BRANCH"
-          test "$DISPATCH_CONFIRMATION" = "BASELINE_20_HISTORICAL_MIGRATIONS_ONLY"
-          test "$(git rev-parse HEAD)" = "$APPROVED_SHA"
-          test "$(git rev-parse origin/main)" = "$APPROVED_SHA"
-
-          main_sha="$(curl --fail --silent --show-error \
-            https://api.github.com/repos/gopalgoudt-lab/TG-LABS-Y1/git/ref/heads/main | jq -r '.object.sha')"
-          test "$main_sha" = "$APPROVED_SHA"
-
+          case "$OPERATION" in
+            READ_ONLY_PREFLIGHT|BASELINE_20_HISTORICAL_MIGRATIONS_ONLY) ;;
+            *) echo 'FAIL: invalid operation'; exit 1 ;;
+          esac
+          [[ "$REVIEWED_WORKFLOW_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          git cat-file -e "$APPROVED_SHA^{commit}"
+          git merge-base --is-ancestor "$APPROVED_SHA" "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          changed_paths="$(git diff --name-only "$APPROVED_SHA..$GITHUB_SHA")"
+          test "$changed_paths" = "$WORKFLOW_PATH"
+          ! git diff --name-only "$APPROVED_SHA..$GITHUB_SHA" | grep -Eq +            '^(app/|lib/|pages/|prisma/|public/|src/|tests/|package(-lock)?[.]json$|next[.]config|tsconfig|middleware|vercel[.]json$)'
+          test "$(sha256sum "$WORKFLOW_PATH" | cut -d' ' -f1)" = "$REVIEWED_WORKFLOW_SHA256"
           pr_json="$(mktemp)"
-          curl --fail --silent --show-error \
-            https://api.github.com/repos/gopalgoudt-lab/TG-LABS-Y1/pulls/21 > "$pr_json"
+          curl --fail --silent --show-error +            https://api.github.com/repos/gopalgoudt-lab/TG-LABS-Y1/pulls/21 > "$pr_json"
           test "$(jq -r '.state' "$pr_json")" = "open"
           test "$(jq -r '.merged_at // ""' "$pr_json")" = ""
           test "$(jq -r '.head.sha' "$pr_json")" = "$EXPECTED_PR_HEAD"
           rm -f "$pr_json"
+          echo 'PASS: dispatch SHA guards, reviewed workflow and PR 21 verified'
 
-      - name: Verify and mask all runtime credentials before database access
+      - name: Check out immutable application code separately
+        uses: actions/checkout@v4
+        with:
+          ref: 4643df644fef735c65d9cb9139f8b756d331309f
+          path: app
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify immutable application and exact migration allowlist
         shell: bash
-        env:
-          NEON_DATABASE_URL: ${{ secrets.PHASE2C_PRODUCTION_NEON_DATABASE_URL }}
-          NEON_API_KEY: ${{ secrets.PHASE2B_NEON_API_KEY }}
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        working-directory: app
         run: |
           set -euo pipefail
           set +x
-          test -n "$NEON_DATABASE_URL"
-          test -n "$NEON_API_KEY"
-          test -n "$VERCEL_AUTOMATION_BYPASS_SECRET"
-          echo "::add-mask::$NEON_DATABASE_URL"
-          echo "::add-mask::$NEON_API_KEY"
-          echo "::add-mask::$VERCEL_AUTOMATION_BYPASS_SECRET"
-
-      - name: Verify exact historical migration set from the approved SHA
-        shell: bash
-        run: |
-          set -euo pipefail
-          set +x
+          test "$(git rev-parse HEAD)" = "$APPROVED_SHA"
           expected="$(mktemp)"
           actual="$(mktemp)"
           cat > "$expected" <<'MIGRATIONS'
@@ -121,73 +130,59 @@ jobs:
           20260824131500_add_booking_idempotency
           20260826190000_add_partner_offers
           MIGRATIONS
-
-          find prisma/migrations -mindepth 2 -maxdepth 2 -type f -name migration.sql \
-            -printf '%h\n' | xargs -r -n1 basename | LC_ALL=C sort > "$actual"
+          find prisma/migrations -mindepth 2 -maxdepth 2 -type f -name migration.sql +            -printf '%h\n' | xargs -r -n1 basename | LC_ALL=C sort > "$actual"
           test "$(wc -l < "$actual" | tr -d ' ')" = "20"
           ! grep -Fxq "$PHASE2C1_MIGRATION" "$actual"
-          diff --unified=0 "$expected" "$actual"
+          diff --unified=0 "$expected" "$actual" >/dev/null
           rm -f "$expected" "$actual"
+          echo 'PASS: immutable application and exact migration allowlist verified'
 
-      - name: Install pinned project dependencies without lifecycle scripts
-        run: npm ci --ignore-scripts
-
-      - name: Install read-only PostgreSQL inspection tools
+      - name: Install pinned dependencies and read-only inspection tools
         shell: bash
+        working-directory: app
         run: |
           set -euo pipefail
+          npm ci --ignore-scripts
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client
 
-      - name: Verify Neon project, Production branch, checkpoint, database endpoint and health
+      - name: Run the selected controlled operation
         shell: bash
+        working-directory: app
         env:
+          OPERATION: ${{ inputs.operation }}
+          TYPED_CONFIRMATION: ${{ inputs.typed_confirmation }}
+          APPROVED_SCHEMA_SHA256: ${{ inputs.approved_schema_sha256 }}
+          APPROVED_CORE_COUNTS_SHA256: ${{ inputs.approved_core_counts_sha256 }}
+          APPROVED_APPLICATION_DATA_SHA256: ${{ inputs.approved_application_data_sha256 }}
           NEON_DATABASE_URL: ${{ secrets.PHASE2C_PRODUCTION_NEON_DATABASE_URL }}
           NEON_API_KEY: ${{ secrets.PHASE2B_NEON_API_KEY }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           set -euo pipefail
           set +x
+          test -n "$NEON_DATABASE_URL"
+          test -n "$NEON_API_KEY"
+          test -n "$VERCEL_AUTOMATION_BYPASS_SECRET"
+          echo "::add-mask::$NEON_DATABASE_URL"
+          echo "::add-mask::$NEON_API_KEY"
+          echo "::add-mask::$VERCEL_AUTOMATION_BYPASS_SECRET"
+
           branches_json="$(mktemp)"
           endpoints_json="$(mktemp)"
           health_json="$(mktemp)"
-
-          curl --fail --silent --show-error \
-            -H "Authorization: Bearer $NEON_API_KEY" \
-            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" > "$branches_json"
+          curl --fail --silent --show-error -H "Authorization: Bearer $NEON_API_KEY" +            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" > "$branches_json"
           test "$(jq -r --arg id "$PRODUCTION_BRANCH_ID" '.branches[] | select(.id == $id) | .name' "$branches_json")" = "$PRODUCTION_BRANCH_NAME"
           test "$(jq -r --arg id "$RECOVERY_CHECKPOINT_ID" '[.branches[] | select(.id == $id)] | length' "$branches_json")" = "1"
-
-          curl --fail --silent --show-error \
-            -H "Authorization: Bearer $NEON_API_KEY" \
-            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/endpoints" > "$endpoints_json"
+          curl --fail --silent --show-error -H "Authorization: Bearer $NEON_API_KEY" +            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/endpoints" > "$endpoints_json"
           expected_host="$(jq -r --arg branch "$PRODUCTION_BRANCH_ID" '.endpoints[] | select(.branch_id == $branch and .type == "read_write") | .host' "$endpoints_json" | head -n1)"
           actual_host="$(DATABASE_URL_FOR_PARSE="$NEON_DATABASE_URL" node -e 'const u=new URL(process.env.DATABASE_URL_FOR_PARSE); process.stdout.write(u.hostname)')"
           test -n "$expected_host"
           test "$actual_host" = "$expected_host"
-
-          curl --fail --silent --show-error \
-            -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" \
-            "$PRODUCTION_HEALTH_URL" > "$health_json"
+          curl --fail --silent --show-error -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" +            "$PRODUCTION_HEALTH_URL" > "$health_json"
           test "$(jq -r '.database // ""' "$health_json" | tr '[:upper:]' '[:lower:]')" = "ok"
-          rm -f "$branches_json" "$endpoints_json" "$health_json"
-
           test "$(psql "$NEON_DATABASE_URL" -XAtqc 'SELECT current_database()')" = "$PRODUCTION_DATABASE"
-
-      - name: Run strict read-only Production preflight and record fingerprints
-        id: preflight
-        shell: bash
-        env:
-          NEON_DATABASE_URL: ${{ secrets.PHASE2C_PRODUCTION_NEON_DATABASE_URL }}
-          EXPECTED_SCHEMA_SHA256: ${{ inputs.expected_schema_sha256 }}
-          EXPECTED_CORE_COUNTS_SHA256: ${{ inputs.expected_core_counts_sha256 }}
-          EXPECTED_APPLICATION_DATA_SHA256: ${{ inputs.expected_application_data_sha256 }}
-        run: |
-          set -euo pipefail
-          set +x
-          for value in "$EXPECTED_SCHEMA_SHA256" "$EXPECTED_CORE_COUNTS_SHA256" "$EXPECTED_APPLICATION_DATA_SHA256"; do
-            [[ "$value" =~ ^[0-9a-f]{64}$ ]]
-          done
+          rm -f "$branches_json" "$endpoints_json" "$health_json"
 
           test "$(psql "$NEON_DATABASE_URL" -XAtqc "SELECT to_regclass('public._prisma_migrations') IS NULL")" = "t"
           phase2c1_absent="$(psql "$NEON_DATABASE_URL" -XAtq <<'SQL'
@@ -199,41 +194,53 @@ jobs:
           )"
           test "$phase2c1_absent" = "t"
 
-          schema_sha="$(pg_dump "$NEON_DATABASE_URL" --schema-only --no-owner --no-privileges --exclude-table=public._prisma_migrations | sha256sum | cut -d' ' -f1)"
-          app_data_sha="$(pg_dump "$NEON_DATABASE_URL" --data-only --no-owner --no-privileges --exclude-table=public._prisma_migrations | sha256sum | cut -d' ' -f1)"
-          counts_sha="$(psql "$NEON_DATABASE_URL" -XAtqc '
-            SELECT table_name || ''='' || row_count FROM (
-              SELECT ''AdminAuditLog'' AS table_name, count(*)::text AS row_count FROM public."AdminAuditLog"
-              UNION ALL SELECT ''Booking'', count(*)::text FROM public."Booking"
-              UNION ALL SELECT ''BookingItem'', count(*)::text FROM public."BookingItem"
-              UNION ALL SELECT ''BookingPackage'', count(*)::text FROM public."BookingPackage"
-              UNION ALL SELECT ''DiagnosticPackage'', count(*)::text FROM public."DiagnosticPackage"
-              UNION ALL SELECT ''DiagnosticPartner'', count(*)::text FROM public."DiagnosticPartner"
-              UNION ALL SELECT ''DiagnosticTest'', count(*)::text FROM public."DiagnosticTest"
-              UNION ALL SELECT ''Patient'', count(*)::text FROM public."Patient"
-              UNION ALL SELECT ''PaymentTransaction'', count(*)::text FROM public."PaymentTransaction"
-              UNION ALL SELECT ''RazorpayWebhookEvent'', count(*)::text FROM public."RazorpayWebhookEvent"
-              UNION ALL SELECT ''TestPartnerOffer'', count(*)::text FROM public."TestPartnerOffer"
-              UNION ALL SELECT ''Technician'', count(*)::text FROM public."Technician"
-              UNION ALL SELECT ''TechnicianSession'', count(*)::text FROM public."TechnicianSession"
-              UNION ALL SELECT ''ThyrocareCredential'', count(*)::text FROM public."ThyrocareCredential"
-            ) counts ORDER BY table_name
-          ' | sha256sum | cut -d' ' -f1)"
+          fingerprint_state() {
+            STATE_SCHEMA_SHA="$(pg_dump "$NEON_DATABASE_URL" --schema-only --no-owner --no-privileges --exclude-table=public._prisma_migrations | sha256sum | cut -d' ' -f1)"
+            STATE_APP_DATA_SHA="$(pg_dump "$NEON_DATABASE_URL" --data-only --no-owner --no-privileges --exclude-table=public._prisma_migrations | sha256sum | cut -d' ' -f1)"
+            STATE_COUNTS_SHA="$(psql "$NEON_DATABASE_URL" -XAtqc '
+              SELECT table_name || ''='' || row_count FROM (
+                SELECT ''AdminAuditLog'' AS table_name, count(*)::text AS row_count FROM public."AdminAuditLog"
+                UNION ALL SELECT ''Booking'', count(*)::text FROM public."Booking"
+                UNION ALL SELECT ''BookingItem'', count(*)::text FROM public."BookingItem"
+                UNION ALL SELECT ''BookingPackage'', count(*)::text FROM public."BookingPackage"
+                UNION ALL SELECT ''DiagnosticPackage'', count(*)::text FROM public."DiagnosticPackage"
+                UNION ALL SELECT ''DiagnosticPartner'', count(*)::text FROM public."DiagnosticPartner"
+                UNION ALL SELECT ''DiagnosticTest'', count(*)::text FROM public."DiagnosticTest"
+                UNION ALL SELECT ''Patient'', count(*)::text FROM public."Patient"
+                UNION ALL SELECT ''PaymentTransaction'', count(*)::text FROM public."PaymentTransaction"
+                UNION ALL SELECT ''RazorpayWebhookEvent'', count(*)::text FROM public."RazorpayWebhookEvent"
+                UNION ALL SELECT ''TestPartnerOffer'', count(*)::text FROM public."TestPartnerOffer"
+                UNION ALL SELECT ''Technician'', count(*)::text FROM public."Technician"
+                UNION ALL SELECT ''TechnicianSession'', count(*)::text FROM public."TechnicianSession"
+                UNION ALL SELECT ''ThyrocareCredential'', count(*)::text FROM public."ThyrocareCredential"
+              ) counts ORDER BY table_name
+            ' | sha256sum | cut -d' ' -f1)"
+          }
+          fingerprint_state
+          PRE_SCHEMA_SHA="$STATE_SCHEMA_SHA"
+          PRE_COUNTS_SHA="$STATE_COUNTS_SHA"
+          PRE_APP_DATA_SHA="$STATE_APP_DATA_SHA"
+          {
+            echo 'PASS: READ-ONLY Production preflight fingerprints calculated'
+            echo "schema_sha256=$PRE_SCHEMA_SHA"
+            echo "core_counts_sha256=$PRE_COUNTS_SHA"
+            echo "application_data_sha256=$PRE_APP_DATA_SHA"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
-          test "$schema_sha" = "$EXPECTED_SCHEMA_SHA256"
-          test "$counts_sha" = "$EXPECTED_CORE_COUNTS_SHA256"
-          test "$app_data_sha" = "$EXPECTED_APPLICATION_DATA_SHA256"
-          echo "schema_sha=$schema_sha" >> "$GITHUB_OUTPUT"
-          echo "counts_sha=$counts_sha" >> "$GITHUB_OUTPUT"
-          echo "app_data_sha=$app_data_sha" >> "$GITHUB_OUTPUT"
+          if [ "$OPERATION" = "READ_ONLY_PREFLIGHT" ]; then
+            echo 'PASS: READ_ONLY_PREFLIGHT completed; no Production write command ran'
+            exit 0
+          fi
 
-      - name: Mark only the 20 confirmed historical migrations as applied
-        shell: bash
-        env:
-          NEON_DATABASE_URL: ${{ secrets.PHASE2C_PRODUCTION_NEON_DATABASE_URL }}
-        run: |
-          set -euo pipefail
-          set +x
+          test "$OPERATION" = "BASELINE_20_HISTORICAL_MIGRATIONS_ONLY"
+          test "$TYPED_CONFIRMATION" = "BASELINE_20_HISTORICAL_MIGRATIONS_ONLY"
+          for value in "$APPROVED_SCHEMA_SHA256" "$APPROVED_CORE_COUNTS_SHA256" "$APPROVED_APPLICATION_DATA_SHA256"; do
+            [[ "$value" =~ ^[0-9a-f]{64}$ ]]
+          done
+          test "$PRE_SCHEMA_SHA" = "$APPROVED_SCHEMA_SHA256"
+          test "$PRE_COUNTS_SHA" = "$APPROVED_CORE_COUNTS_SHA256"
+          test "$PRE_APP_DATA_SHA" = "$APPROVED_APPLICATION_DATA_SHA256"
+
           migrations=(
             20260815130000_init
             20260816105000_add_razorpay_booking_fields
@@ -256,94 +263,41 @@ jobs:
             20260824131500_add_booking_idempotency
             20260826190000_add_partner_offers
           )
-          for migration in "${migrations[@]}"; do
+          for index in "${!migrations[@]}"; do
+            migration="${migrations[$index]}"
+            expected_count="$((index + 1))"
             test "$migration" != "$PHASE2C1_MIGRATION"
-            npx --no-install prisma migrate resolve --schema prisma/schema.prisma --applied "$migration"
+            if ! npx --no-install prisma migrate resolve --applied "$migration" --schema prisma/schema.prisma >/dev/null 2>&1; then
+              echo "FAIL: migrate resolve stopped at approved history entry $expected_count"
+              exit 1
+            fi
+            test "$(psql "$NEON_DATABASE_URL" -XAtqc 'SELECT count(*) FROM public._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL')" = "$expected_count"
+            ! psql "$NEON_DATABASE_URL" -XAtqc 'SELECT migration_name FROM public._prisma_migrations' | grep -Fxq "$PHASE2C1_MIGRATION"
+            fingerprint_state
+            test "$STATE_SCHEMA_SHA" = "$PRE_SCHEMA_SHA"
+            test "$STATE_COUNTS_SHA" = "$PRE_COUNTS_SHA"
+            test "$STATE_APP_DATA_SHA" = "$PRE_APP_DATA_SHA"
           done
 
-      - name: Verify exact baseline history and unchanged Production state
-        shell: bash
-        env:
-          NEON_DATABASE_URL: ${{ secrets.PHASE2C_PRODUCTION_NEON_DATABASE_URL }}
-          PRE_SCHEMA_SHA: ${{ steps.preflight.outputs.schema_sha }}
-          PRE_COUNTS_SHA: ${{ steps.preflight.outputs.counts_sha }}
-          PRE_APP_DATA_SHA: ${{ steps.preflight.outputs.app_data_sha }}
-        run: |
-          set -euo pipefail
-          set +x
           expected="$(mktemp)"
           actual="$(mktemp)"
-          find prisma/migrations -mindepth 2 -maxdepth 2 -type f -name migration.sql \
-            -printf '%h\n' | xargs -r -n1 basename | LC_ALL=C sort > "$expected"
-          psql "$NEON_DATABASE_URL" -XAtqc '
-            SELECT migration_name FROM public._prisma_migrations
-            WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL
-            ORDER BY migration_name
-          ' > "$actual"
+          find prisma/migrations -mindepth 2 -maxdepth 2 -type f -name migration.sql -printf '%h\n' | xargs -r -n1 basename | LC_ALL=C sort > "$expected"
+          psql "$NEON_DATABASE_URL" -XAtqc 'SELECT migration_name FROM public._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name' > "$actual"
           test "$(wc -l < "$actual" | tr -d ' ')" = "20"
-          diff --unified=0 "$expected" "$actual"
+          diff --unified=0 "$expected" "$actual" >/dev/null
           ! grep -Fxq "$PHASE2C1_MIGRATION" "$actual"
           test "$(psql "$NEON_DATABASE_URL" -XAtqc 'SELECT count(*) FROM public._prisma_migrations WHERE finished_at IS NULL OR rolled_back_at IS NOT NULL')" = "0"
-
-          post_schema_sha="$(pg_dump "$NEON_DATABASE_URL" --schema-only --no-owner --no-privileges --exclude-table=public._prisma_migrations | sha256sum | cut -d' ' -f1)"
-          post_app_data_sha="$(pg_dump "$NEON_DATABASE_URL" --data-only --no-owner --no-privileges --exclude-table=public._prisma_migrations | sha256sum | cut -d' ' -f1)"
-          post_counts_sha="$(psql "$NEON_DATABASE_URL" -XAtqc '
-            SELECT table_name || ''='' || row_count FROM (
-              SELECT ''AdminAuditLog'' AS table_name, count(*)::text AS row_count FROM public."AdminAuditLog"
-              UNION ALL SELECT ''Booking'', count(*)::text FROM public."Booking"
-              UNION ALL SELECT ''BookingItem'', count(*)::text FROM public."BookingItem"
-              UNION ALL SELECT ''BookingPackage'', count(*)::text FROM public."BookingPackage"
-              UNION ALL SELECT ''DiagnosticPackage'', count(*)::text FROM public."DiagnosticPackage"
-              UNION ALL SELECT ''DiagnosticPartner'', count(*)::text FROM public."DiagnosticPartner"
-              UNION ALL SELECT ''DiagnosticTest'', count(*)::text FROM public."DiagnosticTest"
-              UNION ALL SELECT ''Patient'', count(*)::text FROM public."Patient"
-              UNION ALL SELECT ''PaymentTransaction'', count(*)::text FROM public."PaymentTransaction"
-              UNION ALL SELECT ''RazorpayWebhookEvent'', count(*)::text FROM public."RazorpayWebhookEvent"
-              UNION ALL SELECT ''TestPartnerOffer'', count(*)::text FROM public."TestPartnerOffer"
-              UNION ALL SELECT ''Technician'', count(*)::text FROM public."Technician"
-              UNION ALL SELECT ''TechnicianSession'', count(*)::text FROM public."TechnicianSession"
-              UNION ALL SELECT ''ThyrocareCredential'', count(*)::text FROM public."ThyrocareCredential"
-            ) counts ORDER BY table_name
-          ' | sha256sum | cut -d' ' -f1)"
-          test "$post_schema_sha" = "$PRE_SCHEMA_SHA"
-          test "$post_counts_sha" = "$PRE_COUNTS_SHA"
-          test "$post_app_data_sha" = "$PRE_APP_DATA_SHA"
-          rm -f "$expected" "$actual"
-
-      - name: Reverify Production health and immutable PR state
-        shell: bash
-        env:
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-        run: |
-          set -euo pipefail
-          set +x
+          fingerprint_state
+          test "$STATE_SCHEMA_SHA" = "$PRE_SCHEMA_SHA"
+          test "$STATE_COUNTS_SHA" = "$PRE_COUNTS_SHA"
+          test "$STATE_APP_DATA_SHA" = "$PRE_APP_DATA_SHA"
           health_json="$(mktemp)"
           pr_json="$(mktemp)"
-          curl --fail --silent --show-error \
-            -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" \
-            "$PRODUCTION_HEALTH_URL" > "$health_json"
+          curl --fail --silent --show-error -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" "$PRODUCTION_HEALTH_URL" > "$health_json"
           test "$(jq -r '.database // ""' "$health_json" | tr '[:upper:]' '[:lower:]')" = "ok"
-          curl --fail --silent --show-error \
-            https://api.github.com/repos/gopalgoudt-lab/TG-LABS-Y1/pulls/21 > "$pr_json"
+          curl --fail --silent --show-error https://api.github.com/repos/gopalgoudt-lab/TG-LABS-Y1/pulls/21 > "$pr_json"
           test "$(jq -r '.state' "$pr_json")" = "open"
           test "$(jq -r '.merged_at // ""' "$pr_json")" = ""
           test "$(jq -r '.head.sha' "$pr_json")" = "$EXPECTED_PR_HEAD"
-          test "$(curl --fail --silent --show-error https://api.github.com/repos/gopalgoudt-lab/TG-LABS-Y1/git/ref/heads/main | jq -r '.object.sha')" = "$APPROVED_SHA"
-          rm -f "$health_json" "$pr_json"
-
-      - name: Write non-sensitive completion summary
-        shell: bash
-        run: |
-          set -euo pipefail
-          {
-            echo '## Production Prisma history baseline completed'
-            echo
-            echo '- Approved SHA verified'
-            echo '- PR #21 remained open and unmerged at the expected head'
-            echo '- Production project, branch, database and recovery checkpoint verified'
-            echo '- Exactly 20 historical migrations marked applied'
-            echo '- Phase 2C-1 excluded and not executed'
-            echo '- Schema, core counts and application data unchanged'
-            echo '- Production health remained OK'
-            echo '- No migration SQL was executed'
-          } >> "$GITHUB_STEP_SUMMARY"
+          rm -f "$expected" "$actual" "$health_json" "$pr_json"
+          echo 'PASS: BASELINE completed with exactly 20 historical records and unchanged Production application state'
