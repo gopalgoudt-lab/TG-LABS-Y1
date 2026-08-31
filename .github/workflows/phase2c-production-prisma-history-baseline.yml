@@ -175,6 +175,7 @@ jobs:
           branches_json="$(mktemp)"
           endpoints_json="$(mktemp)"
           health_json="$(mktemp)"
+          trap 'rm -f "$health_json"' EXIT
           stage 'Neon branch and recovery-checkpoint identity checks'
           if ! curl --fail --silent --show-error -H "Authorization: Bearer $NEON_API_KEY" "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" > "$branches_json"; then
             fail 'Neon branch identity request failed'
@@ -203,9 +204,18 @@ jobs:
           fi
           stage 'Production database endpoint identity accepted'
 
+          check_production_health() {
+            local health_http_status
+            if ! health_http_status="$(curl --silent --output "$health_json" --write-out '%{http_code}' -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" "$PRODUCTION_HEALTH_URL" 2>/dev/null)"; then
+              fail 'Production health request was not successful'
+            fi
+            test "$health_http_status" = "200" || fail 'Production health request was not successful'
+            jq -e . "$health_json" >/dev/null 2>&1 || fail 'Production health response was not valid JSON'
+            jq -e '.status == "ok" and .database == "ok"' "$health_json" >/dev/null 2>&1 || fail 'Production health identity did not match'
+          }
+
           stage 'Production health and database identity checks'
-          curl --fail --silent --show-error -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" "$PRODUCTION_HEALTH_URL" > "$health_json"
-          test "$(jq -r '.database // ""' "$health_json" | tr '[:upper:]' '[:lower:]')" = "ok"
+          check_production_health
           test "$(psql "$NEON_DATABASE_URL" -XAtqc 'SELECT current_database()')" = "$PRODUCTION_DATABASE"
           rm -f "$branches_json" "$endpoints_json" "$health_json"
 
@@ -318,8 +328,8 @@ jobs:
           test "$STATE_APP_DATA_SHA" = "$PRE_APP_DATA_SHA"
           health_json="$(mktemp)"
           pr_json="$(mktemp)"
-          curl --fail --silent --show-error -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" "$PRODUCTION_HEALTH_URL" > "$health_json"
-          test "$(jq -r '.database // ""' "$health_json" | tr '[:upper:]' '[:lower:]')" = "ok"
+          stage 'post-baseline Production health identity check'
+          check_production_health
           curl --fail --silent --show-error https://api.github.com/repos/gopalgoudt-lab/TG-LABS-Y1/pulls/21 > "$pr_json"
           test "$(jq -r '.state' "$pr_json")" = "open"
           test "$(jq -r '.merged_at // ""' "$pr_json")" = ""
