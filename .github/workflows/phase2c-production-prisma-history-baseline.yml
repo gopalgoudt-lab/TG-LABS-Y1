@@ -252,8 +252,8 @@ jobs:
           test "$phase2c1_absent" = "t"
 
           fingerprint_state() {
-            STATE_SCHEMA_SHA="$(pg_dump "$NEON_DATABASE_URL" --schema-only --no-owner --no-privileges --exclude-table=public._prisma_migrations | sha256sum | cut -d' ' -f1)"
-            STATE_APP_DATA_SHA="$(pg_dump "$NEON_DATABASE_URL" --data-only --no-owner --no-privileges --exclude-table=public._prisma_migrations | sha256sum | cut -d' ' -f1)"
+            STATE_SCHEMA_SHA="$(pg_dump "$NEON_DATABASE_URL" --schema-only --no-owner --no-privileges --exclude-table=public._prisma_migrations --restrict-key=Phase2CBaselineFingerprintV1 | sha256sum | cut -d' ' -f1)"
+            STATE_APP_DATA_SHA="$(pg_dump "$NEON_DATABASE_URL" --data-only --no-owner --no-privileges --exclude-table=public._prisma_migrations --restrict-key=Phase2CBaselineFingerprintV1 | sha256sum | cut -d' ' -f1)"
             STATE_COUNTS_SHA="$(psql "$NEON_DATABASE_URL" -X -A -t -q -v ON_ERROR_STOP=1 <<'SQL' | sha256sum | cut -d' ' -f1
               SELECT table_name || '=' || row_count FROM (
                 SELECT 'AdminAuditLog' AS table_name, count(*)::text AS row_count FROM public."AdminAuditLog"
