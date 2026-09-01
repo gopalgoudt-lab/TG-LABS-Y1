@@ -254,24 +254,25 @@ jobs:
           fingerprint_state() {
             STATE_SCHEMA_SHA="$(pg_dump "$NEON_DATABASE_URL" --schema-only --no-owner --no-privileges --exclude-table=public._prisma_migrations | sha256sum | cut -d' ' -f1)"
             STATE_APP_DATA_SHA="$(pg_dump "$NEON_DATABASE_URL" --data-only --no-owner --no-privileges --exclude-table=public._prisma_migrations | sha256sum | cut -d' ' -f1)"
-            STATE_COUNTS_SHA="$(psql "$NEON_DATABASE_URL" -XAtqc '
-              SELECT table_name || ''='' || row_count FROM (
-                SELECT ''AdminAuditLog'' AS table_name, count(*)::text AS row_count FROM public."AdminAuditLog"
-                UNION ALL SELECT ''Booking'', count(*)::text FROM public."Booking"
-                UNION ALL SELECT ''BookingItem'', count(*)::text FROM public."BookingItem"
-                UNION ALL SELECT ''BookingPackage'', count(*)::text FROM public."BookingPackage"
-                UNION ALL SELECT ''DiagnosticPackage'', count(*)::text FROM public."DiagnosticPackage"
-                UNION ALL SELECT ''DiagnosticPartner'', count(*)::text FROM public."DiagnosticPartner"
-                UNION ALL SELECT ''DiagnosticTest'', count(*)::text FROM public."DiagnosticTest"
-                UNION ALL SELECT ''Patient'', count(*)::text FROM public."Patient"
-                UNION ALL SELECT ''PaymentTransaction'', count(*)::text FROM public."PaymentTransaction"
-                UNION ALL SELECT ''RazorpayWebhookEvent'', count(*)::text FROM public."RazorpayWebhookEvent"
-                UNION ALL SELECT ''TestPartnerOffer'', count(*)::text FROM public."TestPartnerOffer"
-                UNION ALL SELECT ''Technician'', count(*)::text FROM public."Technician"
-                UNION ALL SELECT ''TechnicianSession'', count(*)::text FROM public."TechnicianSession"
-                UNION ALL SELECT ''ThyrocareCredential'', count(*)::text FROM public."ThyrocareCredential"
-              ) counts ORDER BY table_name
-            ' | sha256sum | cut -d' ' -f1)"
+            STATE_COUNTS_SHA="$(psql "$NEON_DATABASE_URL" -X -A -t -q -v ON_ERROR_STOP=1 <<'SQL' | sha256sum | cut -d' ' -f1
+              SELECT table_name || '=' || row_count FROM (
+                SELECT 'AdminAuditLog' AS table_name, count(*)::text AS row_count FROM public."AdminAuditLog"
+                UNION ALL SELECT 'Booking', count(*)::text FROM public."Booking"
+                UNION ALL SELECT 'BookingItem', count(*)::text FROM public."BookingItem"
+                UNION ALL SELECT 'BookingPackage', count(*)::text FROM public."BookingPackage"
+                UNION ALL SELECT 'DiagnosticPackage', count(*)::text FROM public."DiagnosticPackage"
+                UNION ALL SELECT 'DiagnosticPartner', count(*)::text FROM public."DiagnosticPartner"
+                UNION ALL SELECT 'DiagnosticTest', count(*)::text FROM public."DiagnosticTest"
+                UNION ALL SELECT 'Patient', count(*)::text FROM public."Patient"
+                UNION ALL SELECT 'PaymentTransaction', count(*)::text FROM public."PaymentTransaction"
+                UNION ALL SELECT 'RazorpayWebhookEvent', count(*)::text FROM public."RazorpayWebhookEvent"
+                UNION ALL SELECT 'TestPartnerOffer', count(*)::text FROM public."TestPartnerOffer"
+                UNION ALL SELECT 'Technician', count(*)::text FROM public."Technician"
+                UNION ALL SELECT 'TechnicianSession', count(*)::text FROM public."TechnicianSession"
+                UNION ALL SELECT 'ThyrocareCredential', count(*)::text FROM public."ThyrocareCredential"
+              ) counts ORDER BY table_name;
+          SQL
+            )"
           }
           fingerprint_state
           PRE_SCHEMA_SHA="$STATE_SCHEMA_SHA"
