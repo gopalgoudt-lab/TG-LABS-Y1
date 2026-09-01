@@ -91,6 +91,6 @@ export default function Home(){
     </main>
 
     <a className="floatingBook" href="/checkout">⌂ Book Home Collection</a>
-    <footer className="marketFooter"><div className="marketWrap footerGrid"><div><a className="footerBrand" href="/" aria-label="TG Labs home"><BrandLogo className="brandLogoFooter"/></a><p>Multi-lab diagnostic booking, home sample collection and digital reports in one patient-first journey.</p></div><div><b>Patients</b><a href="#tests">Search Tests</a><a href="#packages">Health Packages</a><a href="/patient">Reports</a></div><div><b>Partners</b><a href="#partners">Lab Partners</a><a href="/technician">Technician</a><a href="/admin">Admin</a></div><div><b>Book</b><a href="/checkout">Home Collection</a><a href="/auth">Login</a></div></div></footer>
+    <footer className="marketFooter"><div className="marketWrap footerGrid"><div><a className="footerBrand" href="/" aria-label="TG Labs home"><BrandLogo className="brandLogoFooter" variant="footer"/></a><p>Multi-lab diagnostic booking, home sample collection and digital reports in one patient-first journey.</p></div><div><b>Patients</b><a href="#tests">Search Tests</a><a href="#packages">Health Packages</a><a href="/patient">Reports</a></div><div><b>Partners</b><a href="#partners">Lab Partners</a><a href="/technician">Technician</a><a href="/admin">Admin</a></div><div><b>Book</b><a href="/checkout">Home Collection</a><a href="/auth">Login</a></div></div></footer>
   </>;
 }

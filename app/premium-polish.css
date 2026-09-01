@@ -1117,3 +1117,33 @@ button.choice:disabled {
     padding-top: 6px;
   }
 }
+
+/* Footer-specific high-contrast brand treatment */
+.footerBrand {
+  width: min(360px, 100%);
+  max-width: 100%;
+  padding: 6px;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.footerBrand .brandLogoFooter {
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  height: auto;
+  object-fit: contain;
+}
+
+@media (max-width: 760px) {
+  .footerBrand {
+    width: min(300px, 78vw);
+  }
+}
+
+@media (max-width: 390px) {
+  .footerBrand {
+    width: min(280px, 82vw);
+  }
+}
