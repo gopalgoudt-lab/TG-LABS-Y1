@@ -6,10 +6,10 @@ export default function BrandLogo({ className = '', priority = false }: BrandLog
   return (
     <Image
       className={`brandLogo ${className}`.trim()}
-      src="/tg-labs-logo.png"
-      alt="TG Labs Diagnostics and Home Collection"
-      width={1672}
-      height={941}
+      src="/brand/tg-labs-logo.png"
+      alt="TG Labs Diagnostics – Home Collection"
+      width={1600}
+      height={533}
       priority={priority}
     />
   );
