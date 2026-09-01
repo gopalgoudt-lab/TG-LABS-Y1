@@ -1,0 +1,583 @@
+name: Phase 2C-1 Controlled Production Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Fixed separately authorized operation
+        required: true
+        type: choice
+        options:
+          - APPLY_PHASE2C1_MIGRATION_ONLY
+      typed_confirmation:
+        description: Type APPLY_PHASE2C1_MIGRATION_ONLY
+        required: true
+        type: string
+      reviewed_workflow_sha256:
+        description: Exact SHA-256 of this reviewed workflow file
+        required: true
+        type: string
+      reviewed_migration_sha256:
+        description: Exact SHA-256 of the reviewed migration.sql
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase2c1-controlled-production-migration
+  cancel-in-progress: false
+
+jobs:
+  controlled-migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      OPERATION_NAME: APPLY_PHASE2C1_MIGRATION_ONLY
+      CURRENT_MAIN_SHA: d1f771064a9ac14c2ade716a4a436f7140b58448
+      IMMUTABLE_APPLICATION_SHA: 4643df644fef735c65d9cb9139f8b756d331309f
+      EXPECTED_PR_HEAD: ad068cb4552ae5de0693faa9c1fc3589c67f49f2
+      AUTHORIZED_MIGRATION: 20260829153000_phase2c1_catalog_eligibility_foundation
+      MIGRATION_PATH: prisma/migrations/20260829153000_phase2c1_catalog_eligibility_foundation/migration.sql
+      EXPECTED_MIGRATION_SHA256: 64f06989a81c4a3aa7c2e5536104ca18bbdc5c75b07da9b83a8207ef0f2c927b
+      WORKFLOW_PATH: .github/workflows/phase2c1-production-migration.yml
+      NEON_PROJECT_ID: still-lake-20474769
+      PRODUCTION_BRANCH_ID: br-wandering-resonance-axwu851y
+      PRODUCTION_BRANCH_NAME: production
+      PRODUCTION_DATABASE: neondb
+      RECOVERY_CHECKPOINT_ID: br-mute-sky-axe5a0c0
+      EXPECTED_SCHEMA_SHA256: 7a923f1d0bf618f19dd2aafdd46280a58869f467f4a6fa3b9e39ce3adee439fa
+      EXPECTED_CORE_COUNTS_SHA256: c9b8f0dedd9041943bfdad72c62e1689fecd1a3d85161fb9d3985a10b397c637
+      EXPECTED_APPLICATION_DATA_SHA256: 0baae3398d86ea482ee50180776e6df7fa2816516a3f956fd2ea883c73d7a397
+      PRODUCTION_HEALTH_URL: https://tg-labs-y1-git-main-gopalgoudt-7623s-projects.vercel.app/api/health
+
+    steps:
+      - name: Check out dispatch commit for workflow guards
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify dispatch, immutable ancestry, reviewed workflow and PR 21
+        shell: bash
+        env:
+          OPERATION: ${{ inputs.operation }}
+          TYPED_CONFIRMATION: ${{ inputs.typed_confirmation }}
+          REVIEWED_WORKFLOW_SHA256: ${{ inputs.reviewed_workflow_sha256 }}
+        run: |
+          set -euo pipefail
+          set +x
+          fail() { echo "FAIL: $1"; exit 1; }
+
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch" \
+            || fail 'Dispatch event mismatch'
+          test "$OPERATION" = "$OPERATION_NAME" \
+            || fail 'Operation authorization mismatch'
+          test "$TYPED_CONFIRMATION" = "$OPERATION_NAME" \
+            || fail 'Typed confirmation mismatch'
+          [[ "$REVIEWED_WORKFLOW_SHA256" =~ ^[0-9a-f]{64}$ ]] \
+            || fail 'Reviewed workflow fingerprint format mismatch'
+
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA" \
+            || fail 'Dispatch checkout identity mismatch'
+          git cat-file -e "$CURRENT_MAIN_SHA^{commit}" \
+            || fail 'Pinned main commit is unavailable'
+          git cat-file -e "$IMMUTABLE_APPLICATION_SHA^{commit}" \
+            || fail 'Immutable application commit is unavailable'
+          git merge-base --is-ancestor "$CURRENT_MAIN_SHA" "$GITHUB_SHA" \
+            || fail 'Pinned main ancestry mismatch'
+          git merge-base --is-ancestor "$IMMUTABLE_APPLICATION_SHA" "$CURRENT_MAIN_SHA" \
+            || fail 'Immutable application ancestry mismatch'
+          changed_paths="$(git diff --name-only "$CURRENT_MAIN_SHA..$GITHUB_SHA")"
+          test "$changed_paths" = "$WORKFLOW_PATH" \
+            || fail 'Workflow-only dispatch diff mismatch'
+          test "$(sha256sum "$WORKFLOW_PATH" | cut -d' ' -f1)" = "$REVIEWED_WORKFLOW_SHA256" \
+            || fail 'Reviewed workflow fingerprint mismatch'
+
+          pr_json="$(mktemp)"
+          trap 'rm -f "$pr_json"' EXIT
+          if ! curl --fail --silent --show-error \
+            https://api.github.com/repos/gopalgoudt-lab/TG-LABS-Y1/pulls/21 > "$pr_json"; then
+            fail 'PR identity request failed'
+          fi
+          test "$(jq -r '.state' "$pr_json")" = "open" \
+            || fail 'PR 21 state mismatch'
+          test "$(jq -r '.merged_at // ""' "$pr_json")" = "" \
+            || fail 'PR 21 merge-state mismatch'
+          test "$(jq -r '.head.sha' "$pr_json")" = "$EXPECTED_PR_HEAD" \
+            || fail 'PR 21 head mismatch'
+          echo 'PASS: dispatch authorization, immutable ancestry, reviewed workflow and PR 21 verified'
+
+      - name: Check out immutable PR 21 head separately
+        uses: actions/checkout@v4
+        with:
+          ref: ad068cb4552ae5de0693faa9c1fc3589c67f49f2
+          path: phase2c1
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify exact migration allowlist and reviewed additive SQL
+        shell: bash
+        working-directory: phase2c1
+        env:
+          REVIEWED_MIGRATION_SHA256: ${{ inputs.reviewed_migration_sha256 }}
+        run: |
+          set -euo pipefail
+          set +x
+          fail() { echo "FAIL: $1"; exit 1; }
+
+          test "$(git rev-parse HEAD)" = "$EXPECTED_PR_HEAD" \
+            || fail 'PR 21 checkout identity mismatch'
+          git cat-file -e "$IMMUTABLE_APPLICATION_SHA^{commit}" \
+            || fail 'Immutable application commit is unavailable in PR history'
+          git merge-base --is-ancestor "$IMMUTABLE_APPLICATION_SHA" "$EXPECTED_PR_HEAD" \
+            || fail 'PR 21 immutable ancestry mismatch'
+          [[ "$REVIEWED_MIGRATION_SHA256" =~ ^[0-9a-f]{64}$ ]] \
+            || fail 'Reviewed migration fingerprint format mismatch'
+          test "$REVIEWED_MIGRATION_SHA256" = "$EXPECTED_MIGRATION_SHA256" \
+            || fail 'Reviewed migration fingerprint authorization mismatch'
+          test "$(sha256sum "$MIGRATION_PATH" | cut -d' ' -f1)" = "$EXPECTED_MIGRATION_SHA256" \
+            || fail 'Reviewed migration fingerprint mismatch'
+
+          expected="$(mktemp)"
+          actual="$(mktemp)"
+          trap 'rm -f "$expected" "$actual"' EXIT
+          cat > "$expected" <<'MIGRATIONS'
+          20260815130000_init
+          20260816105000_add_razorpay_booking_fields
+          20260816193000_add_whatsapp_notification_tracking
+          20260817112000_admin_catalog_and_manual_booking
+          20260817113000_add_sample_types
+          20260817124500_booking_admin_edit_fields
+          20260817133000_add_booking_pincode
+          20260817142000_add_technicians
+          20260817143000_add_sample_processing_workflow
+          20260817161000_phase23_technician_portal
+          20260817193000_booking_packages
+          20260817201500_patient_profile_fields
+          20260818173000_phase28_payment_hardening
+          20260820161000_add_admin_audit_log
+          20260820170500_phase9_doctor_printed_reports
+          20260820193000_persist_ai_reports
+          20260821194000_add_thyrocare_credentials
+          20260824120500_add_technician_live_location
+          20260824131500_add_booking_idempotency
+          20260826190000_add_partner_offers
+          20260829153000_phase2c1_catalog_eligibility_foundation
+          MIGRATIONS
+          find prisma/migrations -mindepth 2 -maxdepth 2 -type f -name migration.sql -printf '%h\n' \
+            | xargs -r -n1 basename | LC_ALL=C sort > "$actual"
+          test "$(wc -l < "$actual" | tr -d ' ')" = "21" \
+            || fail 'Migration directory count mismatch'
+          diff --unified=0 "$expected" "$actual" >/dev/null \
+            || fail 'Migration directory allowlist mismatch'
+
+          if grep -Eiq '(^|;)[[:space:]]*(DROP|TRUNCATE|DELETE|UPDATE|INSERT|MERGE|RENAME)([[:space:]]|$)' "$MIGRATION_PATH"; then
+            fail 'Reviewed migration contains a destructive statement'
+          fi
+          if tr '\n' ' ' < "$MIGRATION_PATH" \
+            | grep -Eiq 'ALTER[[:space:]]+TABLE[^;]*(DROP|RENAME|ALTER[[:space:]]+COLUMN)'; then
+            fail 'Reviewed migration contains a destructive table alteration'
+          fi
+          echo 'PASS: exact 21-migration allowlist and reviewed additive migration verified'
+
+      - name: Install pinned dependencies and PostgreSQL 18 client
+        shell: bash
+        working-directory: phase2c1
+        run: |
+          set -euo pipefail
+          set +x
+          fail() { echo "FAIL: $1"; exit 1; }
+
+          npm ci --ignore-scripts
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq curl ca-certificates
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error \
+            --output /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          . /etc/os-release
+          test -n "${VERSION_CODENAME:-}" \
+            || fail 'Runner distribution identity is unavailable'
+          sudo tee /etc/apt/sources.list.d/pgdg.sources >/dev/null <<PGDG
+          Types: deb
+          URIs: https://apt.postgresql.org/pub/repos/apt
+          Suites: ${VERSION_CODENAME}-pgdg
+          Components: main
+          Signed-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          PGDG
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-18
+          PG18_BIN=/usr/lib/postgresql/18/bin
+          export PATH="$PG18_BIN:$PATH"
+          printf '%s\n' "$PG18_BIN" >> "$GITHUB_PATH"
+          test "$(command -v psql)" = "$PG18_BIN/psql" \
+            || fail 'PostgreSQL 18 psql path mismatch'
+          test "$(command -v pg_dump)" = "$PG18_BIN/pg_dump" \
+            || fail 'PostgreSQL 18 pg_dump path mismatch'
+          [[ "$(psql --version)" =~ ^psql\ \(PostgreSQL\)\ 18([.]|$) ]] \
+            || fail 'PostgreSQL 18 psql version mismatch'
+          [[ "$(pg_dump --version)" =~ ^pg_dump\ \(PostgreSQL\)\ 18([.]|$) ]] \
+            || fail 'PostgreSQL 18 pg_dump version mismatch'
+          echo 'PASS: pinned dependencies and PostgreSQL 18 client verified'
+
+      - name: Execute the single controlled Phase 2C-1 migration
+        shell: bash
+        working-directory: phase2c1
+        env:
+          NEON_DATABASE_URL: ${{ secrets.PHASE2C_PRODUCTION_NEON_DATABASE_URL }}
+          NEON_API_KEY: ${{ secrets.PHASE2B_NEON_API_KEY }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          set -euo pipefail
+          set +x
+          stage() { echo "STAGE: $1"; }
+          fail() { echo "FAIL: $1"; exit 1; }
+
+          stage 'runtime secret presence checks'
+          test -n "$NEON_DATABASE_URL" \
+            || fail 'Production database secret is unavailable'
+          test -n "$NEON_API_KEY" \
+            || fail 'Neon API secret is unavailable'
+          test -n "$VERCEL_AUTOMATION_BYPASS_SECRET" \
+            || fail 'Production health bypass secret is unavailable'
+          echo "::add-mask::$NEON_DATABASE_URL"
+          echo "::add-mask::$NEON_API_KEY"
+          echo "::add-mask::$VERCEL_AUTOMATION_BYPASS_SECRET"
+
+          branches_json="$(mktemp)"
+          endpoints_json="$(mktemp)"
+          health_json="$(mktemp)"
+          expected_history="$(mktemp)"
+          actual_history="$(mktemp)"
+          trap 'rm -f "$branches_json" "$endpoints_json" "$health_json" "$expected_history" "$actual_history"' EXIT
+
+          stage 'Production project, branch and recovery-checkpoint identity checks'
+          if ! curl --fail --silent --show-error \
+            -H "Authorization: Bearer $NEON_API_KEY" \
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" > "$branches_json"; then
+            fail 'Neon branch identity request failed'
+          fi
+          test "$(jq -r --arg id "$PRODUCTION_BRANCH_ID" '.branches[] | select(.id == $id) | .name' "$branches_json")" = "$PRODUCTION_BRANCH_NAME" \
+            || fail 'Production branch identity mismatch'
+          test "$(jq -r --arg id "$RECOVERY_CHECKPOINT_ID" '[.branches[] | select(.id == $id)] | length' "$branches_json")" = "1" \
+            || fail 'Recovery checkpoint identity mismatch'
+
+          stage 'Production endpoint and database identity checks'
+          if ! curl --fail --silent --show-error \
+            -H "Authorization: Bearer $NEON_API_KEY" \
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/endpoints" > "$endpoints_json"; then
+            fail 'Neon endpoint identity request failed'
+          fi
+          endpoint_count="$(jq -r --arg branch "$PRODUCTION_BRANCH_ID" '[.endpoints[] | select(.branch_id == $branch and .type == "read_write")] | length' "$endpoints_json")"
+          test "$endpoint_count" = "1" \
+            || fail 'Production read-write endpoint count mismatch'
+          expected_host="$(jq -r --arg branch "$PRODUCTION_BRANCH_ID" '.endpoints[] | select(.branch_id == $branch and .type == "read_write") | .host' "$endpoints_json")"
+          [[ "$expected_host" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?[.][a-z0-9.-]+$ ]] \
+            || fail 'Production read-write endpoint format mismatch'
+          endpoint_label="${expected_host%%.*}"
+          endpoint_suffix="${expected_host#*.}"
+          test "$endpoint_suffix" != "$expected_host" \
+            || fail 'Production read-write endpoint format mismatch'
+          [[ "$endpoint_label" != *-pooler ]] \
+            || fail 'Neon API returned an unexpected pooled endpoint'
+          expected_pooler_host="${endpoint_label}-pooler.${endpoint_suffix}"
+          if ! actual_host="$(DATABASE_URL_FOR_PARSE="$NEON_DATABASE_URL" node -e 'const u=new URL(process.env.DATABASE_URL_FOR_PARSE); process.stdout.write(u.hostname)' 2>/dev/null)"; then
+            fail 'Production database hostname parsing failed'
+          fi
+          if [ "$actual_host" != "$expected_host" ] && [ "$actual_host" != "$expected_pooler_host" ]; then
+            fail 'Production database endpoint identity mismatch'
+          fi
+          test "$(psql "$NEON_DATABASE_URL" -XAtqc 'SELECT current_database()' 2>/dev/null)" = "$PRODUCTION_DATABASE" \
+            || fail 'Production database identity mismatch'
+
+          check_production_health() {
+            local health_http_status
+            if ! health_http_status="$(curl --silent --output "$health_json" --write-out '%{http_code}' \
+              -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" \
+              "$PRODUCTION_HEALTH_URL" 2>/dev/null)"; then
+              fail 'Production health request failed'
+            fi
+            test "$health_http_status" = "200" \
+              || fail 'Production health HTTP status mismatch'
+            jq -e . "$health_json" >/dev/null 2>&1 \
+              || fail 'Production health response format mismatch'
+            jq -e '.status == "ok" and .database == "ok"' "$health_json" >/dev/null 2>&1 \
+              || fail 'Production health identity mismatch'
+          }
+
+          write_expected_history() {
+            cat > "$expected_history" <<'MIGRATIONS'
+          20260815130000_init
+          20260816105000_add_razorpay_booking_fields
+          20260816193000_add_whatsapp_notification_tracking
+          20260817112000_admin_catalog_and_manual_booking
+          20260817113000_add_sample_types
+          20260817124500_booking_admin_edit_fields
+          20260817133000_add_booking_pincode
+          20260817142000_add_technicians
+          20260817143000_add_sample_processing_workflow
+          20260817161000_phase23_technician_portal
+          20260817193000_booking_packages
+          20260817201500_patient_profile_fields
+          20260818173000_phase28_payment_hardening
+          20260820161000_add_admin_audit_log
+          20260820170500_phase9_doctor_printed_reports
+          20260820193000_persist_ai_reports
+          20260821194000_add_thyrocare_credentials
+          20260824120500_add_technician_live_location
+          20260824131500_add_booking_idempotency
+          20260826190000_add_partner_offers
+          MIGRATIONS
+          }
+
+          fingerprint_pre_state() {
+            if ! PRE_SCHEMA_SHA="$(pg_dump "$NEON_DATABASE_URL" --schema-only --no-owner --no-privileges \
+              --exclude-table=public._prisma_migrations --restrict-key=Phase2CBaselineFingerprintV1 \
+              2>/dev/null | sha256sum | cut -d' ' -f1)"; then
+              fail 'Pre-migration schema fingerprint calculation failed'
+            fi
+            if ! PRE_APP_DATA_SHA="$(pg_dump "$NEON_DATABASE_URL" --data-only --no-owner --no-privileges \
+              --exclude-table=public._prisma_migrations --restrict-key=Phase2CBaselineFingerprintV1 \
+              2>/dev/null | sha256sum | cut -d' ' -f1)"; then
+              fail 'Pre-migration application-data fingerprint calculation failed'
+            fi
+            if ! PRE_COUNTS_SHA="$(psql "$NEON_DATABASE_URL" -X -A -t -q -v ON_ERROR_STOP=1 2>/dev/null <<'SQL' \
+              | sha256sum | cut -d' ' -f1
+              SELECT table_name || '=' || row_count FROM (
+                SELECT 'AdminAuditLog' AS table_name, count(*)::text AS row_count FROM public."AdminAuditLog"
+                UNION ALL SELECT 'Booking', count(*)::text FROM public."Booking"
+                UNION ALL SELECT 'BookingItem', count(*)::text FROM public."BookingItem"
+                UNION ALL SELECT 'BookingPackage', count(*)::text FROM public."BookingPackage"
+                UNION ALL SELECT 'DiagnosticPackage', count(*)::text FROM public."DiagnosticPackage"
+                UNION ALL SELECT 'DiagnosticPartner', count(*)::text FROM public."DiagnosticPartner"
+                UNION ALL SELECT 'DiagnosticTest', count(*)::text FROM public."DiagnosticTest"
+                UNION ALL SELECT 'Patient', count(*)::text FROM public."Patient"
+                UNION ALL SELECT 'PaymentTransaction', count(*)::text FROM public."PaymentTransaction"
+                UNION ALL SELECT 'RazorpayWebhookEvent', count(*)::text FROM public."RazorpayWebhookEvent"
+                UNION ALL SELECT 'TestPartnerOffer', count(*)::text FROM public."TestPartnerOffer"
+                UNION ALL SELECT 'Technician', count(*)::text FROM public."Technician"
+                UNION ALL SELECT 'TechnicianSession', count(*)::text FROM public."TechnicianSession"
+                UNION ALL SELECT 'ThyrocareCredential', count(*)::text FROM public."ThyrocareCredential"
+              ) counts ORDER BY table_name;
+          SQL
+            )"; then
+              fail 'Core-count fingerprint calculation failed'
+            fi
+          }
+
+          canonical_application_data_fingerprint() {
+            psql "$NEON_DATABASE_URL" -X -A -t -q -v ON_ERROR_STOP=1 2>/dev/null <<'SQL' \
+              | sha256sum | cut -d' ' -f1
+              SELECT format(
+                'SELECT %L; SELECT row_value::text FROM (SELECT %s AS row_value FROM %I.%I t) q ORDER BY row_value::text;',
+                'TABLE ' || schemaname || '.' || tablename,
+                CASE tablename
+                  WHEN 'DiagnosticTest' THEN 'to_jsonb(t) - ARRAY[''catalogCode'',''aliases'',''preparation'',''fastingHours'',''parameterCount'',''organTags'',''conditionTags'',''genderRelevance'',''ageRelevance'',''seoTitle'',''seoDescription'']'
+                  WHEN 'DiagnosticPackage' THEN 'to_jsonb(t) - ARRAY[''catalogCode'',''packageType'',''aliases'',''preparation'',''fastingHours'',''parameterCount'',''seoTitle'',''seoDescription'']'
+                  WHEN 'DiagnosticPartner' THEN 'to_jsonb(t) - ARRAY[''bookingEnabled'',''operationalEnabled'',''displayEnabled'',''accreditationDisplay'',''accreditationReference'',''accreditationVerifiedAt'',''orderHandoffMethod'',''reportIntakeMethod'']'
+                  WHEN 'TestPartnerOffer' THEN 'to_jsonb(t) - ARRAY[''mrp'',''sourceReference'',''lastVerifiedAt'',''effectiveFrom'',''effectiveTo'']'
+                  WHEN 'BookingPackage' THEN 'to_jsonb(t) - ARRAY[''offerId'',''partnerId'',''partnerName'',''partnerTat'',''partnerAvailability'']'
+                  ELSE 'to_jsonb(t)'
+                END,
+                schemaname,
+                tablename
+              )
+              FROM pg_tables
+              WHERE schemaname = 'public'
+                AND tablename <> '_prisma_migrations'
+                AND tablename NOT IN (
+                  'CatalogCategory',
+                  'DiagnosticTestCategory',
+                  'DiagnosticPackageCategory',
+                  'PackagePartnerOffer',
+                  'PartnerServiceability'
+                )
+              ORDER BY tablename
+              \gexec
+          SQL
+          }
+
+          stage 'pre-migration health, history and Phase 2C-1 absence checks'
+          check_production_health
+          test "$(psql "$NEON_DATABASE_URL" -XAtqc "SELECT to_regclass('public._prisma_migrations') IS NOT NULL" 2>/dev/null)" = "t" \
+            || fail 'Migration history table is absent'
+          test "$(psql "$NEON_DATABASE_URL" -XAtqc 'SELECT count(*) FROM public._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL' 2>/dev/null)" = "20" \
+            || fail 'Finished historical migration count mismatch'
+          test "$(psql "$NEON_DATABASE_URL" -XAtqc 'SELECT count(*) FROM public._prisma_migrations WHERE finished_at IS NULL OR rolled_back_at IS NOT NULL' 2>/dev/null)" = "0" \
+            || fail 'Incomplete or rolled-back migration history detected'
+          write_expected_history
+          psql "$NEON_DATABASE_URL" -XAtqc \
+            'SELECT migration_name FROM public._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name' \
+            > "$actual_history" 2>/dev/null \
+            || fail 'Migration history allowlist query failed'
+          diff --unified=0 "$expected_history" "$actual_history" >/dev/null \
+            || fail 'Historical migration allowlist mismatch'
+          test "$(psql "$NEON_DATABASE_URL" -XAtqc "SELECT count(*) FROM public._prisma_migrations WHERE migration_name = '$AUTHORIZED_MIGRATION'" 2>/dev/null)" = "0" \
+            || fail 'Authorized migration is already recorded'
+          phase2c1_absent="$(psql "$NEON_DATABASE_URL" -XAtq 2>/dev/null <<'SQL'
+          SELECT NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DiagnosticPackageType')
+            AND to_regclass('public."CatalogCategory"') IS NULL
+            AND to_regclass('public."DiagnosticTestCategory"') IS NULL
+            AND to_regclass('public."DiagnosticPackageCategory"') IS NULL
+            AND to_regclass('public."PackagePartnerOffer"') IS NULL
+            AND to_regclass('public."PartnerServiceability"') IS NULL;
+          SQL
+          )"
+          test "$phase2c1_absent" = "t" \
+            || fail 'Phase 2C-1 schema objects are already present'
+
+          stage 'pre-migration protected fingerprint checks'
+          fingerprint_pre_state
+          test "$PRE_SCHEMA_SHA" = "$EXPECTED_SCHEMA_SHA256" \
+            || fail 'Pre-migration schema fingerprint mismatch'
+          test "$PRE_COUNTS_SHA" = "$EXPECTED_CORE_COUNTS_SHA256" \
+            || fail 'Pre-migration core-count fingerprint mismatch'
+          test "$PRE_APP_DATA_SHA" = "$EXPECTED_APPLICATION_DATA_SHA256" \
+            || fail 'Pre-migration application-data fingerprint mismatch'
+          if ! PRE_CANONICAL_APP_DATA_SHA="$(canonical_application_data_fingerprint)"; then
+            fail 'Canonical application-data fingerprint calculation failed'
+          fi
+
+          stage 'exactly one pending migration authorization check'
+          test "$(wc -l < "$expected_history" | tr -d ' ')" = "20" \
+            || fail 'Historical migration authorization count mismatch'
+          test "$(find prisma/migrations -mindepth 2 -maxdepth 2 -type f -name migration.sql -printf '%h\n' | xargs -r -n1 basename | LC_ALL=C sort | wc -l | tr -d ' ')" = "21" \
+            || fail 'Pending migration directory count mismatch'
+          test -f "$MIGRATION_PATH" \
+            || fail 'Authorized pending migration is unavailable'
+          echo 'PASS: exactly one authorized Phase 2C-1 migration is pending'
+
+          stage 'single authorized Phase 2C-1 migration execution'
+          if ! npx --no-install prisma migrate deploy --schema prisma/schema.prisma >/dev/null 2>&1; then
+            fail 'Authorized Phase 2C-1 migration execution failed'
+          fi
+
+          stage 'post-migration history and Phase 2C-1 schema verification'
+          test "$(psql "$NEON_DATABASE_URL" -XAtqc 'SELECT count(*) FROM public._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL' 2>/dev/null)" = "21" \
+            || fail 'Post-migration finished history count mismatch'
+          test "$(psql "$NEON_DATABASE_URL" -XAtqc 'SELECT count(*) FROM public._prisma_migrations WHERE finished_at IS NULL OR rolled_back_at IS NOT NULL' 2>/dev/null)" = "0" \
+            || fail 'Post-migration incomplete or rolled-back history detected'
+          echo "$AUTHORIZED_MIGRATION" >> "$expected_history"
+          LC_ALL=C sort -o "$expected_history" "$expected_history"
+          psql "$NEON_DATABASE_URL" -XAtqc \
+            'SELECT migration_name FROM public._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name' \
+            > "$actual_history" 2>/dev/null \
+            || fail 'Post-migration history allowlist query failed'
+          diff --unified=0 "$expected_history" "$actual_history" >/dev/null \
+            || fail 'Post-migration history allowlist mismatch'
+          test "$(psql "$NEON_DATABASE_URL" -XAtqc "SELECT count(*) FROM public._prisma_migrations WHERE migration_name = '$AUTHORIZED_MIGRATION' AND finished_at IS NOT NULL AND rolled_back_at IS NULL" 2>/dev/null)" = "1" \
+            || fail 'Authorized Phase 2C-1 history record mismatch'
+
+          phase2c1_schema_valid="$(psql "$NEON_DATABASE_URL" -XAtq 2>/dev/null <<'SQL'
+          WITH expected_columns(table_name, column_name) AS (
+            VALUES
+              ('DiagnosticTest','catalogCode'),('DiagnosticTest','aliases'),('DiagnosticTest','preparation'),
+              ('DiagnosticTest','fastingHours'),('DiagnosticTest','parameterCount'),('DiagnosticTest','organTags'),
+              ('DiagnosticTest','conditionTags'),('DiagnosticTest','genderRelevance'),('DiagnosticTest','ageRelevance'),
+              ('DiagnosticTest','seoTitle'),('DiagnosticTest','seoDescription'),
+              ('DiagnosticPackage','catalogCode'),('DiagnosticPackage','packageType'),('DiagnosticPackage','aliases'),
+              ('DiagnosticPackage','preparation'),('DiagnosticPackage','fastingHours'),('DiagnosticPackage','parameterCount'),
+              ('DiagnosticPackage','seoTitle'),('DiagnosticPackage','seoDescription'),
+              ('DiagnosticPartner','bookingEnabled'),('DiagnosticPartner','operationalEnabled'),('DiagnosticPartner','displayEnabled'),
+              ('DiagnosticPartner','accreditationDisplay'),('DiagnosticPartner','accreditationReference'),
+              ('DiagnosticPartner','accreditationVerifiedAt'),('DiagnosticPartner','orderHandoffMethod'),
+              ('DiagnosticPartner','reportIntakeMethod'),
+              ('TestPartnerOffer','mrp'),('TestPartnerOffer','sourceReference'),('TestPartnerOffer','lastVerifiedAt'),
+              ('TestPartnerOffer','effectiveFrom'),('TestPartnerOffer','effectiveTo'),
+              ('BookingPackage','offerId'),('BookingPackage','partnerId'),('BookingPackage','partnerName'),
+              ('BookingPackage','partnerTat'),('BookingPackage','partnerAvailability')
+          )
+          SELECT
+            to_regclass('public."CatalogCategory"') IS NOT NULL
+            AND to_regclass('public."DiagnosticTestCategory"') IS NOT NULL
+            AND to_regclass('public."DiagnosticPackageCategory"') IS NOT NULL
+            AND to_regclass('public."PackagePartnerOffer"') IS NOT NULL
+            AND to_regclass('public."PartnerServiceability"') IS NOT NULL
+            AND NOT EXISTS (
+              SELECT 1 FROM expected_columns e
+              LEFT JOIN information_schema.columns c
+                ON c.table_schema = 'public' AND c.table_name = e.table_name AND c.column_name = e.column_name
+              WHERE c.column_name IS NULL
+            )
+            AND (
+              SELECT string_agg(enumlabel, ',' ORDER BY enumsortorder)
+              FROM pg_enum
+              WHERE enumtypid = 'public."DiagnosticPackageType"'::regtype
+            ) = 'PACKAGE,PROFILE'
+            AND (
+              SELECT count(*) FROM pg_indexes
+              WHERE schemaname = 'public' AND indexname = ANY (ARRAY[
+                'DiagnosticTest_catalogCode_key','DiagnosticPackage_catalogCode_key','CatalogCategory_slug_key',
+                'CatalogCategory_active_sortOrder_idx','DiagnosticTestCategory_categoryId_idx',
+                'DiagnosticPackageCategory_categoryId_idx','PackagePartnerOffer_packageId_partnerId_key',
+                'PackagePartnerOffer_partnerId_availability_active_idx',
+                'PackagePartnerOffer_packageId_availability_active_idx',
+                'PartnerServiceability_partnerId_pincode_key',
+                'PartnerServiceability_pincode_active_homeCollectionEnabled_idx',
+                'PartnerServiceability_partnerId_active_idx','BookingPackage_offerId_idx','BookingPackage_partnerId_idx'
+              ])
+            ) = 14
+            AND (
+              SELECT count(*) FROM pg_constraint
+              WHERE conname = ANY (ARRAY[
+                'CatalogCategory_pkey','DiagnosticTestCategory_pkey','DiagnosticPackageCategory_pkey',
+                'PackagePartnerOffer_pkey','PartnerServiceability_pkey','DiagnosticTestCategory_testId_fkey',
+                'DiagnosticTestCategory_categoryId_fkey','DiagnosticPackageCategory_packageId_fkey',
+                'DiagnosticPackageCategory_categoryId_fkey','PackagePartnerOffer_packageId_fkey',
+                'PackagePartnerOffer_partnerId_fkey','PartnerServiceability_partnerId_fkey',
+                'BookingPackage_offerId_fkey'
+              ])
+            ) = 13;
+          SQL
+          )"
+          test "$phase2c1_schema_valid" = "t" \
+            || fail 'Phase 2C-1 schema verification mismatch'
+
+          stage 'post-migration application-state and health verification'
+          if ! POST_COUNTS_SHA="$(psql "$NEON_DATABASE_URL" -X -A -t -q -v ON_ERROR_STOP=1 2>/dev/null <<'SQL' \
+            | sha256sum | cut -d' ' -f1
+              SELECT table_name || '=' || row_count FROM (
+                SELECT 'AdminAuditLog' AS table_name, count(*)::text AS row_count FROM public."AdminAuditLog"
+                UNION ALL SELECT 'Booking', count(*)::text FROM public."Booking"
+                UNION ALL SELECT 'BookingItem', count(*)::text FROM public."BookingItem"
+                UNION ALL SELECT 'BookingPackage', count(*)::text FROM public."BookingPackage"
+                UNION ALL SELECT 'DiagnosticPackage', count(*)::text FROM public."DiagnosticPackage"
+                UNION ALL SELECT 'DiagnosticPartner', count(*)::text FROM public."DiagnosticPartner"
+                UNION ALL SELECT 'DiagnosticTest', count(*)::text FROM public."DiagnosticTest"
+                UNION ALL SELECT 'Patient', count(*)::text FROM public."Patient"
+                UNION ALL SELECT 'PaymentTransaction', count(*)::text FROM public."PaymentTransaction"
+                UNION ALL SELECT 'RazorpayWebhookEvent', count(*)::text FROM public."RazorpayWebhookEvent"
+                UNION ALL SELECT 'TestPartnerOffer', count(*)::text FROM public."TestPartnerOffer"
+                UNION ALL SELECT 'Technician', count(*)::text FROM public."Technician"
+                UNION ALL SELECT 'TechnicianSession', count(*)::text FROM public."TechnicianSession"
+                UNION ALL SELECT 'ThyrocareCredential', count(*)::text FROM public."ThyrocareCredential"
+              ) counts ORDER BY table_name;
+          SQL
+            )"; then
+            fail 'Post-migration core-count fingerprint calculation failed'
+          fi
+          test "$POST_COUNTS_SHA" = "$PRE_COUNTS_SHA" \
+            || fail 'Post-migration core-count fingerprint mismatch'
+          if ! POST_CANONICAL_APP_DATA_SHA="$(canonical_application_data_fingerprint)"; then
+            fail 'Post-migration canonical application-data fingerprint calculation failed'
+          fi
+          test "$POST_CANONICAL_APP_DATA_SHA" = "$PRE_CANONICAL_APP_DATA_SHA" \
+            || fail 'Post-migration application-data fingerprint mismatch'
+          check_production_health
+
+          pr_json="$(mktemp)"
+          if ! curl --fail --silent --show-error \
+            https://api.github.com/repos/gopalgoudt-lab/TG-LABS-Y1/pulls/21 > "$pr_json"; then
+            fail 'Post-migration PR identity request failed'
+          fi
+          test "$(jq -r '.state' "$pr_json")" = "open" \
+            || fail 'Post-migration PR 21 state mismatch'
+          test "$(jq -r '.merged_at // ""' "$pr_json")" = "" \
+            || fail 'Post-migration PR 21 merge-state mismatch'
+          test "$(jq -r '.head.sha' "$pr_json")" = "$EXPECTED_PR_HEAD" \
+            || fail 'Post-migration PR 21 head mismatch'
+          rm -f "$pr_json"
+          echo 'PASS: exactly one Phase 2C-1 migration applied with unchanged application data and healthy Production'
