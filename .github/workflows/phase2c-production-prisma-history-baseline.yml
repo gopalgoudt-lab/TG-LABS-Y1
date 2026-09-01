@@ -52,7 +52,7 @@ jobs:
       PRODUCTION_DATABASE: neondb
       RECOVERY_CHECKPOINT_ID: br-mute-sky-axe5a0c0
       PHASE2C1_MIGRATION: 20260829153000_phase2c1_catalog_eligibility_foundation
-      PRODUCTION_HEALTH_URL: https://www.tglabs.in/api/health
+      PRODUCTION_HEALTH_URL: https://tg-labs-y1-git-main-gopalgoudt-7623s-projects.vercel.app/api/health
 
     steps:
       - name: Check out dispatch commit for workflow-only guards
