@@ -290,14 +290,29 @@ jobs:
             exit 0
           fi
 
-          test "$OPERATION" = "BASELINE_20_HISTORICAL_MIGRATIONS_ONLY"
-          test "$TYPED_CONFIRMATION" = "BASELINE_20_HISTORICAL_MIGRATIONS_ONLY"
-          for value in "$APPROVED_SCHEMA_SHA256" "$APPROVED_CORE_COUNTS_SHA256" "$APPROVED_APPLICATION_DATA_SHA256"; do
-            [[ "$value" =~ ^[0-9a-f]{64}$ ]]
+          test "$OPERATION" = "BASELINE_20_HISTORICAL_MIGRATIONS_ONLY" \
+            || fail 'Baseline operation authorization mismatch'
+
+          test "$TYPED_CONFIRMATION" = "BASELINE_20_HISTORICAL_MIGRATIONS_ONLY" \
+            || fail 'Baseline typed confirmation mismatch'
+
+          for value in \
+            "$APPROVED_SCHEMA_SHA256" \
+            "$APPROVED_CORE_COUNTS_SHA256" \
+            "$APPROVED_APPLICATION_DATA_SHA256"
+          do
+            [[ "$value" =~ ^[0-9a-f]{64}$ ]] \
+              || fail 'Approved fingerprint format mismatch'
           done
-          test "$PRE_SCHEMA_SHA" = "$APPROVED_SCHEMA_SHA256"
-          test "$PRE_COUNTS_SHA" = "$APPROVED_CORE_COUNTS_SHA256"
-          test "$PRE_APP_DATA_SHA" = "$APPROVED_APPLICATION_DATA_SHA256"
+
+          test "$PRE_SCHEMA_SHA" = "$APPROVED_SCHEMA_SHA256" \
+            || fail 'Approved schema fingerprint mismatch'
+
+          test "$PRE_COUNTS_SHA" = "$APPROVED_CORE_COUNTS_SHA256" \
+            || fail 'Approved core-count fingerprint mismatch'
+
+          test "$PRE_APP_DATA_SHA" = "$APPROVED_APPLICATION_DATA_SHA256" \
+            || fail 'Approved application-data fingerprint mismatch'
 
           migrations=(
             20260815130000_init
