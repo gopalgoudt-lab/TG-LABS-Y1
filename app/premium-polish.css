@@ -1177,3 +1177,6 @@ button.choice:disabled {
   color: #315d54;
   overflow-wrap: anywhere;
 }
+
+/* Provisional, display-only cross-lab comparison */
+.provisionalComparisonPage{max-width:1080px}.provisionalComparisonHeading{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:20px}.provisionalComparisonHeading p{max-width:420px;color:#57706b}.provisionalComparisonList{display:grid;gap:18px}.provisionalComparisonCard{border:1px solid #d9e9e5;border-radius:20px;padding:24px;background:#fff;box-shadow:0 8px 28px #12443a0d}.provisionalComparisonCard h3{margin:12px 0 4px;font-size:clamp(1.35rem,3vw,2rem)}.provisionalComparisonCard header small{color:#6a7875}.provisionalOfferGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:20px}.provisionalLabOffer{display:grid;gap:10px;min-width:0;padding:18px;border-radius:14px;background:#f4faf8}.provisionalLabOffer .offerPrice{margin:0}.provisionalLabOffer>span{min-height:2.6em;overflow-wrap:anywhere;color:#315d54}.pendingMetadata{color:#8a5b00!important}@media(max-width:640px){.provisionalComparisonHeading,.provisionalOfferGrid{display:grid;grid-template-columns:1fr}.provisionalComparisonCard{padding:18px}}
