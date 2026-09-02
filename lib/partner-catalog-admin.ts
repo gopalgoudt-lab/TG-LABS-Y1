@@ -7,6 +7,13 @@ export const PARTNER_ACTIVATION_FIELDS = [
   'homeCollectionEnabled',
 ] as const;
 
+export const PARTNER_CREATE_SAFETY_DEFAULTS = {
+  active: false,
+  bookingEnabled: false,
+  operationalEnabled: false,
+  displayEnabled: false,
+} as const;
+
 const blocked = new Set<string>(PARTNER_ACTIVATION_FIELDS);
 
 export function findBlockedPartnerMutationFields(input: unknown): string[] {
