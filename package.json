@@ -13,6 +13,7 @@
     "test:phase2b": "node --import tsx --test tests/phase2b-integrity.test.ts",
     "test:phase2c1": "node --import tsx --test tests/phase2c1-catalog-eligibility.test.ts",
     "test:phase2c2": "node --import tsx --test tests/phase2c2-catalog-discovery.test.ts tests/phase2c2-booking-revalidation.test.ts",
+    "test:phase2c3": "node --import tsx --test tests/phase2c3-provisional-comparison.test.ts",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
