@@ -21,6 +21,16 @@ function normalizeText(value: string | null | undefined) {
   return value === undefined ? undefined : value?.trim() || null;
 }
 
+function isAdminAuthFailure(error: unknown) {
+  const message = error instanceof Error ? error.message : '';
+  return message === 'UNAUTHENTICATED' || message.startsWith('ADMIN_');
+}
+
+function adminAuthResponse(error: unknown) {
+  const auth = adminAuthError(error);
+  return NextResponse.json({ error: auth.error }, { status: auth.status });
+}
+
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     await adminFromRequest(request);
@@ -38,8 +48,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     if (!partner) return NextResponse.json({ error: 'Partner not found.' }, { status: 404 });
     return NextResponse.json({ partner });
   } catch (error) {
-    const auth = adminAuthError(error);
-    if (auth.status !== 401 || (error instanceof Error && error.message.includes('ADMIN'))) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    if (isAdminAuthFailure(error)) return adminAuthResponse(error);
     console.error('GET partner metadata failed', error);
     return NextResponse.json({ error: 'Unable to load partner metadata.' }, { status: 500 });
   }
@@ -82,8 +91,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     return NextResponse.json({ partner });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Only approved partner metadata fields may be changed.', fields: error.flatten().fieldErrors }, { status: 400 });
-    const auth = adminAuthError(error);
-    if (auth.status !== 401 || (error instanceof Error && error.message.includes('ADMIN'))) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    if (isAdminAuthFailure(error)) return adminAuthResponse(error);
     console.error('PATCH partner metadata failed', error);
     return NextResponse.json({ error: 'Unable to update partner metadata.' }, { status: 500 });
   }
