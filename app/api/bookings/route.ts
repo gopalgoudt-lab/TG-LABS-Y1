@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
 import { assertBookingOwner, validateAndPriceBooking } from '@/lib/booking-integrity';
+import { evaluatePackageOfferEligibility, evaluateTestOfferEligibility } from '@/lib/catalog-eligibility';
+import { evaluateHomeCollectionServiceability } from '@/lib/serviceability';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,8 +52,9 @@ const bookingSchema = z.object({
   testNames: z.array(z.string().trim().min(1)).max(20).optional(),
   testSelections: z.array(z.object({ testId: z.string().min(1), offerId: z.string().min(1) })).max(20).optional(),
   packageIds: z.array(z.string().min(1)).max(10).optional(),
+  packageSelections: z.array(z.object({ packageId: z.string().min(1), offerId: z.string().min(1) })).max(10).optional(),
 }).refine(
-  (v) => Boolean(v.testSelections?.length || v.testIds?.length || v.testNames?.length || v.packageIds?.length),
+  (v) => Boolean(v.testSelections?.length || v.testIds?.length || v.testNames?.length || v.packageSelections?.length),
   { message: 'At least one diagnostic test or package is required.', path: ['testIds'] },
 ).refine(
   (v) => v.mode !== 'home' || Boolean(v.address && v.pincode),
@@ -125,58 +128,67 @@ export async function POST(request: Request) {
     }
 
     const requestedSelections = body.testSelections ?? [];
+    const requestedPackages = body.packageSelections ?? [];
     if (new Set(requestedSelections.map((selection) => selection.testId)).size !== requestedSelections.length) {
       return NextResponse.json({ error: 'Each diagnostic test must have exactly one selected partner offer.' }, { status: 400 });
     }
+    if (body.packageIds?.length && !requestedPackages.length) return NextResponse.json({ error: 'Please select an available partner offer for every package.' }, { status: 400 });
+    if (new Set(requestedPackages.map((selection) => selection.packageId)).size !== requestedPackages.length) return NextResponse.json({ error: 'Each package must have exactly one selected partner offer.' }, { status: 400 });
 
     const [directOffers, packages] = await Promise.all([
       requestedSelections.length
         ? prisma.testPartnerOffer.findMany({
             where: {
               id: { in: requestedSelections.map((selection) => selection.offerId) },
-              active: true,
-              availability: 'AVAILABLE',
               test: { active: true },
-              partner: { active: true },
             },
             select: {
               id: true,
               testId: true,
               price: true,
               tat: true,
-              partner: { select: { id: true, name: true } },
+              availability:true,active:true,sourceReference:true,lastVerifiedAt:true,effectiveFrom:true,effectiveTo:true,
+              test:{select:{active:true}},
+              partner: { select: { id: true, name: true, active:true,bookingEnabled:true,operationalEnabled:true,displayEnabled:true } },
             },
           })
         : Promise.resolve([]),
-      body.packageIds?.length
-        ? prisma.diagnosticPackage.findMany({
-            where: { active: true, id: { in: body.packageIds } },
+      requestedPackages.length
+        ? prisma.packagePartnerOffer.findMany({
+            where: { id: { in: requestedPackages.map((x) => x.offerId) } },
             select: {
-              id: true,
-              name: true,
-              price: true,
-              tests: { select: { test: { select: { id: true, name: true, price: true } } } },
+              id:true,packageId:true,price:true,tat:true,availability:true,active:true,sourceReference:true,lastVerifiedAt:true,effectiveFrom:true,effectiveTo:true,
+              partner:{select:{id:true,name:true,active:true,bookingEnabled:true,operationalEnabled:true,displayEnabled:true}},
+              package:{select:{id:true,name:true,packageType:true,active:true,tests:{select:{test:{select:{id:true,name:true,price:true,active:true}}}}}},
             },
           })
         : Promise.resolve([]),
     ]);
 
-    if (directOffers.length !== requestedSelections.length) {
+    if (directOffers.length !== requestedSelections.length || directOffers.some((offer:any)=>!evaluateTestOfferEligibility(offer.test,offer,offer.partner).bookable)) {
       return NextResponse.json({ error: 'One or more selected partner offers are unavailable.' }, { status: 400 });
     }
     const requestedOfferByTest = new Map(requestedSelections.map((selection) => [selection.testId, selection.offerId]));
     if (directOffers.some((offer) => requestedOfferByTest.get(offer.testId) !== offer.id)) {
       return NextResponse.json({ error: 'A selected partner offer does not match its diagnostic test.' }, { status: 400 });
     }
-    if (packages.length !== (body.packageIds?.length ?? 0)) {
+    if (packages.length !== requestedPackages.length || packages.some((offer:any)=>!evaluatePackageOfferEligibility(offer.package,offer,offer.partner).bookable)) {
       return NextResponse.json({ error: 'One or more selected packages are unavailable.' }, { status: 400 });
     }
+    const requestedPackageOffer=new Map(requestedPackages.map((x)=>[x.packageId,x.offerId]));
+    if(packages.some((offer:any)=>requestedPackageOffer.get(offer.packageId)!==offer.id)) return NextResponse.json({error:'A selected package offer does not match its package.'},{status:400});
+    if(body.mode==='home'){
+      const partnerIds=Array.from(new Set([...directOffers.map((x:any)=>x.partner.id),...packages.map((x:any)=>x.partner.id)]));
+      const serviceability=await prisma.partnerServiceability.findMany({where:{partnerId:{in:partnerIds},pincode:body.pincode},select:{partnerId:true,pincode:true,active:true,homeCollectionEnabled:true}});
+      if(partnerIds.some((id)=>!evaluateHomeCollectionServiceability(body.pincode!,serviceability.find((x)=>x.partnerId===id)).serviceable)) return NextResponse.json({error:'Home collection is unavailable for one or more selected partners.'},{status:400});
+    }
 
-    const pricing = validateAndPriceBooking(requestedSelections, directOffers, packages, body.printedReport ? PRINTED_REPORT_FEE : 0);
+    const pricedPackages=packages.map((x:any)=>({...x.package,price:x.price,offer:x}));
+    const pricing = validateAndPriceBooking(requestedSelections, directOffers, pricedPackages, body.printedReport ? PRINTED_REPORT_FEE : 0);
     const packageTestIds = pricing.packageTestIds;
     const uniqueTests = new Map<string, { id: string; price: number; offerId?: string; partnerId?: string; partnerName?: string; partnerTat?: string | null; partnerAvailability?: 'AVAILABLE' }>();
 
-    for (const pkg of packages) {
+    for (const pkg of pricedPackages) {
       for (const item of pkg.tests) {
         uniqueTests.set(item.test.id, { id: item.test.id, price: 0 });
       }
@@ -242,7 +254,7 @@ export async function POST(request: Request) {
             })),
           },
           packages: {
-            create: packages.map((pkg) => ({ packageId: pkg.id, price: pkg.price })),
+            create: pricedPackages.map((pkg:any) => ({ packageId: pkg.id, offerId:pkg.offer.id,partnerId:pkg.offer.partner.id,partnerName:pkg.offer.partner.name,partnerTat:pkg.offer.tat,partnerAvailability:pkg.offer.availability,price: pkg.price })),
           },
         },
       });

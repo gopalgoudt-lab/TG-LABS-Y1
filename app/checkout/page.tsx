@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import BrandLogo from '@/components/BrandLogo';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getFirebaseAuth } from '@/lib/firebase';
+import { readCatalogCart } from '@/lib/catalog-cart';
 
-type CartItem = { kind: 'test' | 'package'; id: string; name: string; price: number; offerId?: string; partnerId?: string; partnerName?: string; tat?: string | null };
+type CartItem = { kind: 'test' | 'package'; id: string; name: string; price: number; offerId: string; partnerId: string; partnerName: string; tat?: string | null; pincode?: string };
 type CatalogPackage = { id: string; tests?: { id: string }[] };
 type PaymentOption = 'ONLINE' | 'QR' | 'COLLECTION';
 type CollectionPaymentMethod = 'CASH' | 'UPI';
@@ -53,10 +54,8 @@ export default function CheckoutPage() {
     const stored = localStorage.getItem('tglabs-cart');
     if (stored) {
       try {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setCart(parsed.filter((x: any) => x && typeof x === 'object' && x.id && x.name && (x.kind === 'package' || (x.kind === 'test' && x.offerId && x.partnerId && x.partnerName))));
-        }
+        const safe=readCatalogCart(stored);
+        setCart(safe.map((x)=>({kind:x.productType==='TEST'?'test':'package',id:x.productIdentifier,name:x.productIdentifier,price:x.displayedPrice,offerId:x.offerIdentifier,partnerId:x.partnerIdentifier,partnerName:x.partnerIdentifier,pincode:x.pincode})));
       } catch {
         setCart([]);
       }
@@ -166,7 +165,7 @@ export default function CheckoutPage() {
 
     try {
       const testSelections = cart.filter((item) => item.kind === 'test').map((item) => ({ testId: item.id, offerId: item.offerId! }));
-      const packageIds = cart.filter((item) => item.kind === 'package').map((item) => item.id);
+      const packageSelections = cart.filter((item) => item.kind === 'package').map((item) => ({packageId:item.id,offerId:item.offerId}));
       const response = await fetch('/api/bookings', {
         method: 'POST',
         headers: await authenticatedHeaders(),
@@ -187,7 +186,7 @@ export default function CheckoutPage() {
           date: form.date,
           slot: form.slot,
           testSelections,
-          packageIds,
+          packageSelections,
         }),
       });
       const data = await response.json();
