@@ -81,5 +81,11 @@ export function evaluateCatalogOfferEligibility(
   return reasons.length ? { bookable: false, reasons } : { bookable: true, reasons: [] };
 }
 
+export function isCatalogOfferDisplayable(product: CatalogProductEligibilityInput, offer: CatalogOfferEligibilityInput, partner: CatalogPartnerEligibilityInput, now = new Date()) {
+  if (!partner.displayEnabled) return false;
+  const result = evaluateCatalogOfferEligibility(product, offer, { ...partner, bookingEnabled: true, operationalEnabled: true }, now);
+  return result.bookable;
+}
+
 export const evaluateTestOfferEligibility = evaluateCatalogOfferEligibility;
 export const evaluatePackageOfferEligibility = evaluateCatalogOfferEligibility;
