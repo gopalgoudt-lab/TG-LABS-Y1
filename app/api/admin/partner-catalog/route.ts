@@ -10,6 +10,11 @@ const querySchema = z.object({
   q: z.string().trim().max(100).optional(),
 });
 
+function isAdminAuthFailure(error: unknown) {
+  const message = error instanceof Error ? error.message : '';
+  return message === 'UNAUTHENTICATED' || message.startsWith('ADMIN_');
+}
+
 export async function GET(request: Request) {
   try {
     await adminFromRequest(request);
@@ -28,8 +33,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ partners });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Invalid partner catalog query.' }, { status: 400 });
-    const auth = adminAuthError(error);
-    if (auth.status !== 401 || (error instanceof Error && error.message.includes('ADMIN'))) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    if (isAdminAuthFailure(error)) {
+      const auth = adminAuthError(error);
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
     console.error('GET partner catalog failed', error);
     return NextResponse.json({ error: 'Unable to load partner catalog.' }, { status: 500 });
   }
