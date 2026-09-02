@@ -1161,3 +1161,19 @@ button.choice:disabled {
     color: var(--ink);
   }
 }
+
+/* Catalog offer sample requirement */
+.offerSample {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0 18px;
+}
+
+.offerSample strong {
+  font-size: 0.78rem;
+}
+
+.offerSample span {
+  color: #315d54;
+  overflow-wrap: anywhere;
+}
