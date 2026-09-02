@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { findBlockedPartnerMutationFields, partnerActivationMutationMessage } from '../lib/partner-catalog-admin';
+import { findBlockedPartnerMutationFields, PARTNER_CREATE_SAFETY_DEFAULTS, partnerActivationMutationMessage } from '../lib/partner-catalog-admin';
 
 test('partner metadata payloads do not trigger activation guard',()=>{
  assert.deepEqual(findBlockedPartnerMutationFields({name:'Sagepath Labs',accreditationDisplay:'NABL details pending verification',orderHandoffMethod:'Manual handoff metadata'}),[]);
@@ -15,4 +15,8 @@ test('guard returns an explicit safety message',()=>{
  assert.match(message,/does not permit activation or serviceability changes/);
  assert.match(message,/bookingEnabled/);
  assert.match(message,/serviceability/);
+});
+
+test('new partner records are forced to disabled activation defaults',()=>{
+ assert.deepEqual(PARTNER_CREATE_SAFETY_DEFAULTS,{active:false,bookingEnabled:false,operationalEnabled:false,displayEnabled:false});
 });
