@@ -15,7 +15,7 @@ export default function OperationsPage(){
  const[bookings,setBookings]=useState<Booking[]>([]),[technicians,setTechnicians]=useState<Technician[]>([]),[busy,setBusy]=useState(''),[msg,setMsg]=useState(''),[filter,setFilter]=useState('ACTIVE');
  async function load(){const r=await fetch('/api/admin/operations',{cache:'no-store'});const j=await r.json();if(r.ok){setBookings(j.bookings||[]);setTechnicians(j.technicians||[])}else setMsg(j.error||'Unable to load operations')}
  useEffect(()=>{load()},[]);
- async function patch(bookingId:string,payload:any){setBusy(bookingId);setMsg('');const r=await fetch('/api/admin/operations',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({bookingId,...payload})});const j=await r.json();if(!r.ok)setMsg(j.error||'Unable to update booking');else{setMsg('Operations workflow updated.');await load()}setBusy('')}
+ async function patch(bookingId:string,payload:any){setBusy(bookingId);setMsg('');const isTechnicianChange=Object.prototype.hasOwnProperty.call(payload,'technicianId');const url=isTechnicianChange?`/api/admin/bookings/${bookingId}/technician`:'/api/admin/operations';const body=isTechnicianChange?payload:{bookingId,...payload};const r=await fetch(url,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)setMsg(j.error||'Unable to update booking');else{setMsg(isTechnicianChange?'Technician assignment updated.':'Operations workflow updated.');await load()}setBusy('')}
  async function uploadReport(bookingId:string,file:File){
    setMsg('');
    if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf')){setMsg('Please select a PDF diagnostic report.');return}
