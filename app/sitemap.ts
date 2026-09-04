@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = 'https://tglabs.in';
+  const base = 'https://www.tglabs.in';
   const routes: Array<{ route: string; changeFrequency: 'daily' | 'weekly' | 'monthly'; priority: number }> = [
     { route: '/', changeFrequency: 'daily', priority: 1 },
     { route: '/compare/labs', changeFrequency: 'weekly', priority: 0.8 },
