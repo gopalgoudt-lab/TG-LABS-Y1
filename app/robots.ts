@@ -15,7 +15,7 @@ export default function robots(): MetadataRoute.Robots {
         '/api',
       ],
     },
-    sitemap: 'https://tglabs.in/sitemap.xml',
-    host: 'https://tglabs.in',
+    sitemap: 'https://www.tglabs.in/sitemap.xml',
+    host: 'https://www.tglabs.in',
   };
 }

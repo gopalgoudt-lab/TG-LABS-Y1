@@ -17,6 +17,7 @@
     "test:phase2c4": "node --import tsx --test tests/phase2c4-partner-catalog-admin.test.ts",
     "test:phase2d1": "node --import tsx --test tests/phase2d1-operational-workflow.test.ts",
     "test:phase3a": "node --import tsx --test tests/phase3a-site-migration.test.ts",
+    "test:phase3c": "node --import tsx --test tests/phase3c-go-live-readiness.test.ts",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

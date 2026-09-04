@@ -4,7 +4,7 @@ import './premium-polish.css';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
-const siteUrl = 'https://tglabs.in';
+const siteUrl = 'https://www.tglabs.in';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
