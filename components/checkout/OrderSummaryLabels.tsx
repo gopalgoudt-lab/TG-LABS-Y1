@@ -1,63 +1,50 @@
 'use client';
 
 import { useEffect } from 'react';
-
-type CatalogProduct = { slug?: string; name?: string };
-type CatalogPage = { products?: CatalogProduct[]; nextCursor?: string | null };
+import { readCatalogCart } from '@/lib/catalog-cart';
 
 export default function OrderSummaryLabels() {
   useEffect(() => {
-    let observer: MutationObserver | null = null;
-    let cancelled = false;
+    const cart = readCatalogCart(localStorage.getItem('tglabs-cart'));
+    const names = new Map(
+      cart
+        .filter((item) => item.productName)
+        .map((item) => [item.productIdentifier, item.productName as string]),
+    );
 
-    async function hydrateLabels() {
-      try {
-        const names = new Map<string, string>();
-        let cursor: string | null = null;
-        let pageCount = 0;
+    const partnerNames = new Map(
+      cart
+        .filter((item) => item.partnerName)
+        .map((item) => [item.partnerIdentifier, item.partnerName as string]),
+    );
 
-        // The public catalog is paginated. The previous implementation only
-        // inspected the first page, so products such as CBC could remain as
-        // their internal slug in checkout even though the catalog had a name.
-        do {
-          const params = new URLSearchParams({ limit: '100' });
-          if (cursor) params.set('cursor', cursor);
-          const response = await fetch(`/api/catalog?${params.toString()}`, { cache: 'no-store' });
-          const data = (await response.json()) as CatalogPage;
-          if (!response.ok || cancelled) return;
+    const apply = () => {
+      document.querySelectorAll<HTMLElement>('.orderSummary .summaryRow > span').forEach((row) => {
+        const first = row.firstChild;
+        if (first && first.nodeType === Node.TEXT_NODE) {
+          const current = first.textContent?.trim() ?? '';
+          const friendly = names.get(current);
+          if (friendly && friendly !== current) first.textContent = friendly;
+        }
 
-          for (const product of Array.isArray(data.products) ? data.products : []) {
-            if (product.slug && product.name) names.set(product.slug, product.name);
+        const detail = row.querySelector('small');
+        if (detail) {
+          let text = detail.textContent ?? '';
+          for (const [slug, friendly] of partnerNames) {
+            if (text.includes(slug)) text = text.replace(slug, friendly);
           }
-
-          cursor = typeof data.nextCursor === 'string' && data.nextCursor ? data.nextCursor : null;
-          pageCount += 1;
-        } while (cursor && pageCount < 20 && !cancelled);
-
-        const apply = () => {
-          document.querySelectorAll<HTMLElement>('.orderSummary .summaryRow > span').forEach((row) => {
-            const first = row.firstChild;
-            if (!first || first.nodeType !== Node.TEXT_NODE) return;
-            const current = first.textContent?.trim() ?? '';
-            const friendly = names.get(current);
-            if (friendly && friendly !== current) first.textContent = friendly;
-          });
-        };
-
-        apply();
-        observer = new MutationObserver(apply);
-        const summary = document.querySelector('.orderSummary');
-        if (summary) observer.observe(summary, { childList: true, subtree: true });
-      } catch {
-        // Display enhancement only; checkout must remain usable if catalog lookup fails.
-      }
-    }
-
-    hydrateLabels();
-    return () => {
-      cancelled = true;
-      observer?.disconnect();
+          detail.textContent = text;
+        }
+      });
     };
+
+    apply();
+    const summary = document.querySelector('.orderSummary');
+    if (!summary) return;
+
+    const observer = new MutationObserver(apply);
+    observer.observe(summary, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, []);
 
   return null;
