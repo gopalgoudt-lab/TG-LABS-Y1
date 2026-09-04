@@ -13,6 +13,7 @@ const nextConfig = {
       { source: '/package-d', destination: '/', permanent: true },
       { source: '/reports', destination: '/patient', permanent: true },
       { source: '/download-report', destination: '/patient', permanent: true },
+      { source: '/contact.php', destination: '/contact-us', permanent: true },
     ];
   },
   async headers() {
