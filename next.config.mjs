@@ -1,5 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async redirects() {
+    return [
+      { source: '/appointment', destination: '/', permanent: true },
+      { source: '/book-appointment', destination: '/', permanent: true },
+      { source: '/tests', destination: '/', permanent: true },
+      { source: '/health-check-packages', destination: '/', permanent: true },
+      { source: '/health-check-packages/:path*', destination: '/', permanent: true },
+      { source: '/package-a', destination: '/', permanent: true },
+      { source: '/package-b', destination: '/', permanent: true },
+      { source: '/package-c', destination: '/', permanent: true },
+      { source: '/package-d', destination: '/', permanent: true },
+      { source: '/reports', destination: '/patient', permanent: true },
+      { source: '/download-report', destination: '/patient', permanent: true },
+    ];
+  },
   async headers() {
     return [
       {
