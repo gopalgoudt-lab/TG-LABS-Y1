@@ -9,7 +9,7 @@ test('legacy routes use permanent internal redirects', async () => {
   assert.ok(Array.isArray(redirects));
 
   const bySource = new Map(redirects.map((entry) => [entry.source, entry]));
-  for (const source of ['/appointment', '/tests', '/health-check-packages', '/reports']) {
+  for (const source of ['/appointment', '/tests', '/health-check-packages', '/reports', '/contact.php']) {
     const entry = bySource.get(source);
     assert.ok(entry, `missing redirect for ${source}`);
     assert.equal(entry.permanent, true);
@@ -18,6 +18,7 @@ test('legacy routes use permanent internal redirects', async () => {
   }
 
   assert.equal(bySource.get('/reports')?.destination, '/patient');
+  assert.equal(bySource.get('/contact.php')?.destination, '/contact-us');
 });
 
 test('sitemap contains migrated public routes and excludes private routes', () => {
