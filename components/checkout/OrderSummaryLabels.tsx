@@ -33,18 +33,33 @@ export default function OrderSummaryLabels() {
           for (const [slug, friendly] of partnerNames) {
             if (text.includes(slug)) text = text.replace(slug, friendly);
           }
-          detail.textContent = text;
+          if (detail.textContent !== text) detail.textContent = text;
         }
       });
     };
 
-    apply();
-    const summary = document.querySelector('.orderSummary');
-    if (!summary) return;
+    const scheduleApply = () => requestAnimationFrame(apply);
 
-    const observer = new MutationObserver(apply);
-    observer.observe(summary, { childList: true, subtree: true });
-    return () => observer.disconnect();
+    // Apply after initial hydration and a couple of bounded follow-up passes.
+    // Avoid MutationObserver here: checkout is controlled by React and an
+    // observer that mutates the same subtree can create a render/mutation loop.
+    scheduleApply();
+    const t1 = window.setTimeout(scheduleApply, 150);
+    const t2 = window.setTimeout(scheduleApply, 600);
+
+    // React rerenders checkout as the patient edits fields. Re-apply only in
+    // response to user interactions rather than continuously observing DOM.
+    document.addEventListener('input', scheduleApply, true);
+    document.addEventListener('change', scheduleApply, true);
+    document.addEventListener('click', scheduleApply, true);
+
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      document.removeEventListener('input', scheduleApply, true);
+      document.removeEventListener('change', scheduleApply, true);
+      document.removeEventListener('click', scheduleApply, true);
+    };
   }, []);
 
   return null;
