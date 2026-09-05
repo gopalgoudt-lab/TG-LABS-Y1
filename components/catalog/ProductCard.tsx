@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import type { PublicOffer } from './PartnerOfferCard';
 import ServiceabilityCheck from './ServiceabilityCheck';
 
@@ -17,6 +18,7 @@ export type PublicProduct = {
 export default function ProductCard({ product }: { product: PublicProduct }) {
   const offer = product.offers[0];
   const base = product.type === 'TEST' ? 'tests' : product.type === 'PROFILE' ? 'profiles' : 'packages';
+  const [added, setAdded] = useState(false);
 
   function addToCart(pincode: string) {
     if (!offer) return;
@@ -46,7 +48,8 @@ export default function ProductCard({ product }: { product: PublicProduct }) {
         item,
       ]),
     );
-    window.location.assign('/checkout');
+    setAdded(true);
+    window.dispatchEvent(new Event('tglabs-cart-updated'));
   }
 
   return (
@@ -67,6 +70,7 @@ export default function ProductCard({ product }: { product: PublicProduct }) {
             offer={offer}
             onSupported={addToCart}
           />
+          {added && <p className="cartAddedNotice">Added to cart. You can continue selecting more tests.</p>}
         </>
       )}
       <Link href={`/${base}/${product.slug}`}>View details and partners</Link>
