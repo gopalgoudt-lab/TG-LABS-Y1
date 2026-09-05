@@ -31,3 +31,15 @@ test('robots advertises the canonical www host and keeps private routes blocked'
     assert.ok(disallowed.includes(route), `${route} must remain disallowed`);
   }
 });
+
+test('AI health report next-test suggestions are conservative and report-grounded', () => {
+  const route = readFileSync(new URL('../app/api/patient/reports/[id]/ai/route.ts', import.meta.url), 'utf8');
+
+  assert.ok(route.includes('SUGGESTED NEXT TESTS TO DISCUSS WITH YOUR DOCTOR'));
+  assert.ok(route.includes('Suggested test | Finding that prompted it | Why it may be useful | Suggested discussion/timing'));
+  assert.ok(route.includes('clear clinical connection to a specific abnormal, borderline, or otherwise clinically relevant finding'));
+  assert.ok(route.includes('Do not suggest broad screening panels, unrelated tests, or tests merely because they are common'));
+  assert.ok(route.includes('Do not say the patient "needs", "must get", or "should definitely get"'));
+  assert.ok(route.includes('Suggest no more than 5 next tests'));
+  assert.ok(route.includes('no specific additional test is clearly suggested from the report alone'));
+});
