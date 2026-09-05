@@ -11,10 +11,10 @@ export function partnerOfferDto(value: Offer) {
   return { offerId: value.id, partner: { slug: value.partner.slug, name: value.partner.name, accreditation: verifiedAccreditation }, price: value.price, mrp: value.mrp && value.mrp >= value.price ? value.mrp : null, discountPercent: value.mrp && value.mrp > value.price ? Math.round(((value.mrp - value.price) / value.mrp) * 100) : 0, availability: value.availability, tat: value.tat ?? null };
 }
 
-type Product = { slug: string; name: string; description?: string | null; preparation?: string | null; fastingNeeded: boolean; fastingHours?: number | null; parameterCount?: number | null; sampleTypes: string[]; categories?: Array<{ category: { slug: string; name: string; description?: string | null } }>; partnerOffers?: Offer[]; tests?: Array<{ test: { slug: string; name: string; fastingNeeded?: boolean; sampleTypes?: string[] } }> };
+type Product = { id: string; slug: string; name: string; description?: string | null; preparation?: string | null; fastingNeeded: boolean; fastingHours?: number | null; parameterCount?: number | null; sampleTypes: string[]; categories?: Array<{ category: { slug: string; name: string; description?: string | null } }>; partnerOffers?: Offer[]; tests?: Array<{ test: { slug: string; name: string; fastingNeeded?: boolean; sampleTypes?: string[] } }> };
 
 function baseProduct(value: Product, type: 'TEST' | 'PROFILE' | 'PACKAGE') {
-  return { type, slug: value.slug, name: value.name, description: value.description ?? null, fastingNeeded: value.fastingNeeded, fastingHours: value.fastingHours ?? null, parameterCount: value.parameterCount ?? null, sampleTypes: value.sampleTypes, categories: (value.categories ?? []).map((x) => categoryDto(x.category)), offers: (value.partnerOffers ?? []).map(partnerOfferDto) };
+  return { id: value.id, type, slug: value.slug, name: value.name, description: value.description ?? null, fastingNeeded: value.fastingNeeded, fastingHours: value.fastingHours ?? null, parameterCount: value.parameterCount ?? null, sampleTypes: value.sampleTypes, categories: (value.categories ?? []).map((x) => categoryDto(x.category)), offers: (value.partnerOffers ?? []).map(partnerOfferDto) };
 }
 export const testSummaryDto = (v: Product) => baseProduct(v, 'TEST');
 export const testDetailsDto = (v: Product) => ({ ...baseProduct(v, 'TEST'), preparation: v.preparation ?? null });
