@@ -31,6 +31,7 @@ export default function CatalogDetail({ product }: { product: Product }) {
       partnerIdentifier: offer.partner.slug,
       partnerName: offer.partner.name,
       tat: offer.tat ?? null,
+      mrp: offer.mrp ?? null,
       displayedPrice: offer.price,
       pincode,
     };
