@@ -3,6 +3,7 @@ import { useState } from 'react';
 import PartnerOfferCard, { type PublicOffer } from './PartnerOfferCard';
 
 type Product = {
+  id: string;
   type: string;
   slug: string;
   name: string;
@@ -25,7 +26,7 @@ export default function CatalogDetail({ product }: { product: Product }) {
     } catch {}
     const item = {
       productType: product.type,
-      productIdentifier: product.slug,
+      productIdentifier: product.id,
       productName: product.name,
       offerIdentifier: offer.offerId,
       partnerIdentifier: offer.partner.slug,
@@ -38,7 +39,7 @@ export default function CatalogDetail({ product }: { product: Product }) {
     localStorage.setItem(
       key,
       JSON.stringify([
-        ...cart.filter((x: any) => x?.productIdentifier !== product.slug),
+        ...cart.filter((x: any) => x?.productIdentifier !== product.id),
         item,
       ]),
     );
