@@ -38,6 +38,7 @@ export default function ProductCard({ product, pincode }: { product: PublicProdu
       partnerIdentifier: offer.partner.slug,
       partnerName: offer.partner.name,
       tat: offer.tat ?? null,
+      mrp: offer.mrp ?? null,
       displayedPrice: offer.price,
       pincode: pin,
     };
