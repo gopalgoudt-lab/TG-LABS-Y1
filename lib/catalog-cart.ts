@@ -8,6 +8,7 @@ export const cartItemSchema = z.object({
   partnerIdentifier: z.string().min(1).max(160),
   partnerName: z.string().min(1).max(160).optional(),
   tat: z.string().min(1).max(160).nullable().optional(),
+  mrp: z.number().int().positive().nullable().optional(),
   displayedPrice: z.number().int().positive(),
   pincode: z.string().regex(/^[1-9][0-9]{5}$/).optional(),
 }).strict();
