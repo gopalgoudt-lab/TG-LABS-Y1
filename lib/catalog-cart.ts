@@ -3,8 +3,11 @@ import { z } from 'zod';
 export const cartItemSchema = z.object({
   productType: z.enum(['TEST', 'PROFILE', 'PACKAGE']),
   productIdentifier: z.string().min(1).max(160),
+  productName: z.string().min(1).max(240).optional(),
   offerIdentifier: z.string().min(1).max(160),
   partnerIdentifier: z.string().min(1).max(160),
+  partnerName: z.string().min(1).max(160).optional(),
+  tat: z.string().min(1).max(160).nullable().optional(),
   displayedPrice: z.number().int().positive(),
   pincode: z.string().regex(/^[1-9][0-9]{5}$/).optional(),
 }).strict();

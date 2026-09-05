@@ -23,8 +23,11 @@ export default function CatalogDetail({ product }: { product: Product }) {
     const item = {
       productType: product.type,
       productIdentifier: product.slug,
+      productName: product.name,
       offerIdentifier: offer.offerId,
       partnerIdentifier: offer.partner.slug,
+      partnerName: offer.partner.name,
+      tat: offer.tat ?? null,
       displayedPrice: offer.price,
       pincode,
     };
