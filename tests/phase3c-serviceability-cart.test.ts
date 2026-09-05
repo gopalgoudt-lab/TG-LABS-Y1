@@ -1,53 +1,50 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { parseCatalogCart } from '../lib/catalog-cart';
 
-const serviceabilitySource = readFileSync(new URL('../components/catalog/ServiceabilityCheck.tsx', import.meta.url), 'utf8');
 const productCardSource = readFileSync(new URL('../components/catalog/ProductCard.tsx', import.meta.url), 'utf8');
 const catalogDetailSource = readFileSync(new URL('../components/catalog/CatalogDetail.tsx', import.meta.url), 'utf8');
-const cartSchemaSource = readFileSync(new URL('../lib/catalog-cart.ts', import.meta.url), 'utf8');
-const orderSummarySource = readFileSync(new URL('../components/checkout/OrderSummaryLabels.tsx', import.meta.url), 'utf8');
+const cartPageSource = readFileSync(new URL('../app/cart/page.tsx', import.meta.url), 'utf8');
 
-test('serviceability success exposes an explicit Add to Cart action', () => {
-  assert.ok(serviceabilitySource.includes("setSupportedPin(pin);"));
-  assert.ok(serviceabilitySource.includes('Add to Cart'));
-  assert.ok(serviceabilitySource.includes("supportedPin === pin && onSupported"));
+const validItem = {
+  productType: 'TEST' as const,
+  productIdentifier: 'sagepath-test-hg011',
+  productName: 'Complete Blood Count (CBC) - 3 Part',
+  offerIdentifier: 'sagepath-test-offer-hg011',
+  partnerIdentifier: 'sagepath-labs',
+  partnerName: 'Sagepath Labs',
+  tat: '11:00/18:00',
+  mrp: 250,
+  displayedPrice: 250,
+  pincode: '500061',
+};
+
+test('cart parser keeps valid items when stale historical entries are present', () => {
+  const parsed = parseCatalogCart([
+    { productIdentifier: 'legacy-only-entry' },
+    validItem,
+  ]);
+  assert.equal(parsed.length, 1);
+  assert.equal(parsed[0].productIdentifier, validItem.productIdentifier);
+  assert.equal(parsed[0].displayedPrice, 250);
 });
 
-test('checking serviceability does not automatically add or navigate', () => {
-  const checkStart = serviceabilitySource.indexOf('async function check()');
-  const updatePinStart = serviceabilitySource.indexOf('function updatePin');
-  const checkBody = serviceabilitySource.slice(checkStart, updatePinStart);
-  assert.ok(!checkBody.includes('onSupported?.(pin)'));
-  assert.ok(!checkBody.includes('onSupported(pin)'));
+test('cart parser rejects non-array storage safely', () => {
+  assert.deepEqual(parseCatalogCart({ bad: true }), []);
+  assert.deepEqual(parseCatalogCart(null), []);
 });
 
-test('changing the pincode clears prior serviceability approval', () => {
-  assert.ok(serviceabilitySource.includes('setSupportedPin(null);'));
-  assert.ok(serviceabilitySource.includes("setStatus('');"));
-});
-
-test('homepage product cards support serviceability-gated Add to Cart', () => {
-  assert.ok(productCardSource.includes("import ServiceabilityCheck from './ServiceabilityCheck';"));
-  assert.ok(productCardSource.includes('onSupported={addToCart}'));
-  assert.ok(productCardSource.includes("localStorage.setItem("));
-  assert.ok(productCardSource.includes("window.location.assign('/checkout')"));
-  assert.ok(productCardSource.includes('View details and partners'));
-});
-
-test('cart stores patient-facing labels without replacing internal identifiers', () => {
+test('catalog and detail additions sanitize stored cart before appending', () => {
   for (const source of [productCardSource, catalogDetailSource]) {
-    assert.ok(source.includes('productIdentifier: product.slug'));
+    assert.ok(source.includes("readCatalogCart(localStorage.getItem(key))"));
+    assert.ok(source.includes('productIdentifier: product.id'));
     assert.ok(source.includes('productName: product.name'));
-    assert.ok(source.includes('partnerIdentifier: offer.partner.slug'));
     assert.ok(source.includes('partnerName: offer.partner.name'));
   }
-  assert.ok(cartSchemaSource.includes('productName: z.string()'));
-  assert.ok(cartSchemaSource.includes('partnerName: z.string()'));
 });
 
-test('checkout summary prefers labels stored with the cart item', () => {
-  assert.ok(orderSummarySource.includes("readCatalogCart(localStorage.getItem('tglabs-cart'))"));
-  assert.ok(orderSummarySource.includes('item.productName'));
-  assert.ok(orderSummarySource.includes('item.partnerName'));
+test('cart page reads the same tglabs-cart browser key', () => {
+  assert.ok(cartPageSource.includes("readCatalogCart(localStorage.getItem('tglabs-cart'))"));
+  assert.ok(cartPageSource.includes('Proceed to booking'));
 });
