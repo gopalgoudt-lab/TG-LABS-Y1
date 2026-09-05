@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import type { PublicOffer } from './PartnerOfferCard';
-import ServiceabilityCheck from './ServiceabilityCheck';
 
 export type PublicProduct = {
   type: 'TEST' | 'PROFILE' | 'PACKAGE';
@@ -15,12 +14,14 @@ export type PublicProduct = {
   offers: PublicOffer[];
 };
 
-export default function ProductCard({ product }: { product: PublicProduct }) {
+export default function ProductCard({ product, pincode }: { product: PublicProduct; pincode: string }) {
   const offer = product.offers[0];
   const base = product.type === 'TEST' ? 'tests' : product.type === 'PROFILE' ? 'profiles' : 'packages';
   const [added, setAdded] = useState(false);
+  const [status, setStatus] = useState('');
+  const [checking, setChecking] = useState(false);
 
-  function addToCart(pincode: string) {
+  function persistToCart(pin: string) {
     if (!offer) return;
     const key = 'tglabs-cart';
     let cart: unknown[] = [];
@@ -38,7 +39,7 @@ export default function ProductCard({ product }: { product: PublicProduct }) {
       partnerName: offer.partner.name,
       tat: offer.tat ?? null,
       displayedPrice: offer.price,
-      pincode,
+      pincode: pin,
     };
 
     localStorage.setItem(
@@ -49,7 +50,37 @@ export default function ProductCard({ product }: { product: PublicProduct }) {
       ]),
     );
     setAdded(true);
+    setStatus('Home collection is available. Added to cart.');
     window.dispatchEvent(new Event('tglabs-cart-updated'));
+  }
+
+  async function addToCart() {
+    setAdded(false);
+    if (!offer) return;
+    if (!/^[1-9][0-9]{5}$/.test(pincode)) {
+      setStatus('Enter your 6-digit pincode above first.');
+      return;
+    }
+
+    setChecking(true);
+    setStatus('Checking home collection…');
+    try {
+      const query = new URLSearchParams({
+        pincode,
+        partner: offer.partner.slug,
+        offer: offer.offerId,
+        type: product.type,
+        product: product.slug,
+      });
+      const response = await fetch(`/api/serviceability?${query}`);
+      const data = await response.json();
+      if (data.supported) persistToCart(pincode);
+      else setStatus('Home collection is not available for this selection.');
+    } catch {
+      setStatus('Unable to check serviceability right now.');
+    } finally {
+      setChecking(false);
+    }
   }
 
   return (
@@ -64,13 +95,10 @@ export default function ProductCard({ product }: { product: PublicProduct }) {
       {offer && (
         <>
           <p className="fromPrice">From <b>₹{offer.price}</b> • {offer.partner.name}</p>
-          <ServiceabilityCheck
-            type={product.type}
-            slug={product.slug}
-            offer={offer}
-            onSupported={addToCart}
-          />
-          {added && <p className="cartAddedNotice">Added to cart. You can continue selecting more tests.</p>}
+          <button type="button" className="btn primary" onClick={addToCart} disabled={checking}>
+            {checking ? 'Checking…' : added ? 'Added to Cart' : 'Add to Cart'}
+          </button>
+          {status && <p className="cartAddedNotice" role="status">{status}</p>}
         </>
       )}
       <Link href={`/${base}/${product.slug}`}>View details and partners</Link>
