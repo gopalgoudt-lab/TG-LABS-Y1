@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import PartnerOfferCard, { type PublicOffer } from './PartnerOfferCard';
 
 type Product = {
@@ -13,6 +14,8 @@ type Product = {
 };
 
 export default function CatalogDetail({ product }: { product: Product }) {
+  const [added, setAdded] = useState(false);
+
   function add(offer: PublicOffer, pincode: string) {
     const key = 'tglabs-cart';
     let cart: unknown[] = [];
@@ -38,7 +41,8 @@ export default function CatalogDetail({ product }: { product: Product }) {
         item,
       ]),
     );
-    window.location.assign('/checkout');
+    setAdded(true);
+    window.dispatchEvent(new Event('tglabs-cart-updated'));
   }
 
   return (
@@ -48,35 +52,19 @@ export default function CatalogDetail({ product }: { product: Product }) {
       <h1>{product.name}</h1>
       <p>{product.description}</p>
       {product.preparation && (
-        <section>
-          <h2>Preparation</h2>
-          <p>{product.preparation}</p>
-        </section>
+        <section><h2>Preparation</h2><p>{product.preparation}</p></section>
       )}
       {product.tests?.length ? (
-        <section>
-          <h2>Included tests</h2>
-          <ul>
-            {product.tests.map((test) => (
-              <li key={test.slug}>{test.name}</li>
-            ))}
-          </ul>
-        </section>
+        <section><h2>Included tests</h2><ul>{product.tests.map((test) => <li key={test.slug}>{test.name}</li>)}</ul></section>
       ) : null}
       <section>
         <h2>Compare eligible partner offers</h2>
         <div className="offerGrid">
           {product.offers.map((offer) => (
-            <PartnerOfferCard
-              key={offer.offerId}
-              offer={offer}
-              type={product.type}
-              slug={product.slug}
-              sampleTypes={product.sampleTypes}
-              onSelect={(pincode) => add(offer, pincode)}
-            />
+            <PartnerOfferCard key={offer.offerId} offer={offer} type={product.type} slug={product.slug} sampleTypes={product.sampleTypes} onSelect={(pincode) => add(offer, pincode)} />
           ))}
         </div>
+        {added && <p>Added to cart. Continue browsing or open Cart when you are ready to book.</p>}
       </section>
     </main>
   );
