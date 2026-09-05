@@ -12,12 +12,27 @@ export const cartItemSchema = z.object({
   displayedPrice: z.number().int().positive(),
   pincode: z.string().regex(/^[1-9][0-9]{5}$/).optional(),
 }).strict();
+
 export type CatalogCartItem = z.infer<typeof cartItemSchema>;
+
 export function parseCatalogCart(value: unknown): CatalogCartItem[] {
-  const parsed = z.array(cartItemSchema).max(30).safeParse(value);
-  return parsed.success ? parsed.data : [];
+  if (!Array.isArray(value)) return [];
+
+  // Cart data lives in browser storage across releases. A single stale or
+  // malformed historical entry must not make every newly added valid item
+  // disappear. Keep only valid items and cap the cart at 30 entries.
+  return value
+    .slice(-30)
+    .map((item) => cartItemSchema.safeParse(item))
+    .filter((result): result is { success: true; data: CatalogCartItem } => result.success)
+    .map((result) => result.data);
 }
+
 export function readCatalogCart(raw: string | null) {
   if (!raw) return [];
-  try { return parseCatalogCart(JSON.parse(raw)); } catch { return []; }
+  try {
+    return parseCatalogCart(JSON.parse(raw));
+  } catch {
+    return [];
+  }
 }

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { readCatalogCart } from '@/lib/catalog-cart';
 import type { PublicOffer } from './PartnerOfferCard';
 
 export type PublicProduct = {
@@ -25,11 +26,7 @@ export default function ProductCard({ product, pincode }: { product: PublicProdu
   function persistToCart(pin: string) {
     if (!offer) return;
     const key = 'tglabs-cart';
-    let cart: unknown[] = [];
-    try {
-      const value = JSON.parse(localStorage.getItem(key) ?? '[]');
-      if (Array.isArray(value)) cart = value;
-    } catch {}
+    const cart = readCatalogCart(localStorage.getItem(key));
 
     const item = {
       productType: product.type,
@@ -47,7 +44,7 @@ export default function ProductCard({ product, pincode }: { product: PublicProdu
     localStorage.setItem(
       key,
       JSON.stringify([
-        ...cart.filter((x: any) => x?.productIdentifier !== product.id),
+        ...cart.filter((x) => x.productIdentifier !== product.id),
         item,
       ]),
     );

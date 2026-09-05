@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { readCatalogCart } from '@/lib/catalog-cart';
 import PartnerOfferCard, { type PublicOffer } from './PartnerOfferCard';
 
 type Product = {
@@ -19,11 +20,7 @@ export default function CatalogDetail({ product }: { product: Product }) {
 
   function add(offer: PublicOffer, pincode: string) {
     const key = 'tglabs-cart';
-    let cart: unknown[] = [];
-    try {
-      const value = JSON.parse(localStorage.getItem(key) ?? '[]');
-      if (Array.isArray(value)) cart = value;
-    } catch {}
+    const cart = readCatalogCart(localStorage.getItem(key));
     const item = {
       productType: product.type,
       productIdentifier: product.id,
@@ -39,7 +36,7 @@ export default function CatalogDetail({ product }: { product: Product }) {
     localStorage.setItem(
       key,
       JSON.stringify([
-        ...cart.filter((x: any) => x?.productIdentifier !== product.id),
+        ...cart.filter((x) => x.productIdentifier !== product.id),
         item,
       ]),
     );
