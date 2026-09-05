@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { PublicOffer } from './PartnerOfferCard';
 
 export type PublicProduct = {
+  id: string;
   type: 'TEST' | 'PROFILE' | 'PACKAGE';
   slug: string;
   name: string;
@@ -32,7 +33,7 @@ export default function ProductCard({ product, pincode }: { product: PublicProdu
 
     const item = {
       productType: product.type,
-      productIdentifier: product.slug,
+      productIdentifier: product.id,
       productName: product.name,
       offerIdentifier: offer.offerId,
       partnerIdentifier: offer.partner.slug,
@@ -46,7 +47,7 @@ export default function ProductCard({ product, pincode }: { product: PublicProdu
     localStorage.setItem(
       key,
       JSON.stringify([
-        ...cart.filter((x: any) => x?.productIdentifier !== product.slug),
+        ...cart.filter((x: any) => x?.productIdentifier !== product.id),
         item,
       ]),
     );
