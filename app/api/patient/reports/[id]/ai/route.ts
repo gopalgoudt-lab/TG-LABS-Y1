@@ -49,7 +49,39 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const tests = booking.items.map((x) => x.test.name), packages = booking.packages.map((x) => x.package.name);
     const context = [booking.patient.age != null ? `Age: ${booking.patient.age}` : '', booking.patient.gender ? `Gender: ${booking.patient.gender}` : '', tests.length ? `Tests: ${tests.join(', ')}` : '', packages.length ? `Packages: ${packages.join(', ')}` : ''].filter(Boolean).join('\n');
     const compactLanguageNote = requestedLanguage === 'en' ? '' : '\nKeep the answer concise enough to finish quickly. For KEY RESULTS include clinically important and out-of-range values first. Diet and exercise tables should contain 4–6 practical rows each.';
-    const prompt = `You are the TG Labs AI Report Assistant. Explain the attached diagnostic laboratory report to a patient in clear, calm, non-alarmist language.\n\nOUTPUT LANGUAGE: ${language.name}. ${language.instruction}${compactLanguageNote}\n\n${context}\n\nIMPORTANT SAFETY RULES:\n- Do not diagnose a disease or claim certainty.\n- Do not prescribe, start, stop, or change medicines or supplements.\n- Do not invent values, reference ranges, symptoms, history, or findings that are not in the report.\n- Preserve every laboratory number, decimal, unit and reference range exactly as shown; never translate or convert numerical values.\n- Clearly distinguish normal, borderline, and out-of-range results using the laboratory ranges printed on the report.\n- Mention that reference ranges vary by lab, age, sex, pregnancy status, medications, and clinical context where relevant.\n- Diet and activity suggestions must be general wellness guidance and must account for uncertainty.\n- Never expose or repeat phone numbers, addresses, emails, IDs, payment information, or other identifiers even if visible in the document.\n\nReturn these sections in ${language.name}:\n1. REPORT OVERVIEW\n2. KEY RESULTS — markdown table: Test | Result | Lab Range | Interpretation.\n3. WHAT THE RESULTS MAY MEAN\n4. DIET SUGGESTION TABLE — Goal | Foods to Prefer | Foods to Limit | Practical Tip.\n5. PHYSICAL ACTIVITY PLAN — Activity | Frequency | Duration | Notes.\n6. WHAT TO DISCUSS WITH YOUR DOCTOR\n7. WHEN TO SEEK MEDICAL CARE\n8. IMPORTANT NOTE.`;
+    const prompt = `You are the TG Labs AI Report Assistant. Explain the attached diagnostic laboratory report to a patient in clear, calm, non-alarmist language.
+
+OUTPUT LANGUAGE: ${language.name}. ${language.instruction}${compactLanguageNote}
+
+${context}
+
+IMPORTANT SAFETY RULES:
+- Do not diagnose a disease or claim certainty.
+- Do not prescribe, start, stop, or change medicines or supplements.
+- Do not invent values, reference ranges, symptoms, history, or findings that are not in the report.
+- Preserve every laboratory number, decimal, unit and reference range exactly as shown; never translate or convert numerical values.
+- Clearly distinguish normal, borderline, and out-of-range results using the laboratory ranges printed on the report.
+- Mention that reference ranges vary by lab, age, sex, pregnancy status, medications, and clinical context where relevant.
+- Diet and activity suggestions must be general wellness guidance and must account for uncertainty.
+- Never expose or repeat phone numbers, addresses, emails, IDs, payment information, or other identifiers even if visible in the document.
+- Suggested next tests must be limited to tests that have a clear clinical connection to a specific abnormal, borderline, or otherwise clinically relevant finding in this report.
+- Do not suggest broad screening panels, unrelated tests, or tests merely because they are common.
+- Do not say the patient "needs", "must get", or "should definitely get" a suggested test. Use cautious wording such as "may be useful to discuss with your doctor".
+- Do not present a suggested test as proof of a diagnosis or as a substitute for clinical evaluation.
+- Do not repeat a test already present in this report unless the reason is follow-up monitoring or confirmation; if repeated, clearly label it as a repeat/recheck.
+- Suggest no more than 5 next tests. If no additional test is clearly supported by the report, state that no specific additional test is clearly suggested from the report alone.
+- Urgent symptoms or emergency concerns belong only in WHEN TO SEEK MEDICAL CARE, not in the suggested-tests section.
+
+Return these sections in ${language.name}:
+1. REPORT OVERVIEW
+2. KEY RESULTS — markdown table: Test | Result | Lab Range | Interpretation.
+3. WHAT THE RESULTS MAY MEAN
+4. DIET SUGGESTION TABLE — Goal | Foods to Prefer | Foods to Limit | Practical Tip.
+5. PHYSICAL ACTIVITY PLAN — Activity | Frequency | Duration | Notes.
+6. SUGGESTED NEXT TESTS TO DISCUSS WITH YOUR DOCTOR — markdown table: Suggested test | Finding that prompted it | Why it may be useful | Suggested discussion/timing. Every row must explain the direct connection to the current report and use non-directive language.
+7. WHAT TO DISCUSS WITH YOUR DOCTOR
+8. WHEN TO SEEK MEDICAL CARE
+9. IMPORTANT NOTE.`;
     openAIFileId = await uploadPdfToOpenAI(apiKey, booking.reportData, booking.reportName || 'diagnostic-report.pdf');
     const aiResponse = await fetch('https://api.openai.com/v1/responses', { method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: process.env.AI_REPORT_MODEL || 'gpt-5.6-terra', store: false, max_output_tokens: requestedLanguage === 'en' ? 4000 : 2200, input: [{ role: 'user', content: [{ type: 'input_text', text: prompt }, { type: 'input_file', file_id: openAIFileId }] }] }) });
     const data = await aiResponse.json();
