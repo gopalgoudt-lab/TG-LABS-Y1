@@ -58,16 +58,37 @@ async function correctPageNumbers(pdf: PDFDocument) {
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const pages = pdf.getPages(), total = pages.length;
   pages.forEach((page, index) => {
-    const { width } = page.getSize();
+    const crop = page.getCropBox();
+    const left = crop.x;
+    const bottom = crop.y;
+    const right = crop.x + crop.width;
     const label = `Page ${index + 1} of ${total}`;
     const size = 9;
     const textWidth = font.widthOfTextAtSize(label, size);
-    // Cover only the source page-number text itself. Do not mask signatures,
-    // stamps, QR codes, borders or other report content.
-    page.drawRectangle({ x: Math.max(0, width - 104), y: 132, width: 100, height: 22, color: rgb(1, 1, 1) });
-    // If a PDF was previously renumbered, clear only the small final-number zone.
-    page.drawRectangle({ x: Math.max(0, width - 116), y: 0, width: 112, height: 28, color: rgb(1, 1, 1) });
-    page.drawText(label, { x: Math.max(8, width - textWidth - 14), y: 12, size, font, color: rgb(.15, .15, .15) });
+
+    // Anchor replacement to the page's visible CropBox so shifted PDFs are handled
+    // correctly. Keep the masks deliberately small to preserve signatures/stamps.
+    page.drawRectangle({
+      x: Math.max(left, right - 104),
+      y: bottom + 132,
+      width: 100,
+      height: 22,
+      color: rgb(1, 1, 1),
+    });
+    page.drawRectangle({
+      x: Math.max(left, right - 116),
+      y: bottom,
+      width: 112,
+      height: 28,
+      color: rgb(1, 1, 1),
+    });
+    page.drawText(label, {
+      x: Math.max(left + 8, right - textWidth - 14),
+      y: bottom + 12,
+      size,
+      font,
+      color: rgb(.15, .15, .15),
+    });
   });
 }
 
@@ -301,7 +322,7 @@ export default function EditBookingPage() {
 
       <section style={{ ...box, marginTop: 18 }}>
         <h2>Patient Booking History</h2>
-        <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}><thead><tr>{['Date', 'Tests', 'Slot', 'Technician', 'Payment', 'Status', 'Amount'].map(h => <th key={h} style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid #dce7e3' }}>{h}</th>)}</tr></thead><tbody>{history.map(h => <tr key={h.id}><td style={{ padding: 10 }}>{new Date(h.collectionDate).toLocaleDateString('en-IN')}</td><td>{h.items.map(i => i.test.name).join(', ')}</td><td>{h.slot}</td><td>{h.technician || '—'}</td><td>{h.paymentStatus}</td><td>{h.status}</td><td>₹{h.totalAmount}</td></tr>)}</tbody></table></div>
+        <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}><thead><tr>{['Date', 'Tests', 'Slot', 'Technician', 'Payment', 'Status', 'Amount'].map(h => <th key={h} style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid #dce7e3' }}>{h}</th>)}</tr></thead><tbody>{history.map(h => <tr key={h.id}><td style={{ padding: 10 }}>{new Date(h.collectionDate).toLocaleDateString('en-IN')}</td><td>{h.items.map(i=>i.test.name).join(', ')}</td><td>{h.slot}</td><td>{h.technician||'—'}</td><td>{h.paymentStatus}</td><td>{h.status}</td><td>₹{h.totalAmount}</td></tr>)}</tbody></table></div>
       </section>
 
       <button disabled={saving} onClick={save} style={{ marginTop: 20, width: '100%', padding: 15, border: 0, borderRadius: 12, background: '#087f6f', color: '#fff', fontWeight: 900, fontSize: 16 }}>{saving ? 'Saving Changes…' : 'Save Booking & Workflow Changes'}</button>
