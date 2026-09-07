@@ -58,13 +58,12 @@ async function correctPageNumbers(pdf: PDFDocument) {
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const pages = pdf.getPages(), total = pages.length;
   pages.forEach((page, index) => {
-    const { width, height } = page.getSize();
+    const { width } = page.getSize();
     const label = `Page ${index + 1} of ${total}`;
     const size = 9;
     const textWidth = font.widthOfTextAtSize(label, size);
-    const rightX = Math.max(0, width - 104);
-    const inheritedMaskHeight = Math.min(Math.max(270, height * 0.42), Math.max(0, height - 35));
-    page.drawRectangle({ x: rightX, y: 35, width: 100, height: inheritedMaskHeight, color: rgb(1, 1, 1) });
+    const rightEdgeX = Math.max(0, width - 78);
+    page.drawRectangle({ x: rightEdgeX, y: 82, width: 74, height: 150, color: rgb(1, 1, 1) });
     page.drawRectangle({ x: Math.max(0, width - 155), y: 0, width: 151, height: 45, color: rgb(1, 1, 1) });
     page.drawText(label, { x: Math.max(8, width - textWidth - 14), y: 12, size, font, color: rgb(.15, .15, .15) });
   });
