@@ -58,12 +58,13 @@ async function correctPageNumbers(pdf: PDFDocument) {
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const pages = pdf.getPages(), total = pages.length;
   pages.forEach((page, index) => {
-    const { width } = page.getSize();
+    const { width, height } = page.getSize();
     const label = `Page ${index + 1} of ${total}`;
     const size = 9;
     const textWidth = font.widthOfTextAtSize(label, size);
     const rightX = Math.max(0, width - 104);
-    page.drawRectangle({ x: rightX, y: 48, width: 100, height: 170, color: rgb(1, 1, 1) });
+    const inheritedMaskHeight = Math.min(Math.max(270, height * 0.42), Math.max(0, height - 35));
+    page.drawRectangle({ x: rightX, y: 35, width: 100, height: inheritedMaskHeight, color: rgb(1, 1, 1) });
     page.drawRectangle({ x: Math.max(0, width - 155), y: 0, width: 151, height: 45, color: rgb(1, 1, 1) });
     page.drawText(label, { x: Math.max(8, width - textWidth - 14), y: 12, size, font, color: rgb(.15, .15, .15) });
   });
@@ -291,7 +292,7 @@ export default function EditBookingPage() {
           <label>Report type<select style={input} value={reportType} onChange={e => setReportType(e.target.value as ReportType)}><option value="PARTIAL">Partial Report</option><option value="FULL">Full Report</option></select><small style={{ display: 'block', marginTop: 6, color: '#687c76' }}>Partial keeps the booking in Processing. Full publishes the final report and moves it to Report Ready.</small></label>
           <label>Replace / Upload Report<input type="file" accept="application/pdf,.pdf" multiple style={input} onChange={e => { report(e.target.files); e.currentTarget.value = ''; }} /><small style={{ display: 'block', marginTop: 6, color: '#687c76' }}>Select one or multiple PDFs. Multiple files are merged in selection order into one final report.</small></label>
         </div>
-        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 12, padding: '10px 12px', border: '1px solid #d7e5e0', borderRadius: 10, background: '#f8fcfa', maxWidth: 620 }}><input type="checkbox" checked={renumberPages} onChange={e => setRenumberPages(e.target.checked)} style={{ marginTop: 2 }} /><span><b>Replace / correct final page numbers</b><small style={{ display: 'block', marginTop: 3, color: '#687c76' }}>When selected, TG Labs masks both the inherited right-edge page-number area and the final footer, then writes one clean Page 1 of N, Page 2 of N… sequence after merge.</small></span></label>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 12, padding: '10px 12px', border: '1px solid #d7e5e0', borderRadius: 10, background: '#f8fcfa', maxWidth: 620 }}><input type="checkbox" checked={renumberPages} onChange={e => setRenumberPages(e.target.checked)} style={{ marginTop: 2 }} /><span><b>Replace / correct final page numbers</b><small style={{ display: 'block', marginTop: 3, color: '#687c76' }}>When selected, TG Labs masks the inherited right-edge page-number area across a larger vertical band plus the final footer, then writes one clean Page 1 of N, Page 2 of N… sequence after merge.</small></span></label>
         {f.reportName && <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><b>{reportPrepared ? 'Prepared report:' : 'Current report:'}</b> {f.reportName} {f.reportData && <button type="button" onClick={openReport} style={{ border: 0, background: 'transparent', padding: 0, color: '#087f6f', fontWeight: 800, textDecoration: 'underline', cursor: 'pointer' }}>Open report</button>}</div>}
         {reportPrepared && <button type="button" disabled={publishingReport} onClick={publishPreparedReport} style={{ marginTop: 12, padding: '11px 16px', border: 0, borderRadius: 10, background: reportType === 'PARTIAL' ? '#9b6b16' : '#087f6f', color: '#fff', fontWeight: 900, cursor: publishingReport ? 'wait' : 'pointer' }}>{publishingReport ? 'Publishing…' : `Publish ${reportType === 'PARTIAL' ? 'Partial' : 'Full'} Report`}</button>}
         <label style={{ display: 'block', marginTop: 14 }}>Admin Notes<textarea style={{ ...input, minHeight: 100 }} value={f.adminNotes} onChange={e => set('adminNotes', e.target.value)} /></label>
