@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getTechnicianSession } from '@/lib/technician-auth';
 import { canTechnicianTransition, technicianTimestamp } from '@/lib/phase2d1-workflow';
+import { sendWorkflowStatusWhatsApp } from '@/lib/whatsapp';
 
 const allowed = ['TECHNICIAN_ACCEPTED','ON_THE_WAY','REACHED_PATIENT','SAMPLE_COLLECTED','SAMPLE_RECEIVED_AT_LAB'] as const;
 const schema = z.object({ status: z.enum(allowed), notes: z.string().trim().max(1000).optional().or(z.literal('')) });
@@ -57,6 +58,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
       return updated;
     });
+
+    if (body.status !== existing.workflowStatus) {
+      try {
+        await sendWorkflowStatusWhatsApp(booking);
+      } catch (notificationError) {
+        console.error('Technician workflow updated but WhatsApp notification failed', notificationError);
+      }
+    }
 
     return NextResponse.json({ booking });
   } catch (error) {
