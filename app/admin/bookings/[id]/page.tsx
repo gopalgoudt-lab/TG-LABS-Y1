@@ -62,9 +62,11 @@ async function correctPageNumbers(pdf: PDFDocument) {
     const label = `Page ${index + 1} of ${total}`;
     const size = 9;
     const textWidth = font.widthOfTextAtSize(label, size);
-    const rightEdgeX = Math.max(0, width - 78);
-    page.drawRectangle({ x: rightEdgeX, y: 82, width: 74, height: 150, color: rgb(1, 1, 1) });
-    page.drawRectangle({ x: Math.max(0, width - 155), y: 0, width: 151, height: 45, color: rgb(1, 1, 1) });
+    // Cover only the source page-number text itself. Do not mask signatures,
+    // stamps, QR codes, borders or other report content.
+    page.drawRectangle({ x: Math.max(0, width - 104), y: 132, width: 100, height: 22, color: rgb(1, 1, 1) });
+    // If a PDF was previously renumbered, clear only the small final-number zone.
+    page.drawRectangle({ x: Math.max(0, width - 116), y: 0, width: 112, height: 28, color: rgb(1, 1, 1) });
     page.drawText(label, { x: Math.max(8, width - textWidth - 14), y: 12, size, font, color: rgb(.15, .15, .15) });
   });
 }
