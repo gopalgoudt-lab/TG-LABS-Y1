@@ -11,6 +11,7 @@ const uploadSchema = z.object({
   bookingId: z.string().min(1),
   fileName: z.string().min(1).max(180),
   fileData: z.string().min(20),
+  reportType: z.enum(['PARTIAL', 'FULL']).default('FULL'),
 });
 const MAX_PDF_BYTES = 3 * 1024 * 1024;
 
@@ -41,7 +42,8 @@ function isRealPdf(dataUrl: string) {
 export async function POST(request: Request) {
   try {
     const body = uploadSchema.parse(await request.json());
-    const fileName = safePdfName(body.fileName);
+    const baseFileName = safePdfName(body.fileName);
+    const fileName = `${body.reportType === 'PARTIAL' ? 'PARTIAL' : 'FULL'} - ${baseFileName}`;
 
     if (!body.fileName.toLowerCase().endsWith('.pdf')) {
       return NextResponse.json({ error: 'Only PDF diagnostic reports can be uploaded.' }, { status: 400 });
@@ -61,8 +63,12 @@ export async function POST(request: Request) {
     if (!['SAMPLE_RECEIVED_AT_LAB', 'PROCESSING', 'REPORT_READY', 'REPORT_DELIVERED'].includes(existing.workflowStatus)) {
       return NextResponse.json({ error: 'Mark the sample as received at the lab before publishing a report.' }, { status: 409 });
     }
+    if (body.reportType === 'PARTIAL' && (existing.status === 'COMPLETED' || existing.workflowStatus === 'REPORT_DELIVERED')) {
+      return NextResponse.json({ error: 'A partial report cannot replace a completed or delivered final report.' }, { status: 409 });
+    }
 
     const now = new Date();
+    const isFull = body.reportType === 'FULL';
     const booking = await prisma.booking.update({
       where: { id: body.bookingId },
       data: {
@@ -74,9 +80,13 @@ export async function POST(request: Request) {
         aiReportEnAt: null,
         aiReportTeAt: null,
         aiReportHiAt: null,
-        reportReadyAt: existing.reportReadyAt ?? now,
-        workflowStatus: existing.workflowStatus === 'REPORT_DELIVERED' ? 'REPORT_DELIVERED' : 'REPORT_READY',
-        status: existing.status === 'COMPLETED' ? 'COMPLETED' : 'CONFIRMED',
+        reportReadyAt: isFull ? (existing.reportReadyAt ?? now) : null,
+        workflowStatus: isFull
+          ? (existing.workflowStatus === 'REPORT_DELIVERED' ? 'REPORT_DELIVERED' : 'REPORT_READY')
+          : 'PROCESSING',
+        status: isFull
+          ? (existing.status === 'COMPLETED' ? 'COMPLETED' : 'CONFIRMED')
+          : 'CONFIRMED',
       },
       include: {
         patient: true,
@@ -89,16 +99,17 @@ export async function POST(request: Request) {
       action: existing.reportData ? 'REPORT_REPLACED' : 'REPORT_PUBLISHED',
       entityType: 'Booking',
       entityId: booking.id,
-      summary: `${existing.reportData ? 'Replaced' : 'Published'} diagnostic PDF ${fileName}`,
+      summary: `${existing.reportData ? 'Replaced' : 'Published'} ${body.reportType.toLowerCase()} diagnostic PDF ${fileName}`,
       metadata: {
         fileName,
+        reportType: body.reportType,
         fileBytes: estimatedBase64Bytes(body.fileData),
         previousReportName: existing.reportName || null,
         workflowStatus: booking.workflowStatus,
       },
     });
 
-    if (existing.workflowStatus !== 'REPORT_READY' && existing.workflowStatus !== 'REPORT_DELIVERED') {
+    if (isFull && existing.workflowStatus !== 'REPORT_READY' && existing.workflowStatus !== 'REPORT_DELIVERED') {
       try {
         await sendWorkflowStatusWhatsApp(booking);
       } catch (notificationError) {
@@ -110,9 +121,10 @@ export async function POST(request: Request) {
       success: true,
       bookingId: booking.id,
       reportName: booking.reportName,
+      reportType: body.reportType,
       workflowStatus: booking.workflowStatus,
       reportReadyAt: booking.reportReadyAt,
-      printedReportPending: booking.printedReport && !booking.reportDeliveredAt,
+      printedReportPending: isFull && booking.printedReport && !booking.reportDeliveredAt,
     });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Invalid report upload.' }, { status: 400 });
