@@ -75,6 +75,7 @@ export default function PatientPage() {
   const [aiBusy, setAiBusy] = useState('');
   const [aiError, setAiError] = useState<Record<string, string>>({});
   const [viewBusy, setViewBusy] = useState('');
+  const [receiptBusy, setReceiptBusy] = useState('');
 
   function authOrRedirect(): Auth | null {
     try {
@@ -147,6 +148,37 @@ export default function PatientPage() {
     } finally {
       router.replace('/auth');
       router.refresh();
+    }
+  }
+
+  async function downloadReceipt(booking: Booking) {
+    const auth = authOrRedirect();
+    if (!auth) return;
+    const user = auth.currentUser;
+    if (!user) return router.replace('/auth');
+    setReceiptBusy(booking.id);
+    setError('');
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/patient/bookings/${booking.id}/receipt`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Unable to download payment receipt.');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `TG-Labs-Payment-Receipt-${booking.orderNumber}.pdf`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to download payment receipt.');
+    } finally {
+      setReceiptBusy('');
     }
   }
 
@@ -286,6 +318,11 @@ export default function PatientPage() {
                       <div style={{ textAlign: 'right' }}>
                         <Status text={o.status} />
                         <strong style={{ display: 'block', fontSize: 20, marginTop: 7 }}>₹{o.total.toLocaleString('en-IN')}</strong>
+                        {o.paymentStatus === 'PAID' ? (
+                          <button onClick={() => downloadReceipt(o)} disabled={receiptBusy === o.id} style={{ ...secondary, marginTop: 9 }}>
+                            {receiptBusy === o.id ? 'Preparing receipt…' : 'Download payment receipt'}
+                          </button>
+                        ) : <small style={{ display: 'block', color: '#64748b', marginTop: 8 }}>Receipt available after payment</small>}
                       </div>
                     </article>
                   ))}
