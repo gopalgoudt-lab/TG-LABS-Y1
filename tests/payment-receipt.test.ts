@@ -14,37 +14,33 @@ test('receipt number is stable and booking-derived', () => {
 
 test('receipt generator produces a PDF for a paid booking', async () => {
   const bytes = await createPaymentReceiptPdf({
-    receiptNumber: 'TGR-DEMO000001',
-    bookingReference: 'TG-DEMO0001',
-    receiptDate: new Date('2026-09-08T08:00:00.000Z'),
-    patientName: 'Test Patient',
-    age: 35,
-    gender: 'Male',
-    doctorName: 'Self',
-    email: 'test@example.com',
-    phone: '9000000000',
-    collectionMode: 'HOME',
-    paymentMode: 'UPI',
-    paymentStatus: 'PAID',
-    transactionReference: 'pay_demo_001',
-    lines: [{ name: 'Complete Blood Count', amount: 300 }],
-    subtotal: 300,
-    discount: 50,
-    total: 250,
-    paidAmount: 250,
-    due: 0,
-    partners: ['TG Labs'],
+    receiptNumber: 'TGR-DEMO000001', bookingReference: 'TG-DEMO0001', receiptDate: new Date('2026-09-08T08:00:00.000Z'),
+    patientName: 'Test Patient', age: 35, gender: 'Male', doctorName: 'Self', email: 'test@example.com', phone: '9000000000',
+    collectionMode: 'HOME', paymentMode: 'UPI', paymentStatus: 'PAID', transactionReference: 'pay_demo_001',
+    lines: [{ name: 'Complete Blood Count', amount: 300 }], subtotal: 300, discount: 50, total: 250, paidAmount: 250, due: 0, partners: ['TG Labs'],
   });
   assert.ok(bytes.length > 500);
   assert.equal(Buffer.from(bytes).subarray(0, 4).toString(), '%PDF');
 });
 
-test('patient endpoint enforces ownership and paid-status guard', () => {
+test('patient endpoint enforces ownership, paid-status and amount reconciliation', () => {
   const route = readFileSync(new URL('../app/api/patient/bookings/[id]/receipt/route.ts', import.meta.url), 'utf8');
   assert.ok(route.includes('verifyFirebasePatientRequest'));
   assert.ok(route.includes('patient: { phone: identity.databasePhone }'));
   assert.ok(route.includes('isReceiptAvailable(booking.paymentStatus)'));
+  assert.ok(route.includes('positiveAdjustment'));
+  assert.ok(route.includes("Recorded booking adjustment"));
+  assert.ok(route.includes('paidPayment?.amount ?? booking.totalAmount'));
+  assert.ok(route.includes('Math.max(0, booking.totalAmount - paidAmount)'));
   assert.ok(route.includes("'Cache-Control': 'private, no-store'"));
+});
+
+test('admin endpoint uses same receipt reconciliation rules', () => {
+  const route = readFileSync(new URL('../app/api/admin/bookings/[id]/receipt/route.ts', import.meta.url), 'utf8');
+  assert.ok(route.includes('positiveAdjustment'));
+  assert.ok(route.includes("Recorded booking adjustment"));
+  assert.ok(route.includes('paidPayment?.amount ?? booking.totalAmount'));
+  assert.ok(route.includes('Math.max(0, booking.totalAmount - paidAmount)'));
 });
 
 test('patient and admin interfaces expose receipt actions only for paid bookings', () => {
