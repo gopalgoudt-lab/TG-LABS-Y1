@@ -19,6 +19,7 @@
     "test:phase3a": "node --import tsx --test tests/phase3a-site-migration.test.ts",
     "test:phase3c": "node --import tsx --test tests/phase3c-go-live-readiness.test.ts",
     "test:phase3c-cart": "node --import tsx --test tests/phase3c-serviceability-cart.test.ts",
+    "test:technician-login-hardening": "node --import tsx --test tests/technician-login-hardening.test.ts",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

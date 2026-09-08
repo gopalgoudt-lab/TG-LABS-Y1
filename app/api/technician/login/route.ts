@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { createTechnicianSession, verifyPin } from '@/lib/technician-auth';
+import {
+  checkTechnicianLoginRateLimit,
+  clientIpFromRequest,
+  recordTechnicianLoginFailure,
+  resetTechnicianLoginFailures,
+} from '@/lib/technician-login-rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,9 +16,38 @@ const schema = z.object({
   pin: z.string().regex(/^[0-9]{4,6}$/),
 });
 
+const GENERIC_ERROR = 'Invalid technician login details.';
+const RATE_LIMIT_ERROR = 'Too many login attempts. Please try again later.';
+
+function rateLimited(retryAfterSeconds: number) {
+  return NextResponse.json(
+    { error: RATE_LIMIT_ERROR },
+    { status: 429, headers: { 'Retry-After': String(Math.max(1, retryAfterSeconds)) } },
+  );
+}
+
+async function slowFailedAttempt() {
+  await new Promise((resolve) => setTimeout(resolve, 250));
+}
+
 export async function POST(request: Request) {
+  const ip = clientIpFromRequest(request);
+  let identityForLimit = 'invalid-request';
+
   try {
-    const { identity, pin } = schema.parse(await request.json());
+    const parsed = schema.safeParse(await request.json());
+    if (!parsed.success) {
+      const failure = recordTechnicianLoginFailure(identityForLimit, ip);
+      await slowFailedAttempt();
+      if (failure.locked) return rateLimited(failure.retryAfterSeconds);
+      return NextResponse.json({ error: GENERIC_ERROR }, { status: 401 });
+    }
+
+    const { identity, pin } = parsed.data;
+    identityForLimit = identity;
+    const limit = checkTechnicianLoginRateLimit(identity, ip);
+    if (!limit.allowed) return rateLimited(limit.retryAfterSeconds);
+
     const normalized = identity.toLowerCase();
     const technician = await prisma.technician.findFirst({
       where: {
@@ -24,14 +59,26 @@ export async function POST(request: Request) {
         ],
       },
     });
+
     if (!technician || !verifyPin(pin, technician.loginPinHash)) {
-      return NextResponse.json({ error: 'Invalid technician login details.' }, { status: 401 });
+      const failure = recordTechnicianLoginFailure(identity, ip);
+      await slowFailedAttempt();
+      if (failure.locked) return rateLimited(failure.retryAfterSeconds);
+      return NextResponse.json({ error: GENERIC_ERROR }, { status: 401 });
     }
+
+    resetTechnicianLoginFailures(identity);
     await createTechnicianSession(technician.id);
-    return NextResponse.json({ technician: { id: technician.id, name: technician.name, phone: technician.phone, employeeCode: technician.employeeCode } });
+    return NextResponse.json({
+      technician: {
+        id: technician.id,
+        name: technician.name,
+        phone: technician.phone,
+        employeeCode: technician.employeeCode,
+      },
+    });
   } catch (error) {
-    if (error instanceof z.ZodError) return NextResponse.json({ error: 'Enter your mobile/employee code and 4–6 digit PIN.' }, { status: 400 });
-    console.error(error);
+    console.error('Technician login failed unexpectedly.', error);
     return NextResponse.json({ error: 'Unable to sign in.' }, { status: 500 });
   }
 }
