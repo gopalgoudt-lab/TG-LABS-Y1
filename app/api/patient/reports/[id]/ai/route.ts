@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 180;
 
 type Language = 'en' | 'te' | 'hi';
 const LANGUAGES: Record<Language, { name: string; instruction: string; disclaimer: string }> = {
