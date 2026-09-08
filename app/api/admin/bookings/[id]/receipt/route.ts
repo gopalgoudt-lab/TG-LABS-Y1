@@ -21,17 +21,25 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     return NextResponse.json({ error: 'Payment receipt is available after payment is marked PAID.' }, { status: 409 });
   }
 
-  const lines = [
+  const baseLines = [
     ...booking.items.map((item) => ({ name: item.test.name, amount: item.price })),
     ...booking.packages.map((item) => ({ name: item.package.name, amount: item.price })),
     ...(booking.printedReportFee > 0 ? [{ name: 'Printed report service', amount: booking.printedReportFee }] : []),
   ];
+  const baseSubtotal = baseLines.reduce((sum, line) => sum + line.amount, 0);
+  const positiveAdjustment = Math.max(0, booking.totalAmount - baseSubtotal);
+  const lines = positiveAdjustment > 0
+    ? [...baseLines, { name: 'Recorded booking adjustment', amount: positiveAdjustment }]
+    : baseLines;
   const subtotal = lines.reduce((sum, line) => sum + line.amount, 0);
+  const discount = Math.max(0, subtotal - booking.totalAmount);
+
   const partners = [...new Set([
     ...booking.items.map((item) => item.partnerName).filter((v): v is string => Boolean(v)),
     ...booking.packages.map((item) => item.partnerName).filter((v): v is string => Boolean(v)),
   ])];
   const paidPayment = booking.payments[0];
+  const paidAmount = paidPayment?.amount ?? booking.totalAmount;
   const pdf = await createPaymentReceiptPdf({
     receiptNumber: receiptNumberForBooking(booking.id),
     bookingReference: `TG-${booking.id.slice(-8).toUpperCase()}`,
@@ -48,10 +56,10 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     transactionReference: booking.razorpayPaymentId || paidPayment?.paymentId || null,
     lines,
     subtotal,
-    discount: Math.max(0, subtotal - booking.totalAmount),
+    discount,
     total: booking.totalAmount,
-    paidAmount: booking.totalAmount,
-    due: 0,
+    paidAmount,
+    due: Math.max(0, booking.totalAmount - paidAmount),
     partners,
   });
 
