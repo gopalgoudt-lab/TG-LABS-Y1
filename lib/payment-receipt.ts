@@ -35,42 +35,42 @@ export async function createPaymentReceiptPdf(data:PaymentReceiptData):Promise<U
  const text=(s:string,x:number,y:number,size=9,font:PDFFont=regular,color=dark)=>page.drawText(s,{x,y,size,font,color});
  const box=(x:number,y:number,w:number,h:number,fill=white,stroke=border,bw=.8)=>page.drawRectangle({x,y,width:w,height:h,color:fill,borderColor:stroke,borderWidth:bw});
  const rule=(x1:number,y1:number,x2:number,y2:number,color=border,width=.8)=>page.drawLine({start:{x:x1,y:y1},end:{x:x2,y:y2},color,thickness:width});
- const money=(v:number,x:number,y:number,size=9,font:PDFFont=regular,color=navy)=>{drawRupee(page,x,y-1,size*.82,color);text(amountText(v),x+11,y,size,font,color)};
+ const money=(v:number,x:number,y:number,size=9,font:PDFFont=regular,color=navy)=>{drawRupee(page,x,y-1,size*.82,color);text(amountText(v),x+12,y,size,font,color)};
  const header=()=>{
-   if(logo){const scaled=logo.scaleToFit(282,76);page.drawImage(logo,{x:32,y:756,width:scaled.width,height:scaled.height})}
+   if(logo){const scaled=logo.scaleToFit(305,82);page.drawImage(logo,{x:30,y:750,width:scaled.width,height:scaled.height})}
    else{text('TG',38,786,31,bold,navy);text('LABS',86,786,31,bold,teal);text('DIAGNOSTICS  •  HOME COLLECTION',40,770,8,bold,navy)}
-   text('Your Health',326,799,10,italic,navy);text('Our Priority',326,785,10,italic,navy);rule(390,771,390,816,border,.8);
-   text('TRUSTED',402,800,7.5,bold,navy);text('LABS',411,786,7.5,bold,navy);rule(452,771,452,816,border,.8);
-   text('HOME',467,800,7.5,bold,teal);text('COLLECTION',458,786,6.8,bold,navy);rule(522,771,522,816,border,.8);
-   text('BETTER',531,800,7.5,bold,teal);text('TOMORROW',526,786,6.8,bold,navy);
+   text('Your Health',325,800,11,italic,navy);text('Our Priority',325,785,11,italic,navy);rule(390,769,390,818,border,.9);
+   text('TRUSTED',402,801,8,bold,navy);text('LABS',412,786,8,bold,navy);rule(453,769,453,818,border,.9);
+   text('HOME',468,801,8,bold,teal);text('COLLECTION',458,786,7.2,bold,navy);rule(523,769,523,818,border,.9);
+   text('BETTER',531,801,8,bold,teal);text('TOMORROW',526,786,7.2,bold,navy);
  };
- const tableHeader=(y:number)=>{page.drawRectangle({x:34,y,width:527,height:36,color:navy});text('S.No.',52,y+13,9.5,bold,white);text('Investigation / Package',112,y+13,9.5,bold,white);text('Amount',490,y+13,9.5,bold,white)};
+ const tableHeader=(yy:number)=>{page.drawRectangle({x:34,y:yy,width:527,height:39,color:navy});text('S.No.',52,yy+14,10.5,bold,white);text('Investigation / Package',112,yy+14,10.5,bold,white);text('Amount',487,yy+14,10.5,bold,white)};
  header();
- box(34,692,527,62,mint,mint);text('PAYMENT RECEIPT',172,722,23,bold,navy);text('Thank you for choosing TG Labs',209,702,10.5,regular,navy);
+ box(34,688,527,66,mint,mint);text('PAYMENT RECEIPT',165,720,25,bold,navy);text('Thank you for choosing TG Labs',205,698,11.5,regular,navy);
 
- box(34,519,527,158,pale,border);rule(297,535,297,661,border,.8);
+ box(34,505,527,165,pale,border);rule(297,522,297,653,border,.9);
  const left:[string,string][]=[['Patient Name',data.patientName],['Age / Gender',`${data.age??'-'} / ${safe(data.gender)}`],['Doctor',safe(data.doctorName)==='-'?'Self':safe(data.doctorName)],['Email',safe(data.email)],['Phone',safe(data.phone)]];
  const right:[string,string][]=[['Receipt No.',data.receiptNumber],['Booking Ref.',data.bookingReference],['Receipt Date',data.receiptDate.toLocaleString('en-IN')],['Collection',data.collectionMode==='HOME'?'Home Collection':'Centre Visit'],['Payment Mode',safe(data.paymentMode)],['Payment Status',data.paymentStatus]];
- left.forEach(([k,v],i)=>{const yy=641-i*24;text(k,48,yy,9,bold,navy);text(':',132,yy,9,bold,navy);text(v.slice(0,31),145,yy,9,regular,dark)});
- right.forEach(([k,v],i)=>{const yy=641-i*20;text(k,314,yy,9,bold,navy);text(':',392,yy,9,bold,navy);if(k==='Payment Status'&&v==='PAID'){page.drawRectangle({x:405,y:yy-5,width:47,height:19,color:green});text('PAID',415,yy,9,bold,white)}else text(v.slice(0,28),405,yy,9,regular,dark)});
+ left.forEach(([k,v],i)=>{const yy=636-i*25;text(k,48,yy,10,bold,navy);text(':',136,yy,10,bold,navy);text(v.slice(0,30),150,yy,10,regular,dark)});
+ right.forEach(([k,v],i)=>{const yy=636-i*21;text(k,314,yy,10,bold,navy);text(':',397,yy,10,bold,navy);if(k==='Payment Status'&&v==='PAID'){page.drawRectangle({x:410,y:yy-6,width:51,height:21,color:green});text('PAID',421,yy,10,bold,white)}else text(v.slice(0,27),410,yy,10,regular,dark)});
 
- tableHeader(464);let y=436;
+ tableHeader(446);let y=414;
  for(let i=0;i<data.lines.length;i++){
-   if(y<286){page=pdf.addPage([595.28,841.89]);header();tableHeader(704);y=673}
-   const item=data.lines[i];text(String(i+1),58,y,9);text(item.name.slice(0,55),112,y,9);money(item.amount,475,y,9,regular,dark);rule(34,y-14,561,y-14,border,.5);y-=29;
+   if(y<300){page=pdf.addPage([595.28,841.89]);header();tableHeader(700);y=665}
+   const item=data.lines[i];text(String(i+1),58,y,10);text(item.name.slice(0,52),112,y,10);money(item.amount,470,y,10,regular,dark);rule(34,y-15,561,y-15,border,.55);y-=31;
  }
 
- const baseY=Math.min(358,y-10);
- box(34,baseY-122,252,106,mint,mint);text('TG',49,baseY-77,19,bold,teal);text('Diagnostic Partner(s)',82,baseY-52,10.5,bold,navy);text((data.partners.length?data.partners.join(', '):'TG Labs').slice(0,38),82,baseY-75,9.5,regular,navy);
- box(307,baseY-152,254,136,white,border);
+ const baseY=Math.min(345,y-8);
+ box(34,baseY-116,252,108,mint,mint);text('TG',49,baseY-78,20,bold,teal);text('Diagnostic Partner(s)',84,baseY-50,11.5,bold,navy);text((data.partners.length?data.partners.join(', '):'TG Labs').slice(0,38),84,baseY-76,10.5,regular,navy);
+ box(307,baseY-145,254,137,white,border);
  const totals:[string,number][]=[['Subtotal',data.subtotal],['Discount',data.discount],['Total',data.total],['Paid Amount',data.paidAmount],['Due',data.due]];
- totals.forEach(([k,v],i)=>{const yy=baseY-43-i*22;if(k==='Total')page.drawRectangle({x:313,y:yy-6,width:242,height:21,color:mint2});const strong=k==='Total'||k==='Paid Amount';text(k,327,yy,10,strong?bold:regular,navy);money(v,463,yy,10,strong?bold:regular,navy)});
+ totals.forEach(([k,v],i)=>{const yy=baseY-39-i*23;if(k==='Total')page.drawRectangle({x:313,y:yy-7,width:242,height:23,color:mint2});const strong=k==='Total'||k==='Paid Amount';text(k,327,yy,11,strong?bold:regular,navy);money(v,458,yy,11,strong?bold:regular,navy)});
 
- text('Thank you for trusting TG Labs!',40,baseY-177,15,italic,teal);text('For a healthier tomorrow.',40,baseY-199,10,regular,navy);
- if(data.transactionReference)text(`Transaction reference: ${data.transactionReference.slice(0,55)}`,40,baseY-221,8,regular,muted);
+ text('Thank you for trusting TG Labs!',40,baseY-164,16,italic,teal);text('For a healthier tomorrow.',40,baseY-188,11,regular,navy);
+ if(data.transactionReference)text(`Transaction reference: ${data.transactionReference.slice(0,55)}`,40,baseY-210,8.8,regular,muted);
 
- rule(34,86,561,86,teal,1.3);text('www.tglabs.in',40,63,9,regular,navy);text('info@tglabs.in',156,63,9,regular,navy);text('+91 9652603022',262,63,9,regular,navy);
- rule(388,46,388,77,border,.8);text('This is a system-generated payment receipt.',402,66,7.6,italic,muted);text('It does not require a seal or signature.',402,52,7.6,italic,muted);
- page.drawRectangle({x:0,y:0,width:170,height:24,color:teal});page.drawRectangle({x:0,y:24,width:118,height:12,color:mint2});page.drawRectangle({x:0,y:36,width:66,height:8,color:mint});
+ rule(34,95,561,95,teal,1.5);text('www.tglabs.in',40,69,10,regular,navy);text('info@tglabs.in',157,69,10,regular,navy);text('+91 9652603022',264,69,10,regular,navy);
+ rule(392,48,392,83,border,.9);text('This is a system-generated payment receipt.',406,71,8.5,italic,muted);text('It does not require a seal or signature.',406,56,8.5,italic,muted);
+ page.drawRectangle({x:0,y:0,width:188,height:26,color:teal});page.drawRectangle({x:0,y:26,width:132,height:13,color:mint2});page.drawRectangle({x:0,y:39,width:74,height:9,color:mint});
  return pdf.save();
 }
