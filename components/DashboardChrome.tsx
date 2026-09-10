@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import BrandLogo from '@/components/BrandLogo';
+import RoleDashboardInsights from '@/components/RoleDashboardInsights';
 import { getFirebaseAuth } from '@/lib/firebase';
 import '@/app/dashboard-shell.css';
 import '@/app/dashboard-insights.css';
@@ -105,10 +106,13 @@ export default function DashboardChrome({ role, children }: { role: Role; childr
     <div className="dashFrame">
       <aside className="dashSide"><nav>{NAV[role].map((item) => <a key={`${item.label}-${item.href}`} className={pathname === item.href ? 'active' : ''} href={item.href}><span>{item.icon}</span>{item.label}</a>)}<button className="danger" onClick={logout}><span>↪</span>Logout</button></nav><div className="dashPromo"><strong>{role === 'admin' ? 'Quality Partnerships' : role === 'technician' ? 'Quality Collection' : 'Healthier Families'}</strong><small>{role === 'admin' ? 'Healthier Communities' : role === 'technician' ? 'Every sample handled with care' : 'Better care, stronger tomorrows'}</small></div></aside>
       <div className="dashContent">
-        {isRoot && <section className={`dashOverview ${role}`}>
-          <div className="dashWelcome"><div><span className="dashEyebrow">TG LABS · {title.toUpperCase()} DASHBOARD</span><h1>{welcome}</h1><p>{subtitle}</p></div><div className="dashDate"><b>{today}</b><span>{role === 'admin' ? 'Monitor · Manage · Grow' : role === 'technician' ? 'Collect · Update · Complete' : 'Book · Track · Stay Healthy'}</span></div></div>
-          <div className="dashQuickGrid">{QUICK[role].map((item)=><a href={item.href} key={item.label} className="dashQuick"><span>{item.icon}</span><div><b>{item.label}</b><small>{item.note}</small></div><i>→</i></a>)}</div>
-        </section>}
+        {isRoot && <>
+          <section className={`dashOverview ${role}`}>
+            <div className="dashWelcome"><div><span className="dashEyebrow">TG LABS · {title.toUpperCase()} DASHBOARD</span><h1>{welcome}</h1><p>{subtitle}</p></div><div className="dashDate"><b>{today}</b><span>{role === 'admin' ? 'Monitor · Manage · Grow' : role === 'technician' ? 'Collect · Update · Complete' : 'Book · Track · Stay Healthy'}</span></div></div>
+            <div className="dashQuickGrid">{QUICK[role].map((item)=><a href={item.href} key={item.label} className="dashQuick"><span>{item.icon}</span><div><b>{item.label}</b><small>{item.note}</small></div><i>→</i></a>)}</div>
+          </section>
+          <RoleDashboardInsights role={role}/>
+        </>}
         {children}
         <footer className="dashFooterStrip"><div><strong>{role === 'admin' ? 'Better Insights. Healthier Communities.' : role === 'technician' ? 'Every Sample Brings Hope.' : 'Your Health. Our Priority.'}</strong><span> TG Labs · Trusted Diagnostics · Healthier Tomorrow.</span></div><div className="dashPills"><b>♢ Trusted Labs</b><b>▣ Secure Platform</b><b>♡ Quality Care</b><b>▥ Better Health</b></div></footer>
       </div>
