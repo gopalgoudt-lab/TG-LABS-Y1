@@ -53,19 +53,21 @@ export default function Home() {
               <a href="/?q=Diabetes#catalog">Diabetes</a>
               <a href="/?q=Vitamin%20D#catalog">Vitamin D</a>
               <a href="/?q=Lipid#catalog">Lipid Profile</a>
+              <a href="/?q=full%20body#catalog">Full Body Checkup</a>
             </div>
           </div>
 
-          <div className="refFamilyVisual" aria-label="Family-focused diagnostic care illustration">
+          <div className="refFamilyVisual" aria-label="Family-focused diagnostic care visual">
             <div className="refPeople" aria-hidden="true"><div className="refPerson one"/><div className="refPerson two"/><div className="refChild"/></div>
+            <div className="refFamilyCaption">Healthy families.<br/>Healthier tomorrows.</div>
           </div>
 
           <aside className="refHeroNotes" aria-label="TG Labs benefits">
             <div className="refHeroNote"><span>⌂</span><b>Home Sample Collection</b></div>
             <div className="refHeroNote"><span>♢</span><b>Trusted Lab Partners</b></div>
-            <div className="refHeroNote"><span>₹</span><b>Transparent Pricing</b></div>
+            <div className="refHeroNote"><span>₹</span><b>Pay at Collection</b></div>
             <div className="refHeroNote"><span>▤</span><b>View & Download Reports</b></div>
-            <div className="refHeroScribble">Healthier Families<br/>Stronger Tomorrows</div>
+            <div className="refHeroScribble">Healthy Families<br/>Stronger Tomorrows</div>
           </aside>
         </div>
       </section>
@@ -77,7 +79,7 @@ export default function Home() {
           <div className="refPartnerItem"><img src="/partners/sagepath-labs.svg" alt="Sagepath Labs" /></div>
           <div className="refPartnerItem"><img src="/partners/dr-lal-pathlabs.svg" alt="Dr Lal PathLabs" /></div>
           <div className="refPartnerItem"><span>✹</span><span>NABL-focused<br/>Partners</span></div>
-          <div className="refPartnerItem"><span>♧</span><span>Transparent<br/>Pricing</span></div>
+          <div className="refPartnerItem"><span>♧</span><span>Affordable<br/>Options</span></div>
           <div className="refPartnerItem"><span>◉</span><span>Dedicated<br/>Support</span></div>
         </div>
       </section>
@@ -86,12 +88,13 @@ export default function Home() {
         <div className="refWrap">
           <div className="refSectionHead"><h2>Popular Health Packages</h2><a href="#catalog">View All Packages →</a></div>
           <div className="refPackageGrid">
-            {packages.map(([title, subtitle, tests, fasting, icon, query]) => (
+            {packages.map(([title, subtitle, tests, fasting, icon, query], index) => (
               <article className="refPackageCard" key={`${title}-${subtitle}`}>
+                <div className="refPackageBadge">{index < 3 ? 'Popular' : 'Recommended'}</div>
                 <h3>{title}<br/><small>{subtitle}</small></h3>
                 <div className="refPackageIcon" aria-hidden="true">{icon}</div>
                 <div className="refPackageMeta"><span>▤ {tests}</span><span>♨ {fasting}</span></div>
-                <div className="refPackagePrice"><div><small>Check live partner price</small><strong>Live Price</strong></div><a href={`/?q=${encodeURIComponent(query)}#catalog`}>View</a></div>
+                <div className="refPackagePrice"><div><small>Compare live partner prices</small><strong>Live Price</strong></div><a href={`/?q=${encodeURIComponent(query)}#catalog`}>Book Now</a></div>
               </article>
             ))}
           </div>
@@ -111,7 +114,7 @@ export default function Home() {
         <div className="refWrap refCtaInner">
           <div className="refLeaf">🍃</div>
           <div className="refCtaCopy"><h2>Book. Test. Stay Healthy.</h2><p>Prevention starts with clear information and convenient diagnostics.</p></div>
-          <div className="refCtaTrust"><span>▣ Easy Booking</span><span>♢ Trusted Labs</span><span>₹ Clear Prices</span><span>♡ Better Health</span></div>
+          <div className="refCtaTrust"><span>▣ Easy Booking</span><span>♢ Trusted Labs</span><span>₹ Pay at Collection</span><span>♡ Better Health</span></div>
           <a href="#catalog">Book a Test Now →</a>
         </div>
       </section>
