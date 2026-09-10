@@ -97,12 +97,38 @@ export async function sendWorkflowStatusWhatsApp(booking: WorkflowBooking) {
   const graphVersion = process.env.WHATSAPP_GRAPH_VERSION || 'v23.0';
   const label = STATUS_LABELS[booking.workflowStatus];
 
-  if (!templateName || !accessToken || !phoneNumberId || !label) return { skipped: true };
+  const missingConfiguration = [
+    !templateName ? 'WHATSAPP_STATUS_TEMPLATE_NAME' : null,
+    !accessToken ? 'WHATSAPP_ACCESS_TOKEN' : null,
+    !phoneNumberId ? 'WHATSAPP_PHONE_NUMBER_ID' : null,
+  ].filter((value): value is string => Boolean(value));
+
+  if (missingConfiguration.length > 0) {
+    console.warn('Workflow WhatsApp notification skipped: configuration unavailable', {
+      workflowStatus: booking.workflowStatus,
+      missingConfiguration,
+    });
+    return { skipped: true };
+  }
+
+  if (!label) {
+    console.warn('Workflow WhatsApp notification skipped: unsupported workflow status', {
+      workflowStatus: booking.workflowStatus,
+    });
+    return { skipped: true };
+  }
 
   const date = booking.collectionDate.toLocaleDateString('en-IN', {
     day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata',
   });
   const technician = booking.assignedTechnician?.name || 'TG Labs team';
+
+  console.info('Workflow WhatsApp notification request starting', {
+    workflowStatus: booking.workflowStatus,
+    templateName,
+    languageCode,
+    graphVersion,
+  });
 
   const response = await fetch(`https://graph.facebook.com/${graphVersion}/${phoneNumberId}/messages`, {
     method: 'POST',
@@ -129,8 +155,24 @@ export async function sendWorkflowStatusWhatsApp(booking: WorkflowBooking) {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    console.error('Workflow WhatsApp notification failed', { status: response.status, payload });
+    const metaError = payload?.error;
+    console.error('Workflow WhatsApp notification failed', {
+      status: response.status,
+      workflowStatus: booking.workflowStatus,
+      error: metaError ? {
+        message: metaError.message,
+        type: metaError.type,
+        code: metaError.code,
+        errorSubcode: metaError.error_subcode,
+      } : undefined,
+    });
     throw new Error('Workflow WhatsApp notification failed.');
   }
+
+  console.info('Workflow WhatsApp notification accepted by Meta', {
+    workflowStatus: booking.workflowStatus,
+    messageIdReturned: Boolean(payload?.messages?.[0]?.id),
+  });
+
   return { ok: true, messageId: payload?.messages?.[0]?.id as string | undefined };
 }
