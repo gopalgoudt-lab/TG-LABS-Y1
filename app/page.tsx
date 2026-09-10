@@ -2,149 +2,136 @@ import { Suspense } from 'react';
 import BrandLogo from '@/components/BrandLogo';
 import CatalogFilters from '@/components/catalog/CatalogFilters';
 import CatalogBrowser from '@/components/catalog/CatalogBrowser';
-import CartNav from '@/components/catalog/CartNav';
+import '@/app/homepage-reference.css';
 
-const categories = [
-  ['◉', 'Diabetes', 'Glucose, HbA1c & metabolic checks', 'diabetes'],
-  ['✦', 'Thyroid', 'TSH, T3, T4 & thyroid profiles', 'thyroid'],
-  ['♀', "Women's Health", 'Hormonal, wellness & preventive tests', 'women'],
-  ['♂', "Men's Health", 'Preventive and metabolic screening', 'men'],
-  ['♡', 'Senior Care', 'Routine health checks for older adults', 'senior'],
-];
-
-const popular = [
-  ['Complete Blood Count (CBC)', 'Routine blood health screening', '₹300', 'cbc'],
-  ['Thyroid Profile', 'Thyroid hormone screening', 'View options', 'thyroid'],
-  ['Diabetes Screening', 'Glucose and HbA1c focused checks', 'View options', 'diabetes'],
-];
-
-const labs = [
-  ['TG Labs', 'Home collection focused diagnostic service', 'Bookable where serviceable', '/?q=TG%20Labs#catalog'],
-  ['Sagepath Labs', 'Partner catalog for transparent comparison', 'Display-only where applicable', '/compare/labs'],
-  ['Thyrocare', 'Large preventive diagnostics network', 'Display-only where applicable', '/compare/labs'],
+const packages = [
+  ['Aarogyam Pro', 'Full Body Checkup', '70+ Tests', 'Fasting Required', '🩺', 'full body'],
+  ['Executive Health Check', 'For Men', '80+ Tests', 'Fasting Required', '👨', 'men health'],
+  ['Executive Health Check', 'For Women', '80+ Tests', 'Fasting Required', '👩', 'women health'],
+  ['Diabetes Care Package', 'Preventive Screening', '50+ Tests', 'Fasting Required', '🩸', 'diabetes'],
+  ['Thyroid Profile', 'T3, T4, TSH', '3 Tests', 'Fasting Not Required', '🦋', 'thyroid'],
+  ['Vitamin D (25-OH)', 'Vitamin Screening', '1 Test', 'Fasting Not Required', '☀️', 'vitamin d'],
 ];
 
 export default function Home() {
   return (
-    <main>
-      <div className="utilityBar">
-        <div className="marketWrap utilityInner">
-          <span>Home sample collection</span>
-          <span>Verified partner catalog</span>
-          <span>Transparent test comparison</span>
-        </div>
-      </div>
-
-      <header className="marketHeader">
-        <div className="marketWrap marketNav">
-          <a href="/" className="marketBrand" aria-label="TG Labs home">
-            <BrandLogo priority />
-          </a>
-          <nav className="marketLinks" aria-label="Primary navigation">
-            <a href="#categories">Health Categories</a>
-            <a href="#catalog">Tests & Packages</a>
-            <a href="/compare/labs">Compare Labs</a>
-            <a href="#partners">Partner Labs</a>
+    <main className="refHome">
+      <header className="refHeader">
+        <div className="refWrap refNav">
+          <a href="/" className="refBrand" aria-label="TG Labs home"><BrandLogo priority /></a>
+          <nav className="refLinks" aria-label="Primary navigation">
+            <a href="/">Home</a>
+            <a href="#catalog">Tests</a>
+            <a href="/packages/full-body-checkup">Packages</a>
+            <a href="/compare/labs">Partners</a>
+            <a href="#services">Health Services</a>
+            <a href="/contact-us">About</a>
           </nav>
-          <div className="marketActions">
-            <a className="outlineBtn" href="#catalog">Book a Test</a>
-            <a className="navLogin" href="/auth">Patient Login</a>
-            <span className="navCart"><CartNav /></span>
+          <div className="refNavMeta">
+            <div className="refMetaBox"><span>⌖</span><div><b>Hyderabad</b><small>Home collection</small></div></div>
+            <div className="refMetaBox"><span>☎</span><div><b>Support</b><small>Contact us</small></div></div>
+            <a className="refLogin" href="/auth">Login</a>
+            <a className="refBook" href="#catalog">Book Now</a>
           </div>
         </div>
       </header>
 
-      <section className="marketHero">
-        <div className="marketWrap heroLayout">
-          <div className="heroCopy">
-            <span className="kicker">TG LABS • SMART DIAGNOSTIC DISCOVERY</span>
-            <h1>Healthcare testing made <em>clear, simple and convenient.</em></h1>
-            <p>Search tests and health packages, compare eligible laboratory options, and book home sample collection with a clean, transparent experience.</p>
-            <form className="heroSearch" action="/" method="get">
-              <span aria-hidden="true">⌕</span>
-              <input name="q" type="search" placeholder="Search CBC, thyroid, diabetes, vitamins…" aria-label="Search tests and packages" />
+      <section className="refHero">
+        <div className="refWrap refHeroGrid">
+          <div className="refHeroCopy">
+            <span className="refTrustBadge">✹ NABL-FOCUSED DIAGNOSTIC NETWORK</span>
+            <h1>Your Health<span>Our Priority</span></h1>
+            <p>Book diagnostic tests from trusted laboratory partners. Home sample collection. Transparent choices. Secure digital reports. A healthier tomorrow.</p>
+            <form className="refSearch" action="/" method="get">
+              <span>⌕</span>
+              <input name="q" type="search" placeholder="Search for tests, packages or health conditions..." aria-label="Search tests and packages" />
               <button type="submit">Search Tests</button>
             </form>
-            <div className="popularLine">Popular: <a href="/?q=CBC#catalog">CBC</a> <a href="/?q=Thyroid#catalog">Thyroid</a> <a href="/?q=Vitamin#catalog">Vitamins</a> <a href="/?q=Diabetes#catalog">Diabetes</a></div>
-            <div className="heroTrustRow">
-              <span>✓ Home collection</span><span>✓ Trusted lab partners</span><span>✓ Secure patient access</span>
+            <div className="refPopular">Popular searches:
+              <a href="/?q=CBC#catalog">CBC</a>
+              <a href="/?q=Thyroid#catalog">Thyroid Profile</a>
+              <a href="/?q=Diabetes#catalog">Diabetes</a>
+              <a href="/?q=Vitamin%20D#catalog">Vitamin D</a>
+              <a href="/?q=Lipid#catalog">Lipid Profile</a>
             </div>
           </div>
-          <aside className="heroServiceCard" aria-label="How TG Labs works">
-            <span className="networkBadge">SMART LAB NETWORK</span>
-            <div className="medicalPlus">✚</div>
-            <h3>Your test journey, from search to report.</h3>
-            <ol>
-              <li><b>1</b><span>Search a test or package</span></li>
-              <li><b>2</b><span>Compare eligible lab options</span></li>
-              <li><b>3</b><span>Choose home or centre collection</span></li>
-              <li><b>4</b><span>Track booking and access reports</span></li>
-            </ol>
-            <div className="serviceMeta"><span>Simple booking</span><span>Secure reports</span></div>
+
+          <div className="refFamilyVisual" aria-label="Family-focused diagnostic care illustration">
+            <div className="refPeople" aria-hidden="true"><div className="refPerson one"/><div className="refPerson two"/><div className="refChild"/></div>
+          </div>
+
+          <aside className="refHeroNotes" aria-label="TG Labs benefits">
+            <div className="refHeroNote"><span>⌂</span><b>Home Sample Collection</b></div>
+            <div className="refHeroNote"><span>♢</span><b>Trusted Lab Partners</b></div>
+            <div className="refHeroNote"><span>₹</span><b>Transparent Pricing</b></div>
+            <div className="refHeroNote"><span>▤</span><b>View & Download Reports</b></div>
+            <div className="refHeroScribble">Healthier Families<br/>Stronger Tomorrows</div>
           </aside>
         </div>
       </section>
 
-      <section id="categories" className="discoverSection">
-        <div className="marketWrap">
-          <div className="sectionTop"><div><span className="kicker">DISCOVER BY HEALTH NEED</span><h2>Find the right starting point.</h2><p>Browse common screening needs without needing to know the exact test name.</p></div><a className="outlineBtn" href="#catalog">View all tests</a></div>
-          <div className="categoryGrid">
-            {categories.map(([icon, title, text, q]) => <a key={title} className="categoryCard" href={`/?q=${encodeURIComponent(q)}#catalog`}><span>{icon}</span><b>{title}</b><small>{text}</small><i>→</i></a>)}
+      <section className="refPartnerStrip" aria-label="Diagnostic partner network">
+        <div className="refWrap refPartnerGrid">
+          <div className="refPartnerItem"><div className="miniLogo">TG</div><span>TG Labs<br/>Our Own Lab</span></div>
+          <div className="refPartnerItem"><img src="/partners/thyrocare.svg" alt="Thyrocare" /></div>
+          <div className="refPartnerItem"><img src="/partners/sagepath-labs.svg" alt="Sagepath Labs" /></div>
+          <div className="refPartnerItem"><img src="/partners/dr-lal-pathlabs.svg" alt="Dr Lal PathLabs" /></div>
+          <div className="refPartnerItem"><span>✹</span><span>NABL-focused<br/>Partners</span></div>
+          <div className="refPartnerItem"><span>♧</span><span>Transparent<br/>Pricing</span></div>
+          <div className="refPartnerItem"><span>◉</span><span>Dedicated<br/>Support</span></div>
+        </div>
+      </section>
+
+      <section className="refPackages">
+        <div className="refWrap">
+          <div className="refSectionHead"><h2>Popular Health Packages</h2><a href="#catalog">View All Packages →</a></div>
+          <div className="refPackageGrid">
+            {packages.map(([title, subtitle, tests, fasting, icon, query]) => (
+              <article className="refPackageCard" key={`${title}-${subtitle}`}>
+                <h3>{title}<br/><small>{subtitle}</small></h3>
+                <div className="refPackageIcon" aria-hidden="true">{icon}</div>
+                <div className="refPackageMeta"><span>▤ {tests}</span><span>♨ {fasting}</span></div>
+                <div className="refPackagePrice"><div><small>Check live partner price</small><strong>Live Price</strong></div><a href={`/?q=${encodeURIComponent(query)}#catalog`}>View</a></div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="popularChecks">
-        <div className="marketWrap">
-          <div className="sectionTop"><div><span className="kicker">POPULAR CHECKS</span><h2>Frequently searched tests.</h2><p>Quick access to everyday diagnostic needs.</p></div></div>
-          <div className="healthGrid">
-            {popular.map(([name, desc, price, q]) => <article className="healthCard" key={name}><div className="healthLabels"><span>POPULAR</span><b>HOME COLLECTION</b></div><h3>{name}</h3><p>{desc}</p><div className="healthMeta">Compare available lab options before booking.</div><div className="healthBottom"><div><small>Starting / reference</small><strong>{price}</strong></div><a className="outlineBtn" href={`/?q=${encodeURIComponent(q)}#catalog`}>View</a></div></article>)}
-          </div>
+      <section id="services" className="refServiceStrip">
+        <div className="refWrap refServiceGrid">
+          <div className="refServiceItem"><span>▣</span><div><b>Home Sample Collection</b><small>Safe. Convenient. Reliable.</small></div></div>
+          <div className="refServiceItem"><span>▤</span><div><b>Accurate Reports</b><small>Secure digital report access.</small></div></div>
+          <div className="refServiceItem"><span>♢</span><div><b>Trusted & Secure</b><small>Your health data stays protected.</small></div></div>
+          <div className="refServiceItem"><span>♧</span><div><b>Customer Support</b><small>Help when you need it.</small></div></div>
         </div>
       </section>
 
-      <section id="partners" className="labPartnerSection">
-        <div className="marketWrap">
-          <div className="sectionTop"><div><span className="kicker">PARTNER LAB NETWORK</span><h2>One place to compare trusted labs.</h2><p>Partner availability and booking eligibility remain controlled by serviceability and operational readiness.</p></div><a className="outlineBtn" href="/compare/labs">Compare labs</a></div>
-          <div className="labGrid">
-            {labs.map(([name, desc, status, href]) => <article className="labCard" key={name}><div className="labInitial">{name.split(' ').map(x=>x[0]).join('').slice(0,2)}</div><h3>{name}</h3><b>{status}</b><p>{desc}</p><div className="labStats"><span>Catalog<strong>Transparent</strong></span><span>Access<strong>Eligibility-based</strong></span></div><a href={href}>Explore {name}</a></article>)}
-          </div>
-          <p className="partnerNote">TG Labs presents partner information for comparison. Actual booking depends on active offers, serviceability and partner readiness.</p>
+      <section className="refCta">
+        <div className="refWrap refCtaInner">
+          <div className="refLeaf">🍃</div>
+          <div className="refCtaCopy"><h2>Book. Test. Stay Healthy.</h2><p>Prevention starts with clear information and convenient diagnostics.</p></div>
+          <div className="refCtaTrust"><span>▣ Easy Booking</span><span>♢ Trusted Labs</span><span>₹ Clear Prices</span><span>♡ Better Health</span></div>
+          <a href="#catalog">Book a Test Now →</a>
         </div>
       </section>
 
-      <section className="responsibility">
-        <div className="marketWrap">
-          <span className="kicker lightKicker">HOME COLLECTION JOURNEY</span><h2>Simple from booking to report.</h2>
-          <div className="stepsRow"><div><b>1</b><span>Choose test</span></div><div><b>2</b><span>Select collection</span></div><div><b>3</b><span>Sample collected</span></div><div><b>4</b><span>Lab processing</span></div><div><b>5</b><span>View report securely</span></div></div>
-        </div>
-      </section>
-
-      <section className="trustSection">
-        <div className="marketWrap trustLayout">
-          <div><span className="kicker">TRUST & QUALITY</span><h2>Designed around verified diagnostics.</h2><p>TG Labs is building a partner network around accredited diagnostic providers, clear patient communication and secure digital report access.</p></div>
-          <div className="trustCards"><div><strong>NABL-focused</strong><span>Partner strategy prioritises accredited laboratories.</span></div><div><strong>Secure access</strong><span>Patient reports stay behind authenticated access.</span></div><div><strong>Transparent choices</strong><span>See partner and service eligibility before booking.</span></div></div>
-        </div>
-      </section>
-
-      <section id="catalog" className="catalogPremiumSection">
-        <div className="marketWrap">
-          <div className="sectionTop"><div><span className="kicker">LIVE CATALOG</span><h2>Search current tests & packages.</h2><p>Use filters, check your pincode and add eligible products to your cart.</p></div></div>
+      <section id="catalog" className="refLiveCatalog">
+        <div className="refWrap">
+          <div className="refSectionHead"><div><h2>Search Tests & Packages</h2><div className="refCatalogIntro">Browse the live TG Labs catalog, compare available partner options and check serviceability before booking.</div></div></div>
           <Suspense fallback={<div className="catalogState">Loading catalog…</div>}><CatalogFilters/><CatalogBrowser/></Suspense>
         </div>
       </section>
 
-      <section className="homeCta"><div className="marketWrap homeCtaInner"><div><span className="kicker lightKicker">READY TO BOOK?</span><h2>Start with the test you need today.</h2><p>Search the live catalog and check home collection availability for your pincode.</p></div><a href="#catalog">Explore Tests →</a></div></section>
-
-      <footer className="marketFooter">
-        <div className="marketWrap footerGrid">
-          <div><BrandLogo variant="footer" className="footerLogoImage"/><p>Diagnostic discovery, home collection and secure patient report access through TG Labs and eligible partner laboratories.</p></div>
-          <div><b>Explore</b><a href="#catalog">Tests & Packages</a><a href="/compare/labs">Compare Labs</a><a href="#categories">Health Categories</a></div>
+      <footer className="refFooter">
+        <div className="refWrap refFooterGrid">
+          <div><BrandLogo variant="footer"/><p>Diagnostic discovery, home sample collection and secure digital reports through TG Labs and eligible partner laboratories.</p></div>
+          <div><b>Explore</b><a href="#catalog">Tests & Packages</a><a href="/compare/labs">Partner Labs</a><a href="#services">Home Collection</a></div>
           <div><b>Patients</b><a href="/auth">Login</a><a href="/cart">Cart</a><a href="#catalog">Book a Test</a></div>
-          <div><b>TG Labs</b><a href="#partners">Partner Network</a><a href="#categories">Preventive Health</a><a href="#catalog">Home Collection</a></div>
+          <div><b>Support</b><a href="/contact-us">Contact Us</a><a href="/privacy-policy">Privacy</a><a href="/terms">Terms</a></div>
         </div>
       </footer>
-      <a className="floatingBook" href="#catalog">Book a Test</a>
+      <a className="refFloating" href="#catalog">Book a Test</a>
     </main>
   );
 }
