@@ -3,6 +3,56 @@ import { NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type WhatsAppStatus = {
+  status?: string;
+  timestamp?: string;
+  recipient_id?: string;
+  errors?: Array<{
+    code?: number;
+    title?: string;
+    message?: string;
+    error_data?: {
+      details?: string;
+    };
+  }>;
+};
+
+function logDeliveryStatuses(payload: any) {
+  const entries = Array.isArray(payload?.entry) ? payload.entry : [];
+
+  for (const entry of entries) {
+    const changes = Array.isArray(entry?.changes) ? entry.changes : [];
+
+    for (const change of changes) {
+      const statuses: WhatsAppStatus[] = Array.isArray(change?.value?.statuses)
+        ? change.value.statuses
+        : [];
+
+      for (const status of statuses) {
+        const normalizedStatus = typeof status?.status === "string" ? status.status : "unknown";
+        const errors = Array.isArray(status?.errors) ? status.errors : [];
+        const safeErrors = errors.map((error) => ({
+          code: error?.code,
+          title: error?.title,
+        }));
+
+        if (normalizedStatus === "failed") {
+          console.error("WhatsApp delivery status failed", {
+            status: normalizedStatus,
+            errorCount: safeErrors.length,
+            errors: safeErrors,
+          });
+        } else {
+          console.info("WhatsApp delivery status received", {
+            status: normalizedStatus,
+            errorCount: safeErrors.length,
+          });
+        }
+      }
+    }
+  }
+}
+
 /**
  * Meta calls this endpoint when the WhatsApp webhook is configured.
  * It sends hub.mode, hub.verify_token and hub.challenge as query parameters.
@@ -32,8 +82,8 @@ export async function GET(request: NextRequest) {
 
 /**
  * Receives WhatsApp Cloud API webhook events.
- * Phase 2.9 initially acknowledges valid JSON events so Meta does not retry them.
- * Message/status persistence and business actions can be layered on this handler.
+ * Delivery status observability is intentionally log-only: it does not persist
+ * message IDs, recipient phone numbers, booking data, or webhook payloads.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -50,10 +100,13 @@ export async function POST(request: NextRequest) {
     }, 0);
 
     console.info("WhatsApp webhook received", { eventCount });
+    logDeliveryStatuses(payload);
 
     return NextResponse.json({ received: true }, { status: 200 });
   } catch (error) {
-    console.error("Invalid WhatsApp webhook payload", error);
+    console.error("Invalid WhatsApp webhook payload", {
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
     return NextResponse.json({ received: false }, { status: 400 });
   }
 }
