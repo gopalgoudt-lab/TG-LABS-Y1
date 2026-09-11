@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { generateTestDescription } from '@/lib/test-description-ai';
 
@@ -7,10 +8,10 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 180;
 
 const requestSchema = z.object({ limit: z.coerce.number().int().min(1).max(10).optional().default(5) });
-const missingDescriptionWhere = {
+const missingDescriptionWhere: Prisma.DiagnosticTestWhereInput = {
   OR: [{ description: null }, { description: '' }],
   partnerOffers: { some: {} },
-} as const;
+};
 
 export async function GET() {
   try {
