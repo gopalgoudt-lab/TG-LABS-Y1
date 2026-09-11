@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import Image from 'next/image';
 import BrandLogo from '@/components/BrandLogo';
 import CatalogFilters from '@/components/catalog/CatalogFilters';
 import CatalogBrowser from '@/components/catalog/CatalogBrowser';
@@ -15,7 +16,7 @@ const packages = [
 
 export default function Home() {
   return (
-    <main className="refHome">
+    <main className="refHome refHomeExact">
       <header className="refHeader">
         <div className="refWrap refNav">
           <a href="/" className="refBrand" aria-label="TG Labs home"><BrandLogo priority /></a>
@@ -24,24 +25,24 @@ export default function Home() {
             <a href="#catalog">Tests</a>
             <a href="/packages/full-body-checkup">Packages</a>
             <a href="/compare/labs">Partners</a>
-            <a href="#services">Health Services</a>
+            <a href="#services">Health Blog</a>
             <a href="/contact-us">About</a>
           </nav>
           <div className="refNavMeta">
-            <div className="refMetaBox"><span>⌖</span><div><b>Hyderabad</b><small>Home collection</small></div></div>
-            <div className="refMetaBox"><span>☎</span><div><b>Support</b><small>Contact us</small></div></div>
+            <div className="refMetaBox"><span>⌖</span><div><b>Hyderabad</b><small>Change</small></div></div>
+            <div className="refMetaBox"><span>☎</span><div><b>+91 98765 43210</b><small>Call us</small></div></div>
             <a className="refLogin" href="/auth">Login</a>
             <a className="refBook" href="#catalog">Book Now</a>
           </div>
         </div>
       </header>
 
-      <section className="refHero">
+      <section className="refHero refHeroExact">
         <div className="refWrap refHeroGrid">
           <div className="refHeroCopy">
-            <span className="refTrustBadge">✹ NABL-FOCUSED DIAGNOSTIC NETWORK</span>
+            <span className="refTrustBadge">✹ NABL TRUSTED LABS</span>
             <h1>Your Health<span>Our Priority</span></h1>
-            <p>Book diagnostic tests from trusted laboratory partners. Home sample collection. Transparent choices. Secure digital reports. A healthier tomorrow.</p>
+            <p>Book diagnostic tests from trusted NABL labs.<br/>Home sample collection. Affordable prices.<br/>Accurate reports. A healthier tomorrow.</p>
             <form className="refSearch" action="/" method="get">
               <span>⌕</span>
               <input name="q" type="search" placeholder="Search for tests, packages or health conditions..." aria-label="Search tests and packages" />
@@ -57,44 +58,41 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="refFamilyVisual" aria-label="Family-focused diagnostic care visual">
-            <div className="refPeople" aria-hidden="true"><div className="refPerson one"/><div className="refPerson two"/><div className="refChild"/></div>
-            <div className="refFamilyCaption">Healthy families.<br/>Healthier tomorrows.</div>
+          <div className="refFamilyVisual refFamilyPhoto" aria-label="Healthy family choosing diagnostic care">
+            <Image src="/home/family-health-reference.jpg" alt="Healthy family for TG Labs diagnostic care" fill priority sizes="(max-width: 760px) 100vw, 430px" />
           </div>
 
           <aside className="refHeroNotes" aria-label="TG Labs benefits">
-            <div className="refHeroNote"><span>⌂</span><b>Home Sample Collection</b></div>
-            <div className="refHeroNote"><span>♢</span><b>Trusted Lab Partners</b></div>
-            <div className="refHeroNote"><span>₹</span><b>Pay at Collection</b></div>
-            <div className="refHeroNote"><span>▤</span><b>View & Download Reports</b></div>
-            <div className="refHeroScribble">Healthy Families<br/>Stronger Tomorrows</div>
+            <div className="refHeroNote"><span>⌂</span><b>Home Sample<br/>Collection</b></div>
+            <div className="refHeroNote"><span>♢</span><b>NABL Trusted<br/>Labs</b></div>
+            <div className="refHeroNote"><span>₹</span><b>Pay at<br/>Collection</b></div>
+            <div className="refHeroNote"><span>▤</span><b>View & Download<br/>Reports</b></div>
+            <div className="refHeroScribble">Healthy<br/>Families<br/>Tomorrows</div>
           </aside>
         </div>
       </section>
 
       <section className="refPartnerStrip" aria-label="Diagnostic partner network">
         <div className="refWrap refPartnerGrid">
-          <div className="refPartnerItem"><div className="miniLogo">TG</div><span>TG Labs<br/>Our Own Lab</span></div>
+          <div className="refPartnerItem ownLab"><BrandLogo/><span>TG Labs<br/><small>Our Own Lab</small></span></div>
           <div className="refPartnerItem"><img src="/partners/thyrocare.svg" alt="Thyrocare" /></div>
-          <div className="refPartnerItem"><img src="/partners/sagepath-labs.svg" alt="Sagepath Labs" /></div>
+          <div className="refPartnerItem"><img src="/partners/sagepath-labs.svg" alt="Sagepath Diagnostics" /></div>
           <div className="refPartnerItem"><img src="/partners/dr-lal-pathlabs.svg" alt="Dr Lal PathLabs" /></div>
-          <div className="refPartnerItem"><span>✹</span><span>NABL-focused<br/>Partners</span></div>
-          <div className="refPartnerItem"><span>♧</span><span>Affordable<br/>Options</span></div>
-          <div className="refPartnerItem"><span>◉</span><span>Dedicated<br/>Support</span></div>
+          <div className="refPartnerItem"><span>✹</span><span>NABL<br/><small>Accredited Labs</small></span></div>
+          <div className="refPartnerItem"><span>♧</span><span>Affordable<br/><small>Pricing</small></span></div>
+          <div className="refPartnerItem"><span>◉</span><span>Dedicated<br/><small>Support</small></span></div>
         </div>
       </section>
 
-      <section className="refPackages">
+      <section className="refPackages refPackagesExact">
         <div className="refWrap">
           <div className="refSectionHead"><h2>Popular Health Packages</h2><a href="#catalog">View All Packages →</a></div>
           <div className="refPackageGrid">
             {packages.map(([title, subtitle, tests, fasting, icon, query], index) => (
               <article className="refPackageCard" key={`${title}-${subtitle}`}>
-                <div className="refPackageBadge">{index < 3 ? 'Popular' : 'Recommended'}</div>
-                <h3>{title}<br/><small>{subtitle}</small></h3>
-                <div className="refPackageIcon" aria-hidden="true">{icon}</div>
+                <div className="refPackageTitleRow"><h3>{title}<br/><small>{subtitle}</small></h3><div className="refPackageIcon" aria-hidden="true">{icon}</div></div>
                 <div className="refPackageMeta"><span>▤ {tests}</span><span>♨ {fasting}</span></div>
-                <div className="refPackagePrice"><div><small>Compare live partner prices</small><strong>Live Price</strong></div><a href={`/?q=${encodeURIComponent(query)}#catalog`}>Book Now</a></div>
+                <div className="refPackagePrice"><div><small>Compare live partner prices</small><strong>Live Price</strong><em>{index < 3 ? 'Popular' : 'Recommended'}</em></div><a href={`/?q=${encodeURIComponent(query)}#catalog`}>Book Now</a></div>
               </article>
             ))}
           </div>
@@ -103,18 +101,18 @@ export default function Home() {
 
       <section id="services" className="refServiceStrip">
         <div className="refWrap refServiceGrid">
-          <div className="refServiceItem"><span>▣</span><div><b>Home Sample Collection</b><small>Safe. Convenient. Reliable.</small></div></div>
-          <div className="refServiceItem"><span>▤</span><div><b>Accurate Reports</b><small>Secure digital report access.</small></div></div>
-          <div className="refServiceItem"><span>♢</span><div><b>Trusted & Secure</b><small>Your health data stays protected.</small></div></div>
-          <div className="refServiceItem"><span>♧</span><div><b>Customer Support</b><small>Help when you need it.</small></div></div>
+          <div className="refServiceItem"><span>🚚</span><div><b>Home Sample Collection</b><small>Safe. Convenient. Reliable.</small></div></div>
+          <div className="refServiceItem"><span>▤</span><div><b>Accurate Reports</b><small>Digital reports with lab validation.</small></div></div>
+          <div className="refServiceItem"><span>♢</span><div><b>Trusted & Secure</b><small>Your data is safe with us.</small></div></div>
+          <div className="refServiceItem"><span>♧</span><div><b>Customer Support</b><small>We're here to help.</small></div></div>
         </div>
       </section>
 
       <section className="refCta">
         <div className="refWrap refCtaInner">
           <div className="refLeaf">🍃</div>
-          <div className="refCtaCopy"><h2>Book. Test. Stay Healthy.</h2><p>Prevention starts with clear information and convenient diagnostics.</p></div>
-          <div className="refCtaTrust"><span>▣ Easy Booking</span><span>♢ Trusted Labs</span><span>₹ Pay at Collection</span><span>♡ Better Health</span></div>
+          <div className="refCtaCopy"><h2>Book. Test. Stay Healthy.</h2><p>Because prevention is better than cure.</p></div>
+          <div className="refCtaTrust"><span>▣ Easy Booking</span><span>♢ Trusted Labs</span><span>₹ Great Prices</span><span>♡ Better Health</span></div>
           <a href="#catalog">Book a Test Now →</a>
         </div>
       </section>
