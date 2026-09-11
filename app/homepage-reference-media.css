@@ -1,0 +1,48 @@
+/* Phase 4D media + footer polish */
+.refHomeExact .refFamilyPhoto{display:block;min-height:390px;background:#dff2fb;position:relative;overflow:hidden}
+.refHomeExact .refFamilyPhoto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 20%;filter:saturate(.96) contrast(1.02)}
+.refHomeExact .refPackageMedia{width:62px;height:70px;flex:0 0 62px;overflow:hidden;border-radius:8px;background:#f3f8fc;border:1px solid #dce8f3}
+.refHomeExact .refPackageMedia img{width:100%;height:100%;display:block;object-fit:cover;object-position:center top}
+.refHomeExact .refPackageTitleRow{align-items:center}
+.refHomeExact .refPackageCard{min-height:208px}
+.refHomeExact .refPartnerGridLabs{grid-template-columns:1.35fr 1.35fr 1.35fr 1fr 1fr 1fr}
+.refHomeExact .refPartnerItem.partnerNamed{gap:10px;justify-content:center;text-align:left;min-height:68px;padding:8px 10px}
+.refHomeExact .refPartnerItem.partnerNamed img{display:block;width:118px;height:42px;max-width:46%;object-fit:contain;object-position:center;background:transparent;flex:0 0 auto}
+.refHomeExact .refPartnerItem.partnerNamed>span{display:flex;flex-direction:column;font-size:10px;font-weight:900;line-height:1.15;color:#173f70}
+.refHomeExact .refPartnerItem.partnerNamed>span strong{display:inline;color:#0b63ce;font-size:10px}
+.refHomeExact .refPartnerItem.partnerNamed small{display:block;margin-top:3px;font-size:8px;font-weight:700;color:#667f9e}
+.refHomeExact .thyrocarePartner{background:linear-gradient(180deg,#fff,#f3f9ff)}
+.refHomeExact .metropolisPartner img{width:126px;max-width:49%}
+.refHomeExact .refPackagePrice{gap:8px}
+.refHomeExact .refPackageActions{display:flex;flex-direction:column;gap:5px;min-width:82px}
+.refHomeExact .refPackageActions a{display:block;text-align:center;margin:0!important;padding:7px 8px!important;line-height:1.15}
+.refHomeExact .refPackageActions .refAddCart{background:#0b67c2!important;color:#fff!important;border:1px solid #0b67c2!important}
+.refHomeExact .refPackageActions .refBookPkg{background:#fff!important;color:#0b67c2!important;border:1px solid #bfd7ef!important}
+.refHomeExact .refPackageActions .refAddCart:hover{background:#07539f!important}
+.refHomeExact .refPackageCartHelp{margin:10px 0 0;text-align:center;font-size:9px;color:#607690}
+.refHomeExact .refCartShortcut{display:inline-flex;align-items:center;justify-content:center;background:#0b67c2;color:#fff;text-decoration:none;border-radius:7px;padding:9px 13px;font-size:10px;font-weight:900;white-space:nowrap}
+.refHomeExact .refCartTop{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:8px 12px;border:1px solid #b9d4ee;border-radius:6px;background:#f4f9ff;color:#0b5ea9;text-decoration:none;font-size:11px;font-weight:900;white-space:nowrap;transition:.2s ease}
+.refHomeExact .refCartTop:hover{background:#e7f3ff;border-color:#0b67c2;transform:translateY(-1px)}
+.refHomeExact .refCartIcon{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#0b67c2;color:#fff;font-size:14px;line-height:1;box-shadow:0 2px 6px rgba(11,103,194,.22)}
+.refFooterPremium{background:linear-gradient(135deg,#052b5f 0%,#073f80 55%,#0759a4 100%)!important;color:#dcecff;padding:0!important;border-top:4px solid #1d8bd9}
+.refFooterTop{display:grid;grid-template-columns:2.1fr 1fr 1fr 1fr;gap:34px;padding:36px 0 26px}
+.refFooterBrand img{width:190px!important;height:auto!important;filter:none!important;background:#fff;border-radius:8px;padding:6px}
+.refFooterBrand p{font-size:12px!important;line-height:1.65!important;max-width:430px!important;color:#d5e8fb;margin:16px 0}
+.refFooterTrust{display:flex;gap:8px;flex-wrap:wrap}
+.refFooterTrust span{font-size:9px;font-weight:800;color:#fff;padding:7px 9px;border:1px solid rgba(255,255,255,.2);border-radius:999px;background:rgba(255,255,255,.08)}
+.refFooterCol b{display:block;color:#fff;font-size:13px;margin:4px 0 14px;padding-bottom:9px;position:relative}
+.refFooterCol b:after{content:"";position:absolute;left:0;bottom:0;width:30px;height:2px;background:#31a7e8}
+.refFooterCol a{display:block;color:#d9eafa!important;text-decoration:none;font-size:11px!important;margin:9px 0!important;transition:.2s ease}
+.refFooterCol a:hover{color:#fff!important;transform:translateX(2px)}
+.refFooterContact{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:center;border-top:1px solid rgba(255,255,255,.13);padding:18px 0}
+.refFooterContact>div{display:grid;grid-template-columns:34px 1fr;column-gap:9px;align-items:center}
+.refFooterContact>div>span{grid-row:1/3;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.12);display:grid;place-items:center;color:#fff;font-size:15px}
+.refFooterContact b{font-size:11px;color:#fff}
+.refFooterContact small{font-size:9px;color:#bcd7ef}
+.refFooterContact>a{background:#ff7617;color:#fff;text-decoration:none;font-size:11px;font-weight:900;padding:11px 16px;border-radius:6px}
+.refFooterBottom{background:rgba(0,0,0,.16)}
+.refFooterBottom .refWrap{min-height:46px;display:flex;align-items:center;justify-content:space-between;gap:20px;color:#bcd7ef;font-size:10px}
+@media(max-width:1080px){.refHomeExact .refPartnerGridLabs{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){.refFooterTop{grid-template-columns:1.6fr 1fr 1fr}.refFooterCol:last-child{grid-column:2/4}.refFooterContact{grid-template-columns:1fr 1fr}.refFooterContact>a{justify-self:start}}
+@media(max-width:760px){.refHomeExact .refFamilyPhoto img{object-position:center top}.refHomeExact .refPartnerGridLabs{grid-template-columns:repeat(2,1fr)}.refHomeExact .refPartnerItem.partnerNamed{min-height:82px}.refHomeExact .refPartnerItem.partnerNamed img{width:130px;height:46px;max-width:48%}.refHomeExact .refPackageActions{min-width:78px}.refHomeExact .refCartTop{padding:8px 10px}.refHomeExact .refCartTop>span:last-child{display:none}.refFooterTop{grid-template-columns:1fr 1fr;gap:24px}.refFooterBrand{grid-column:1/-1}.refFooterCol:last-child{grid-column:auto}.refFooterContact{grid-template-columns:1fr 1fr}.refFooterBottom .refWrap{flex-direction:column;justify-content:center;padding:10px 0}}
+@media(max-width:470px){.refHomeExact .refPartnerGridLabs{grid-template-columns:1fr}.refHomeExact .refPartnerItem.partnerNamed img{width:145px;height:50px;max-width:50%}.refHomeExact .refPackagePrice{align-items:flex-end}.refHomeExact .refPackageActions{min-width:92px}.refFooterTop{grid-template-columns:1fr}.refFooterBrand{grid-column:auto}.refFooterContact{grid-template-columns:1fr}.refFooterBottom .refWrap{text-align:center}}
