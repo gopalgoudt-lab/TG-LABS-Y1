@@ -2,15 +2,57 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { readCatalogCart } from '@/lib/catalog-cart';
 import ProductCard, { type PublicProduct } from './ProductCard';
 
-export default function CatalogBrowser() {
+type CatalogBrowserProps = {
+  compact?: boolean;
+  compactCount?: number;
+};
+
+export default function CatalogBrowser({ compact = false, compactCount = 3 }: CatalogBrowserProps) {
   const params = useSearchParams();
   const [items, setItems] = useState<PublicProduct[]>([]);
   const [state, setState] = useState('Loading current catalog…');
   const [pincodeInput, setPincodeInput] = useState('');
   const [checkedPincode, setCheckedPincode] = useState('');
   const [pincodeStatus, setPincodeStatus] = useState('');
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    const syncHeaderCartCount = () => {
+      const cart = readCatalogCart(localStorage.getItem('tglabs-cart'));
+      const cartLink = document.querySelector<HTMLAnchorElement>('.refCartTop');
+      if (!cartLink) return;
+
+      let badge = cartLink.querySelector<HTMLSpanElement>('.refCartCount');
+      if (!cart.length) {
+        badge?.remove();
+        cartLink.setAttribute('aria-label', 'View cart');
+        return;
+      }
+
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'refCartCount';
+        const icon = cartLink.querySelector('.refCartIcon');
+        if (icon) icon.insertAdjacentElement('afterend', badge);
+        else cartLink.prepend(badge);
+      }
+
+      badge.textContent = String(cart.length);
+      badge.setAttribute('aria-label', `${cart.length} item${cart.length === 1 ? '' : 's'} in cart`);
+      cartLink.setAttribute('aria-label', `View cart, ${cart.length} item${cart.length === 1 ? '' : 's'}`);
+    };
+
+    syncHeaderCartCount();
+    window.addEventListener('tglabs-cart-updated', syncHeaderCartCount);
+    window.addEventListener('storage', syncHeaderCartCount);
+    return () => {
+      window.removeEventListener('tglabs-cart-updated', syncHeaderCartCount);
+      window.removeEventListener('storage', syncHeaderCartCount);
+    };
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -45,19 +87,14 @@ export default function CatalogBrowser() {
     setPincodeStatus(`Pincode ${pincodeInput} selected. Test availability will be confirmed when you add each test.`);
   }
 
+  const visibleItems = compact && !showAll ? items.slice(0, compactCount) : items;
+
   return (
     <>
       <div className="catalogPincode">
         <label htmlFor="catalog-pincode"><b>Home collection pincode</b></label>
         <div className="catalogPincodeControls">
-          <input
-            id="catalog-pincode"
-            inputMode="numeric"
-            maxLength={6}
-            placeholder="Enter 6-digit pincode"
-            value={pincodeInput}
-            onChange={(event) => updatePincode(event.target.value)}
-          />
+          <input id="catalog-pincode" inputMode="numeric" maxLength={6} placeholder="Enter 6-digit pincode" value={pincodeInput} onChange={(event) => updatePincode(event.target.value)} />
           <button type="button" className="btn primary" onClick={checkPincode}>Check availability</button>
         </div>
         <small>This pincode is entered once. Each selected test is then checked against the relevant lab before it is added to your cart.</small>
@@ -65,11 +102,10 @@ export default function CatalogBrowser() {
       </div>
       {state && <div className="catalogState" role="status">{state}</div>}
       <div className="productGrid">
-        {items.map((product) => (
-          <ProductCard key={`${product.type}-${product.slug}`} product={product} pincode={checkedPincode} />
-        ))}
+        {visibleItems.map((product) => <ProductCard key={`${product.type}-${product.slug}`} product={product} pincode={checkedPincode} />)}
       </div>
-      <style>{`.catalogPincode{margin:18px 0 22px;padding:16px;border:1px solid #cfe6e1;border-radius:14px;background:#f5faf9;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.catalogPincodeControls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.catalogPincode input{min-width:240px;padding:11px 12px;border:1px solid #bfd8d2;border-radius:10px}.catalogPincode small,.catalogPincodeStatus{width:100%;color:#667a75}.catalogPincodeStatus{font-weight:700;color:#087f78}`}</style>
+      {compact && !showAll && items.length > compactCount && <div className="catalogViewAll"><button type="button" className="btn" onClick={() => setShowAll(true)}>View all tests</button></div>}
+      <style>{`.catalogPincode{margin:18px 0 22px;padding:16px;border:1px solid #cfe6e1;border-radius:14px;background:#f5faf9;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.catalogPincodeControls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.catalogPincode input{min-width:240px;padding:11px 12px;border:1px solid #bfd8d2;border-radius:10px}.catalogPincode small,.catalogPincodeStatus{width:100%;color:#667a75}.catalogPincodeStatus{font-weight:700;color:#087f78}.catalogViewAll{display:flex;justify-content:center;margin-top:20px}.refHomeExact .refCartTop{position:relative}.refHomeExact .refCartCount{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#e51b23;color:#fff;font-size:10px;font-weight:900;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.22)}`}</style>
     </>
   );
 }
