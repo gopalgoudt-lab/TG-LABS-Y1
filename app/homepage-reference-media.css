@@ -4,7 +4,22 @@
 .refHomeExact .refPackageMedia{width:62px;height:70px;flex:0 0 62px;overflow:hidden;border-radius:8px;background:#f3f8fc;border:1px solid #dce8f3}
 .refHomeExact .refPackageMedia img{width:100%;height:100%;display:block;object-fit:cover;object-position:center top}
 .refHomeExact .refPackageTitleRow{align-items:center}
-.refHomeExact .refPackageCard{min-height:198px}
+.refHomeExact .refPackageCard{min-height:208px}
+.refHomeExact .refPartnerGridLabs{grid-template-columns:1.35fr 1.35fr 1.35fr 1fr 1fr 1fr}
+.refHomeExact .refPartnerItem.partnerNamed{gap:9px;justify-content:center;text-align:left}
+.refHomeExact .refPartnerItem.partnerNamed img{max-width:98px;max-height:36px;object-fit:contain}
+.refHomeExact .refPartnerItem.partnerNamed>span{display:flex;flex-direction:column;font-size:10px;font-weight:900;line-height:1.15;color:#173f70}
+.refHomeExact .refPartnerItem.partnerNamed>span strong{display:inline;color:#0b63ce;font-size:10px}
+.refHomeExact .refPartnerItem.partnerNamed small{display:block;margin-top:3px;font-size:8px;font-weight:700;color:#667f9e}
+.refHomeExact .thyrocarePartner{background:linear-gradient(180deg,#fff,#f3f9ff)}
+.refHomeExact .refPackagePrice{gap:8px}
+.refHomeExact .refPackageActions{display:flex;flex-direction:column;gap:5px;min-width:82px}
+.refHomeExact .refPackageActions a{display:block;text-align:center;margin:0!important;padding:7px 8px!important;line-height:1.15}
+.refHomeExact .refPackageActions .refAddCart{background:#0b67c2!important;color:#fff!important;border:1px solid #0b67c2!important}
+.refHomeExact .refPackageActions .refBookPkg{background:#fff!important;color:#0b67c2!important;border:1px solid #bfd7ef!important}
+.refHomeExact .refPackageActions .refAddCart:hover{background:#07539f!important}
+.refHomeExact .refPackageCartHelp{margin:10px 0 0;text-align:center;font-size:9px;color:#607690}
+.refHomeExact .refCartShortcut{display:inline-flex;align-items:center;justify-content:center;background:#0b67c2;color:#fff;text-decoration:none;border-radius:7px;padding:9px 13px;font-size:10px;font-weight:900;white-space:nowrap}
 .refFooterPremium{background:linear-gradient(135deg,#052b5f 0%,#073f80 55%,#0759a4 100%)!important;color:#dcecff;padding:0!important;border-top:4px solid #1d8bd9}
 .refFooterTop{display:grid;grid-template-columns:2.1fr 1fr 1fr 1fr;gap:34px;padding:36px 0 26px}
 .refFooterBrand img{width:190px!important;height:auto!important;filter:none!important;background:#fff;border-radius:8px;padding:6px}
@@ -23,6 +38,7 @@
 .refFooterContact>a{background:#ff7617;color:#fff;text-decoration:none;font-size:11px;font-weight:900;padding:11px 16px;border-radius:6px}
 .refFooterBottom{background:rgba(0,0,0,.16)}
 .refFooterBottom .refWrap{min-height:46px;display:flex;align-items:center;justify-content:space-between;gap:20px;color:#bcd7ef;font-size:10px}
+@media(max-width:1080px){.refHomeExact .refPartnerGridLabs{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.refFooterTop{grid-template-columns:1.6fr 1fr 1fr}.refFooterCol:last-child{grid-column:2/4}.refFooterContact{grid-template-columns:1fr 1fr}.refFooterContact>a{justify-self:start}}
-@media(max-width:760px){.refHomeExact .refFamilyPhoto img{object-position:center top}.refFooterTop{grid-template-columns:1fr 1fr;gap:24px}.refFooterBrand{grid-column:1/-1}.refFooterCol:last-child{grid-column:auto}.refFooterContact{grid-template-columns:1fr 1fr}.refFooterBottom .refWrap{flex-direction:column;justify-content:center;padding:10px 0}}
-@media(max-width:470px){.refFooterTop{grid-template-columns:1fr}.refFooterBrand{grid-column:auto}.refFooterContact{grid-template-columns:1fr}.refFooterBottom .refWrap{text-align:center}}
+@media(max-width:760px){.refHomeExact .refFamilyPhoto img{object-position:center top}.refHomeExact .refPartnerGridLabs{grid-template-columns:repeat(2,1fr)}.refHomeExact .refPartnerItem.partnerNamed{min-height:82px}.refHomeExact .refPackageActions{min-width:78px}.refFooterTop{grid-template-columns:1fr 1fr;gap:24px}.refFooterBrand{grid-column:1/-1}.refFooterCol:last-child{grid-column:auto}.refFooterContact{grid-template-columns:1fr 1fr}.refFooterBottom .refWrap{flex-direction:column;justify-content:center;padding:10px 0}}
+@media(max-width:470px){.refHomeExact .refPartnerGridLabs{grid-template-columns:1fr}.refHomeExact .refPackagePrice{align-items:flex-end}.refHomeExact .refPackageActions{min-width:92px}.refFooterTop{grid-template-columns:1fr}.refFooterBrand{grid-column:auto}.refFooterContact{grid-template-columns:1fr}.refFooterBottom .refWrap{text-align:center}}
