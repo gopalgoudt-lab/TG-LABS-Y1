@@ -35,7 +35,11 @@ export default function PartnerBrandingStrip() {
         return (
           <div className={`refPartnerItem partnerNamed ${className}`.trim()} key={slug}>
             {partner?.logoData ? <img src={partner.logoData} alt={`${label} logo`} /> : <span className="refPartnerLogoFallback" aria-hidden="true">{label.charAt(0)}</span>}
-            <span>{label} {suffix && <strong>{suffix}</strong>}<small>Partner Lab</small></span>
+            <span className="refPartnerDetails">
+              <span>{label} {suffix && <strong>{suffix}</strong>}</span>
+              <small>Partner Lab</small>
+              <a className="refPartnerBook" href={`/?partner=${encodeURIComponent(slug)}#catalog`} aria-label={`Book tests from ${label}`}>Book Tests</a>
+            </span>
           </div>
         );
       })}
