@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { readCatalogCart } from '@/lib/catalog-cart';
 import ProductCard, { type PublicProduct } from './ProductCard';
 
 type CatalogBrowserProps = {
@@ -17,6 +18,41 @@ export default function CatalogBrowser({ compact = false, compactCount = 3 }: Ca
   const [checkedPincode, setCheckedPincode] = useState('');
   const [pincodeStatus, setPincodeStatus] = useState('');
   const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    const syncHeaderCartCount = () => {
+      const cart = readCatalogCart(localStorage.getItem('tglabs-cart'));
+      const cartLink = document.querySelector<HTMLAnchorElement>('.refCartTop');
+      if (!cartLink) return;
+
+      let badge = cartLink.querySelector<HTMLSpanElement>('.refCartCount');
+      if (!cart.length) {
+        badge?.remove();
+        cartLink.setAttribute('aria-label', 'View cart');
+        return;
+      }
+
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'refCartCount';
+        const icon = cartLink.querySelector('.refCartIcon');
+        if (icon) icon.insertAdjacentElement('afterend', badge);
+        else cartLink.prepend(badge);
+      }
+
+      badge.textContent = String(cart.length);
+      badge.setAttribute('aria-label', `${cart.length} item${cart.length === 1 ? '' : 's'} in cart`);
+      cartLink.setAttribute('aria-label', `View cart, ${cart.length} item${cart.length === 1 ? '' : 's'}`);
+    };
+
+    syncHeaderCartCount();
+    window.addEventListener('tglabs-cart-updated', syncHeaderCartCount);
+    window.addEventListener('storage', syncHeaderCartCount);
+    return () => {
+      window.removeEventListener('tglabs-cart-updated', syncHeaderCartCount);
+      window.removeEventListener('storage', syncHeaderCartCount);
+    };
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -69,7 +105,7 @@ export default function CatalogBrowser({ compact = false, compactCount = 3 }: Ca
         {visibleItems.map((product) => <ProductCard key={`${product.type}-${product.slug}`} product={product} pincode={checkedPincode} />)}
       </div>
       {compact && !showAll && items.length > compactCount && <div className="catalogViewAll"><button type="button" className="btn" onClick={() => setShowAll(true)}>View all tests</button></div>}
-      <style>{`.catalogPincode{margin:18px 0 22px;padding:16px;border:1px solid #cfe6e1;border-radius:14px;background:#f5faf9;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.catalogPincodeControls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.catalogPincode input{min-width:240px;padding:11px 12px;border:1px solid #bfd8d2;border-radius:10px}.catalogPincode small,.catalogPincodeStatus{width:100%;color:#667a75}.catalogPincodeStatus{font-weight:700;color:#087f78}.catalogViewAll{display:flex;justify-content:center;margin-top:20px}`}</style>
+      <style>{`.catalogPincode{margin:18px 0 22px;padding:16px;border:1px solid #cfe6e1;border-radius:14px;background:#f5faf9;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.catalogPincodeControls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.catalogPincode input{min-width:240px;padding:11px 12px;border:1px solid #bfd8d2;border-radius:10px}.catalogPincode small,.catalogPincodeStatus{width:100%;color:#667a75}.catalogPincodeStatus{font-weight:700;color:#087f78}.catalogViewAll{display:flex;justify-content:center;margin-top:20px}.refHomeExact .refCartTop{position:relative}.refHomeExact .refCartCount{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#e51b23;color:#fff;font-size:10px;font-weight:900;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.22)}`}</style>
     </>
   );
 }
