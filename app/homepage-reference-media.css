@@ -20,6 +20,9 @@
 .refHomeExact .refPackageActions .refAddCart:hover{background:#07539f!important}
 .refHomeExact .refPackageCartHelp{margin:10px 0 0;text-align:center;font-size:9px;color:#607690}
 .refHomeExact .refCartShortcut{display:inline-flex;align-items:center;justify-content:center;background:#0b67c2;color:#fff;text-decoration:none;border-radius:7px;padding:9px 13px;font-size:10px;font-weight:900;white-space:nowrap}
+.refHomeExact .refCartTop{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:8px 12px;border:1px solid #b9d4ee;border-radius:6px;background:#f4f9ff;color:#0b5ea9;text-decoration:none;font-size:11px;font-weight:900;white-space:nowrap;transition:.2s ease}
+.refHomeExact .refCartTop:hover{background:#e7f3ff;border-color:#0b67c2;transform:translateY(-1px)}
+.refHomeExact .refCartIcon{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#0b67c2;color:#fff;font-size:14px;line-height:1;box-shadow:0 2px 6px rgba(11,103,194,.22)}
 .refFooterPremium{background:linear-gradient(135deg,#052b5f 0%,#073f80 55%,#0759a4 100%)!important;color:#dcecff;padding:0!important;border-top:4px solid #1d8bd9}
 .refFooterTop{display:grid;grid-template-columns:2.1fr 1fr 1fr 1fr;gap:34px;padding:36px 0 26px}
 .refFooterBrand img{width:190px!important;height:auto!important;filter:none!important;background:#fff;border-radius:8px;padding:6px}
@@ -40,5 +43,5 @@
 .refFooterBottom .refWrap{min-height:46px;display:flex;align-items:center;justify-content:space-between;gap:20px;color:#bcd7ef;font-size:10px}
 @media(max-width:1080px){.refHomeExact .refPartnerGridLabs{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.refFooterTop{grid-template-columns:1.6fr 1fr 1fr}.refFooterCol:last-child{grid-column:2/4}.refFooterContact{grid-template-columns:1fr 1fr}.refFooterContact>a{justify-self:start}}
-@media(max-width:760px){.refHomeExact .refFamilyPhoto img{object-position:center top}.refHomeExact .refPartnerGridLabs{grid-template-columns:repeat(2,1fr)}.refHomeExact .refPartnerItem.partnerNamed{min-height:82px}.refHomeExact .refPackageActions{min-width:78px}.refFooterTop{grid-template-columns:1fr 1fr;gap:24px}.refFooterBrand{grid-column:1/-1}.refFooterCol:last-child{grid-column:auto}.refFooterContact{grid-template-columns:1fr 1fr}.refFooterBottom .refWrap{flex-direction:column;justify-content:center;padding:10px 0}}
+@media(max-width:760px){.refHomeExact .refFamilyPhoto img{object-position:center top}.refHomeExact .refPartnerGridLabs{grid-template-columns:repeat(2,1fr)}.refHomeExact .refPartnerItem.partnerNamed{min-height:82px}.refHomeExact .refPackageActions{min-width:78px}.refHomeExact .refCartTop{padding:8px 10px}.refHomeExact .refCartTop>span:last-child{display:none}.refFooterTop{grid-template-columns:1fr 1fr;gap:24px}.refFooterBrand{grid-column:1/-1}.refFooterCol:last-child{grid-column:auto}.refFooterContact{grid-template-columns:1fr 1fr}.refFooterBottom .refWrap{flex-direction:column;justify-content:center;padding:10px 0}}
 @media(max-width:470px){.refHomeExact .refPartnerGridLabs{grid-template-columns:1fr}.refHomeExact .refPackagePrice{align-items:flex-end}.refHomeExact .refPackageActions{min-width:92px}.refFooterTop{grid-template-columns:1fr}.refFooterBrand{grid-column:auto}.refFooterContact{grid-template-columns:1fr}.refFooterBottom .refWrap{text-align:center}}
