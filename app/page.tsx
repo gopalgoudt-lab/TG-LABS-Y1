@@ -4,6 +4,7 @@ import BrandLogo from '@/components/BrandLogo';
 import CatalogFilters from '@/components/catalog/CatalogFilters';
 import CatalogBrowser from '@/components/catalog/CatalogBrowser';
 import '@/app/homepage-reference.css';
+import '@/app/homepage-reference-exact.css';
 
 const packages = [
   ['Aarogyam Pro', 'Full Body Checkup', '70+ Tests', 'Fasting Required', '🩺', 'full body'],
