@@ -9,9 +9,17 @@ type PartnerBranding = {
   logoMime: string | null;
 };
 
-const preferredPartners = [
-  { slug: 'thyrocare', label: 'Thyrocare', suffix: '(HYD73)', className: 'thyrocarePartner' },
-  { slug: 'sagepath-labs', label: 'Sagepath Diagnostics', suffix: '', className: '' },
+type PreferredPartner = {
+  slug: string;
+  label: string;
+  suffix: string;
+  className: string;
+  fallbackLogo?: string;
+};
+
+const preferredPartners: PreferredPartner[] = [
+  { slug: 'thyrocare', label: 'Thyrocare', suffix: '(HYD73)', className: 'thyrocarePartner', fallbackLogo: '/partners/thyrocare.svg' },
+  { slug: 'sagepath-labs', label: 'Sagepath Diagnostics', suffix: '', className: '', fallbackLogo: '/partners/sagepath-labs.svg' },
   { slug: 'tg-labs-partner', label: 'Metropolis', suffix: '', className: 'metropolisPartner' },
 ];
 
@@ -30,11 +38,16 @@ export default function PartnerBrandingStrip() {
 
   return (
     <>
-      {preferredPartners.map(({ slug, label, suffix, className }) => {
+      {preferredPartners.map(({ slug, label, suffix, className, fallbackLogo }) => {
         const partner = bySlug.get(slug);
+        const logoSrc = partner?.logoData || fallbackLogo;
         return (
           <div className={`refPartnerItem partnerNamed ${className}`.trim()} key={slug}>
-            {partner?.logoData ? <img src={partner.logoData} alt={`${label} logo`} /> : <span className="refPartnerLogoFallback" aria-hidden="true">{label.charAt(0)}</span>}
+            {logoSrc ? (
+              <img src={logoSrc} alt={`${label} logo`} />
+            ) : (
+              <span className="refPartnerWordmark" aria-label={`${label} logo`}>{label}</span>
+            )}
             <span className="refPartnerDetails">
               <span>{label} {suffix && <strong>{suffix}</strong>}</span>
               <small>Partner Lab</small>
