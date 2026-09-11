@@ -10,9 +10,9 @@ type PartnerBranding = {
 };
 
 const preferredPartners = [
-  { slug: 'thyrocare', label: 'Thyrocare (HYD73)' },
-  { slug: 'sagepath-labs', label: 'Sagepath Labs' },
-  { slug: 'metropolis-labs', label: 'Metropolis Labs' },
+  { slug: 'thyrocare', label: 'Thyrocare', suffix: '(HYD73)', className: 'thyrocarePartner' },
+  { slug: 'sagepath-labs', label: 'Sagepath Diagnostics', suffix: '', className: '' },
+  { slug: 'tg-labs-partner', label: 'Metropolis', suffix: '', className: 'metropolisPartner' },
 ];
 
 export default function PartnerBrandingStrip() {
@@ -20,7 +20,7 @@ export default function PartnerBrandingStrip() {
 
   useEffect(() => {
     const slugs = preferredPartners.map((partner) => partner.slug).join(',');
-    fetch(`/api/partner-branding?slugs=${encodeURIComponent(slugs)}`)
+    fetch(`/api/partner-branding?slugs=${encodeURIComponent(slugs)}`, { cache: 'no-store' })
       .then((response) => (response.ok ? response.json() : Promise.reject()))
       .then((payload) => setPartners(Array.isArray(payload?.partners) ? payload.partners : []))
       .catch(() => setPartners([]));
@@ -30,16 +30,12 @@ export default function PartnerBrandingStrip() {
 
   return (
     <>
-      {preferredPartners.map(({ slug, label }) => {
+      {preferredPartners.map(({ slug, label, suffix, className }) => {
         const partner = bySlug.get(slug);
         return (
-          <div className="refPartnerItem refPartnerBrand" key={slug}>
-            {partner?.logoData ? (
-              <img className="refPartnerAdminLogo" src={partner.logoData} alt={`${label} logo`} />
-            ) : (
-              <span className="refPartnerLogoFallback" aria-hidden="true">{label.charAt(0)}</span>
-            )}
-            <span><b>{label}</b><small>Partner Lab</small></span>
+          <div className={`refPartnerItem partnerNamed ${className}`.trim()} key={slug}>
+            {partner?.logoData ? <img src={partner.logoData} alt={`${label} logo`} /> : <span className="refPartnerLogoFallback" aria-hidden="true">{label.charAt(0)}</span>}
+            <span>{label} {suffix && <strong>{suffix}</strong>}<small>Partner Lab</small></span>
           </div>
         );
       })}
