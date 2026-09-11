@@ -121,7 +121,7 @@ export default function Home() {
       <section id="catalog" className="refLiveCatalog">
         <div className="refWrap">
           <div className="refSectionHead"><div><h2>Search Tests & Packages</h2><div className="refCatalogIntro">Browse the live TG Labs catalog, compare available partner options and check serviceability before booking.</div></div></div>
-          <Suspense fallback={<div className="catalogState">Loading catalog…</div>}><CatalogFilters/><CatalogBrowser/></Suspense>
+          <Suspense fallback={<div className="catalogState">Loading catalog…</div>}><CatalogFilters/><CatalogBrowser compact compactCount={3}/></Suspense>
         </div>
       </section>
 
