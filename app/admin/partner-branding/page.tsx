@@ -145,8 +145,8 @@ export default function PartnerBrandingAdminPage() {
             <input type="file" accept="image/png,image/jpeg,image/webp" onChange={onFileChange} style={{display:'block',marginTop:8,width:'100%',padding:10,border:'1px solid #cbd8d4',borderRadius:9}}/>
           </label>
           <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:16}}>
-            <button type="button" disabled={!preview||saving} onClick={saveLogo} style={{padding:'11px 16px',border:0,borderRadius:9,background:'#102f29',color:'#fff',fontWeight:900,cursor:'pointer',opacity:!preview||saving?.6:1}}>{saving?'Please wait…':'Save / Replace Logo'}</button>
-            <button type="button" disabled={!selected.logoData||saving} onClick={removeLogo} style={{padding:'11px 16px',border:'1px solid #b93333',borderRadius:9,background:'#fff',color:'#a22',fontWeight:800,cursor:'pointer',opacity:!selected.logoData||saving?.6:1}}>Remove Logo</button>
+            <button type="button" disabled={!preview||saving} onClick={saveLogo} style={{padding:'11px 16px',border:0,borderRadius:9,background:'#102f29',color:'#fff',fontWeight:900,cursor:'pointer',opacity:(!preview||saving)?0.6:1}}>{saving?'Please wait…':'Save / Replace Logo'}</button>
+            <button type="button" disabled={!selected.logoData||saving} onClick={removeLogo} style={{padding:'11px 16px',border:'1px solid #b93333',borderRadius:9,background:'#fff',color:'#a22',fontWeight:800,cursor:'pointer',opacity:(!selected.logoData||saving)?0.6:1}}>Remove Logo</button>
           </div>
           {selected.logoUpdatedAt && <p style={{marginBottom:0,color:'#788',fontSize:12}}>Last updated: {new Date(selected.logoUpdatedAt).toLocaleString()}</p>}
         </div>}
