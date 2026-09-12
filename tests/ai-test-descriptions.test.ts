@@ -2,24 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildTestDescriptionPrompt, cleanTestDescription } from '../lib/test-description-ai';
 
-test('AI test description prompt is partner-neutral and preserves supplied metadata', () => {
-  const prompt = buildTestDescriptionPrompt({
-    name: 'Complete Blood Count (CBC)',
-    aliases: ['CBC'],
-    sampleTypes: ['EDTA'],
-    fastingNeeded: false,
-  });
+test('AI test description prompt is partner-neutral and educational only', () => {
+  const prompt = buildTestDescriptionPrompt({ name: 'Complete Blood Count (CBC)', aliases: ['CBC'] });
   assert.match(prompt, /Complete Blood Count/);
-  assert.match(prompt, /EDTA/);
-  assert.match(prompt, /do not invent/i);
+  assert.match(prompt, /CBC/);
+  assert.match(prompt, /educational only/i);
   assert.match(prompt, /do not diagnose/i);
   assert.match(prompt, /reusable across lab partners/i);
 });
 
-test('AI test description prompt includes only recorded fasting hours', () => {
-  const prompt = buildTestDescriptionPrompt({ name: 'Glucose, Fasting', fastingNeeded: true, fastingHours: 8, sampleTypes: ['Fluoride'] });
-  assert.match(prompt, /8 hours/);
-  assert.match(prompt, /Fluoride/);
+test('AI test description prompt explicitly separates operational instructions', () => {
+  const prompt = buildTestDescriptionPrompt({ name: 'Glucose, Fasting', aliases: ['FBS'] });
+  assert.match(prompt, /do not provide or infer specimen\/sample requirements/i);
+  assert.match(prompt, /fasting instructions or hours/i);
+  assert.match(prompt, /preparation instructions/i);
+  assert.match(prompt, /turnaround time/i);
+  assert.match(prompt, /maintained separately/i);
 });
 
 test('cleanTestDescription normalizes safe plain text', () => {
