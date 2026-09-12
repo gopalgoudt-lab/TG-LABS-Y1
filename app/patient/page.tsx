@@ -5,6 +5,7 @@ import { onAuthStateChanged, signOut, type Auth } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { firebaseAuthErrorMessage } from '@/lib/firebase-auth-errors';
+import { parseAiReportResponse } from '@/lib/ai-report-client';
 import AiReportView from '@/components/AiReportView';
 
 const FLOW = [
@@ -232,8 +233,7 @@ export default function PatientPage() {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ language }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Unable to generate AI Report.');
+      const data = await parseAiReportResponse(res);
       setAiReports((x) => ({ ...x, [report.id]: data }));
     } catch (e) {
       setAiError((x) => ({ ...x, [report.id]: e instanceof Error ? e.message : 'Unable to generate AI Report.' }));
