@@ -21,6 +21,7 @@ test('AI report route preserves authentication, ownership, rate limiting and cle
 test('patient AI report request remains isolated to the authenticated report endpoint', () => {
   assert.match(patient, /\/api\/patient\/reports\/\$\{report\.id\}\/ai/);
   assert.match(patient, /Authorization: `Bearer \$\{token\}`/);
+  assert.match(patient, /parseAiReportResponse\(res\)/);
 });
 
 test('AI report client accepts a valid JSON response', async () => {
