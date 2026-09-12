@@ -3,6 +3,26 @@ type TestDescriptionInput = {
   aliases?: string[];
 };
 
+const operationalContentPatterns = [
+  /\b(sample|specimen)\b/i,
+  /\b(preparation|collection)\b/i,
+  /\b(turnaround|report time|tat)\b/i,
+  /\b(price|cost|mrp)\b/i,
+  /\b(required volume|sample volume|specimen volume)\b/i,
+  /\b\d+(?:\.\d+)?\s*(?:ml|millilit(?:er|re)s?)\b/i,
+  /\b(?:no|without) fasting\b/i,
+  /\bdoes not require fasting\b/i,
+  /\bfast(?:ing)? (?:is )?required\b/i,
+  /\bfast(?:ing)? for \d+/i,
+  /\b\d+\s*hours?\s+(?:of\s+)?fasting\b/i,
+];
+
+export function descriptionNeedsSafetyRefresh(value?: string | null) {
+  const text = value?.trim();
+  if (!text) return false;
+  return operationalContentPatterns.some((pattern) => pattern.test(text));
+}
+
 export function buildTestDescriptionPrompt(test: TestDescriptionInput) {
   const context = [
     `Test name: ${test.name}`,
@@ -21,6 +41,7 @@ export function cleanTestDescription(value: string) {
     .trim();
   if (cleaned.length < 40) throw new Error('AI_DESCRIPTION_TOO_SHORT');
   if (cleaned.length > 1200) throw new Error('AI_DESCRIPTION_TOO_LONG');
+  if (descriptionNeedsSafetyRefresh(cleaned)) throw new Error('AI_DESCRIPTION_OPERATIONAL_CONTENT');
   return cleaned;
 }
 
