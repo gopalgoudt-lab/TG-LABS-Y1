@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       where: missingDescriptionWhere,
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       take: limit,
-      select: { id: true, name: true, aliases: true, sampleTypes: true, fastingNeeded: true, fastingHours: true, preparation: true },
+      select: { id: true, name: true, aliases: true },
     });
 
     const results: Array<{ id: string; name: string; status: 'updated' | 'skipped' | 'failed'; error?: string }> = [];
