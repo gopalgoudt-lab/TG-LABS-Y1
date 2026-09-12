@@ -19,11 +19,11 @@ function seoDescription(name: string, description?: string | null) {
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
   const value = await findPublicTest(slug);
-  if (!value) return { title: 'Test not found | TG Labs', robots: { index: false, follow: false } };
+  if (!value) return { title: 'Test not found', robots: { index: false, follow: false } };
   const description = seoDescription(value.name, value.description);
   const canonical = `${baseUrl}/tests/${value.slug}`;
   return {
-    title: `${value.name} Test: Price, Preparation & Lab Options | TG Labs`,
+    title: `${value.name} Test: Price, Preparation & Lab Options`,
     description,
     alternates: { canonical },
     openGraph: { title: `${value.name} Test | TG Labs`, description, url: canonical, type: 'website' },
