@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { adminAuthError } from '@/lib/admin-auth';
+import { adminFromRequest, writeAdminAudit } from '@/lib/admin-audit';
 import { descriptionNeedsSafetyRefresh, generateTestDescription } from '@/lib/test-description-ai';
 
 export const dynamic = 'force-dynamic';
@@ -18,6 +20,11 @@ const missingDescriptionWhere: Prisma.DiagnosticTestWhereInput = {
   OR: [{ description: null }, { description: '' }],
 };
 
+function isAdminAuthFailure(error: unknown) {
+  const message = error instanceof Error ? error.message : '';
+  return message === 'UNAUTHENTICATED' || message.startsWith('ADMIN_');
+}
+
 async function safetyRefreshCandidates() {
   const tests = await prisma.diagnosticTest.findMany({
     where: partnerLinkedWhere,
@@ -27,8 +34,9 @@ async function safetyRefreshCandidates() {
   return tests.filter((test) => descriptionNeedsSafetyRefresh(test.description));
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    await adminFromRequest(request);
     const [missing, total, withDescription, safetyCandidates] = await Promise.all([
       prisma.diagnosticTest.count({ where: missingDescriptionWhere }),
       prisma.diagnosticTest.count({ where: partnerLinkedWhere }),
@@ -37,6 +45,10 @@ export async function GET() {
     ]);
     return NextResponse.json({ total, withDescription, missing, safetyRefreshNeeded: safetyCandidates.length, batchLimit: 10 });
   } catch (error) {
+    if (isAdminAuthFailure(error)) {
+      const auth = adminAuthError(error);
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
     console.error('GET AI test description status failed', error);
     return NextResponse.json({ error: 'Unable to read AI description status.' }, { status: 500 });
   }
@@ -44,6 +56,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const admin = await adminFromRequest(request);
     const { limit, mode } = requestSchema.parse(await request.json().catch(() => ({})));
     if (!process.env.OPENAI_API_KEY) return NextResponse.json({ error: 'AI descriptions are not configured.' }, { status: 503 });
 
@@ -78,9 +91,23 @@ export async function POST(request: Request) {
     const remaining = mode === 'missing'
       ? await prisma.diagnosticTest.count({ where: missingDescriptionWhere })
       : (await safetyRefreshCandidates()).length;
-    return NextResponse.json({ mode, attempted: tests.length, updated: results.filter(x => x.status === 'updated').length, failed: results.filter(x => x.status === 'failed').length, remaining, results });
+    const updatedCount = results.filter(x => x.status === 'updated').length;
+    const failedCount = results.filter(x => x.status === 'failed').length;
+
+    await writeAdminAudit(request, {
+      action: 'TEST_DESCRIPTION_AI_BATCH',
+      entityType: 'DiagnosticTest',
+      summary: `Admin ${admin.phone} ran ${mode} AI description batch: ${updatedCount} updated, ${failedCount} failed, ${remaining} remaining.`,
+      metadata: { mode, attempted: tests.length, updated: updatedCount, failed: failedCount, remaining },
+    });
+
+    return NextResponse.json({ mode, attempted: tests.length, updated: updatedCount, failed: failedCount, remaining, results });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
+    if (isAdminAuthFailure(error)) {
+      const auth = adminAuthError(error);
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
     console.error('POST AI test description backfill failed', error);
     return NextResponse.json({ error: 'Unable to generate AI test descriptions.' }, { status: 500 });
   }
