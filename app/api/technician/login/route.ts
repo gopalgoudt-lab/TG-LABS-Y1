@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   try {
     const parsed = schema.safeParse(await request.json());
     if (!parsed.success) {
-      const failure = recordTechnicianLoginFailure(identityForLimit, ip);
+      const failure = await recordTechnicianLoginFailure(identityForLimit, ip);
       await slowFailedAttempt();
       if (failure.locked) return rateLimited(failure.retryAfterSeconds);
       return NextResponse.json({ error: GENERIC_ERROR }, { status: 401 });
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
 
     const { identity, pin } = parsed.data;
     identityForLimit = identity;
-    const limit = checkTechnicianLoginRateLimit(identity, ip);
+    const limit = await checkTechnicianLoginRateLimit(identity, ip);
     if (!limit.allowed) return rateLimited(limit.retryAfterSeconds);
 
     const normalized = identity.toLowerCase();
@@ -61,13 +61,13 @@ export async function POST(request: Request) {
     });
 
     if (!technician || !verifyPin(pin, technician.loginPinHash)) {
-      const failure = recordTechnicianLoginFailure(identity, ip);
+      const failure = await recordTechnicianLoginFailure(identity, ip);
       await slowFailedAttempt();
       if (failure.locked) return rateLimited(failure.retryAfterSeconds);
       return NextResponse.json({ error: GENERIC_ERROR }, { status: 401 });
     }
 
-    resetTechnicianLoginFailures(identity);
+    await resetTechnicianLoginFailures(identity);
     await createTechnicianSession(technician.id);
     return NextResponse.json({
       technician: {
