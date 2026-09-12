@@ -21,7 +21,7 @@ type Product = {
 };
 
 function fastingText(product: Product) {
-  if (!product.fastingNeeded) return 'No fasting requirement recorded';
+  if (!product.fastingNeeded) return 'Fasting information not recorded; confirm before collection';
   return product.fastingHours ? `${product.fastingHours} hours fasting recorded` : 'Fasting required; confirm duration before collection';
 }
 
@@ -72,13 +72,13 @@ export default function CatalogDetail({ product }: { product: Product }) {
       <section className="testOverviewCard">
         <div className="sectionHeading"><span>About this test</span><h2>What does {product.name} measure?</h2></div>
         <p className="testDescription">{product.description || 'A patient-friendly educational overview is being prepared for this test.'}</p>
-        <p className="educationNotice">This overview is educational. Use the verified preparation, sample and lab-partner details below for collection instructions.</p>
+        <p className="educationNotice">This overview is educational. Use the recorded preparation, sample and lab-partner details below for collection guidance, and confirm any missing information before collection.</p>
       </section>
 
       <section className="testQuickFacts" aria-label="Test preparation and sample details">
-        <article><span>Sample required</span><strong>{product.sampleTypes.length ? product.sampleTypes.join(', ') : 'Confirm before collection'}</strong></article>
+        <article><span>Sample required</span><strong>{product.sampleTypes.length ? product.sampleTypes.join(', ') : 'Sample information not recorded; confirm before collection'}</strong></article>
         <article><span>Fasting</span><strong>{fastingText(product)}</strong></article>
-        <article><span>Preparation</span><strong>{product.preparation?.trim() || 'No additional preparation recorded'}</strong></article>
+        <article><span>Preparation</span><strong>{product.preparation?.trim() || 'Preparation information not recorded; confirm before collection'}</strong></article>
         {product.parameterCount ? <article><span>Parameters</span><strong>{product.parameterCount}</strong></article> : null}
       </section>
 
