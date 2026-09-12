@@ -1,22 +1,35 @@
 type TestDescriptionInput = {
   name: string;
   aliases?: string[];
-  sampleTypes?: string[];
-  fastingNeeded?: boolean;
-  fastingHours?: number | null;
-  preparation?: string | null;
 };
+
+const operationalContentPatterns = [
+  /\b(sample|specimen)\b/i,
+  /\b(preparation|collection)\b/i,
+  /\b(turnaround|report time|tat)\b/i,
+  /\b(price|cost|mrp)\b/i,
+  /\b(required volume|sample volume|specimen volume)\b/i,
+  /\b\d+(?:\.\d+)?\s*(?:ml|millilit(?:er|re)s?)\b/i,
+  /\b(?:no|without) fasting\b/i,
+  /\bdoes not require fasting\b/i,
+  /\bfast(?:ing)? (?:is )?required\b/i,
+  /\bfast(?:ing)? for \d+/i,
+  /\b\d+\s*hours?\s+(?:of\s+)?fasting\b/i,
+];
+
+export function descriptionNeedsSafetyRefresh(value?: string | null) {
+  const text = value?.trim();
+  if (!text) return false;
+  return operationalContentPatterns.some((pattern) => pattern.test(text));
+}
 
 export function buildTestDescriptionPrompt(test: TestDescriptionInput) {
   const context = [
     `Test name: ${test.name}`,
     test.aliases?.length ? `Known aliases: ${test.aliases.join(', ')}` : '',
-    test.sampleTypes?.length ? `Recorded sample types: ${test.sampleTypes.join(', ')}` : '',
-    test.fastingNeeded ? `Recorded fasting requirement: yes${test.fastingHours ? `, ${test.fastingHours} hours` : ''}` : 'Recorded fasting requirement: no',
-    test.preparation?.trim() ? `Recorded preparation: ${test.preparation.trim()}` : '',
   ].filter(Boolean).join('\n');
 
-  return `You are preparing patient-facing diagnostic test catalog content for TG Labs in India.\n\n${context}\n\nWrite ONE concise, medically neutral test description in plain English, ideally 55-100 words.\n\nCONTENT RULES:\n- Explain what the laboratory test measures, detects, or evaluates.\n- Explain common clinical reasons a healthcare professional may order it, using language such as “may help” or “may be used”.\n- If the supplied sample/preparation information is relevant, mention it briefly, but do not invent specimen types, fasting hours, methods, reference ranges, turnaround times, prices, symptoms, diagnoses, or preparation instructions.\n- Do not diagnose a patient, claim a result proves a disease, prescribe treatment, or give personalized medical advice.\n- Do not make marketing claims such as “best”, “most accurate”, “guaranteed”, or “100%”.\n- Do not mention a laboratory partner, TG Labs, AI, or the prompt. The description must be reusable across lab partners.\n- If the exact clinical purpose cannot be inferred safely from the test name and supplied metadata, use a conservative description that says the test evaluates the named analyte/marker and that interpretation depends on clinical context.\n- Return plain text only: no heading, bullets, markdown, quotation marks, or disclaimer.`;
+  return `You are preparing patient-facing educational content for a diagnostic test catalog in India.\n\n${context}\n\nWrite ONE concise, medically neutral test description in plain English, ideally 55-100 words.\n\nCONTENT RULES:\n- Explain what the laboratory test measures, detects, or evaluates.\n- Explain common clinical reasons a healthcare professional may order it, using language such as “may help” or “may be used”.\n- Keep this description educational only. Do not provide or infer specimen/sample requirements, required volume, fasting instructions or hours, preparation instructions, collection methods, turnaround time, prices, reference ranges, or partner-specific operational details. Those details are maintained separately from verified catalog and laboratory-partner data.\n- Do not diagnose a patient, claim a result proves a disease, prescribe treatment, or give personalized medical advice.\n- Do not make marketing claims such as “best”, “most accurate”, “guaranteed”, or “100%”.\n- Do not mention a laboratory partner, TG Labs, AI, or the prompt. The description must be reusable across lab partners.\n- If the exact clinical purpose cannot be inferred safely from the test name and aliases, use a conservative description that says the test evaluates the named analyte or marker and that interpretation depends on clinical context.\n- Return plain text only: no heading, bullets, markdown, quotation marks, or disclaimer.`;
 }
 
 export function cleanTestDescription(value: string) {
@@ -28,6 +41,7 @@ export function cleanTestDescription(value: string) {
     .trim();
   if (cleaned.length < 40) throw new Error('AI_DESCRIPTION_TOO_SHORT');
   if (cleaned.length > 1200) throw new Error('AI_DESCRIPTION_TOO_LONG');
+  if (descriptionNeedsSafetyRefresh(cleaned)) throw new Error('AI_DESCRIPTION_OPERATIONAL_CONTENT');
   return cleaned;
 }
 
