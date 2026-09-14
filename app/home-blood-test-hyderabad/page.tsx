@@ -51,7 +51,7 @@ export default function HomeBloodTestHyderabadPage() {
         {steps.map(([title, body], index) => <article key={title} style={{ background: '#fff', border: '1px solid #dce9e4', borderRadius: 18, padding: 22 }}><strong>{index + 1}</strong><h2 style={{ fontSize: 20 }}>{title}</h2><p style={{ color: '#5a706a', lineHeight: 1.65 }}>{body}</p></article>)}
       </section>
       <section style={{ maxWidth: 1180, margin: '0 auto 54px', padding: '0 22px' }}>
-        <div style={{ background: '#e8f5f1', borderRadius: 18, padding: 24, lineHeight: 1.65 }}><b>Home collection availability</b><p>Home sample collection is not guaranteed for every test, package, partner, pincode, date or time slot. Confirm current eligibility in the live booking flow before relying on collection availability.</p><a href="/compare/labs">Compare partner labs →</a></div>
+        <div style={{ background: '#e8f5f1', borderRadius: 18, padding: 24, lineHeight: 1.65 }}><b>Home collection availability</b><p>Home sample collection is not guaranteed for every test, package, partner, pincode, date or time slot. Confirm current eligibility in the live booking flow before relying on collection availability.</p><div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}><a href="/full-body-checkup-hyderabad">Explore preventive health checkups →</a><a href="/compare/labs">Compare partner labs →</a></div></div>
       </section>
     </main>
   );

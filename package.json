@@ -23,6 +23,7 @@
     "test:phase4j-seo": "node --import tsx --test tests/phase4j-technical-seo.test.ts",
     "test:phase4l-seo": "node --import tsx --test tests/phase4l-seo-growth.test.ts",
     "test:phase4m-seo": "node --import tsx --test tests/phase4m-home-collection-seo.test.ts",
+    "test:phase4n-seo": "node --import tsx --test tests/phase4n-preventive-checkup-seo.test.ts",
     "test:technician-login-hardening": "node --import tsx --test tests/technician-login-hardening.test.ts",
     "test:ai-report-reliability": "node --import tsx --test tests/ai-report-reliability.test.ts",
     "postinstall": "prisma generate",
