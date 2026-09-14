@@ -30,6 +30,7 @@
     "test:phase4r-seo": "node --import tsx --test tests/phase4r-vitamin-d-test-seo.test.ts",
     "test:phase4s-seo": "node --import tsx --test tests/phase4s-thyroid-expansion-seo.test.ts",
     "test:phase4t-seo": "node --import tsx --test tests/phase4t-lipid-profile-seo.test.ts",
+    "test:phase4u-seo": "node --import tsx --test tests/phase4u-liver-function-test-seo.test.ts",
     "test:technician-login-hardening": "node --import tsx --test tests/technician-login-hardening.test.ts",
     "test:ai-report-reliability": "node --import tsx --test tests/ai-report-reliability.test.ts",
     "postinstall": "prisma generate",
