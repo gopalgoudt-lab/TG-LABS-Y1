@@ -19,4 +19,7 @@
 ## Baseline
 `main` at `4479e01cdc66bb18353a9f3613955d0eaacb6445` after Phase 4X / PR #89.
 
+## Validation
+A final Preview build is required from the complete branch head, including the Hyderabad hub link, before merge approval.
+
 Keep the PR open and unmerged until Preview/build validation completes and separate merge approval is given.
