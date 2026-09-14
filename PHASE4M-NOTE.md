@@ -1,0 +1,1 @@
+Phase 4M implementation note: Hyderabad home-collection SEO discovery page with conditional availability wording, sitemap exposure, internal linking, and focused regression coverage. No schema, migration, database, partner activation, pricing, booking, payment, OTP, report, WhatsApp, Firebase, Razorpay, DNS, or Vercel configuration changes.
