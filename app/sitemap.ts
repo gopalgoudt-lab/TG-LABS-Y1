@@ -17,6 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { route: '/t3-test-hyderabad', changeFrequency: 'weekly', priority: 0.75 },
     { route: '/t4-test-hyderabad', changeFrequency: 'weekly', priority: 0.75 },
     { route: '/diabetes-test-hyderabad', changeFrequency: 'weekly', priority: 0.77 },
+    { route: '/hba1c-test-hyderabad', changeFrequency: 'weekly', priority: 0.76 },
     { route: '/cbc-test-hyderabad', changeFrequency: 'weekly', priority: 0.76 },
     { route: '/vitamin-d-test-hyderabad', changeFrequency: 'weekly', priority: 0.75 },
     { route: '/vitamin-b12-test-hyderabad', changeFrequency: 'weekly', priority: 0.75 },
