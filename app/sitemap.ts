@@ -10,6 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const routes: Array<{ route: string; changeFrequency: 'daily' | 'weekly' | 'monthly'; priority: number }> = [
     { route: '/', changeFrequency: 'daily', priority: 1 },
     { route: '/diagnostic-tests-hyderabad', changeFrequency: 'weekly', priority: 0.85 },
+    { route: '/home-blood-test-hyderabad', changeFrequency: 'weekly', priority: 0.82 },
     { route: '/compare/labs', changeFrequency: 'weekly', priority: 0.8 },
     { route: '/health-blog', changeFrequency: 'weekly', priority: 0.7 },
     { route: '/contact-us', changeFrequency: 'monthly', priority: 0.6 },
