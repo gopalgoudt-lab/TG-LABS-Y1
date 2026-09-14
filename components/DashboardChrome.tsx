@@ -46,7 +46,7 @@ const NAV: Record<Role, Item[]> = {
     {label:'Partners',href:'/admin/partner-catalog',icon:'⌘'},
     {label:'Offers & Packages',href:'/admin/partner-catalog',icon:'◉'},
     {label:'Payments',href:'/admin#payments',icon:'▱'},
-    {label:'Reports & Analytics',href:'/admin#analytics',icon:'▥'},
+    {label:'Reports & Analytics',href:'/admin/analytics',icon:'▥'},
     {label:'Notifications',href:'/admin#notifications',icon:'◧'},
     {label:'Users & Roles',href:'/admin#users',icon:'♟'},
     {label:'Settings',href:'/admin#settings',icon:'⚙'},
