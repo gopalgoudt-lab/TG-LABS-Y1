@@ -3,6 +3,7 @@ import './brand-logo.css';
 import './premium-polish.css';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import SiteStructuredData from '@/components/SiteStructuredData';
 
 const siteUrl = 'https://www.tglabs.in';
 
@@ -38,7 +39,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <SiteStructuredData />
+        {children}
+      </body>
     </html>
   );
 }

@@ -1,0 +1,44 @@
+/* Homepage review fixes, scoped to avoid changing checkout and detail pages. */
+.refHomeExact .refLiveCatalog .btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 10px 16px; border: 1px solid #0b67c2;
+  border-radius: 8px; background: #fff; color: #07539f;
+  font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.refHomeExact .refLiveCatalog .btn.primary { background: #0b67c2; color: #fff; }
+.refHomeExact .refLiveCatalog .btn:disabled { opacity: .6; cursor: wait; }
+.refHomeExact .refLiveCatalog :is(button,a,input,select):focus-visible { outline: 3px solid #ff7617; outline-offset: 3px; }
+.refHomeExact .productCard > a {
+  display: flex; align-items: center; min-height: 44px; width: fit-content;
+  margin-top: 12px; color: #07539f; font-size: 14px; font-weight: 700;
+  text-underline-offset: 3px;
+}
+.refHomeExact .productCard > p:first-of-type:not(.fromPrice) {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+  overflow: hidden; font-size: 15px; line-height: 1.55;
+}
+.refHomeExact .productCard h2 { font-size: 20px; line-height: 1.3; overflow-wrap: anywhere; }
+.refHomeExact #catalog { scroll-margin-top: 90px; }
+@media (max-width: 760px) {
+  /* The sticky header retains the booking action without covering content. */
+  .refHomeExact .refFloating { display: none; }
+  .refHomeExact .refNav { gap: 8px; }
+  .refHomeExact .refBrand { flex: 1 1 auto; min-width: 0; width: auto; }
+  .refHomeExact .refBrand img { width: min(190px,100%)!important; max-width: 100%; }
+  .refHomeExact .refNavMeta { flex-shrink: 0; gap: 8px; }
+  .refHomeExact .refPackageCard { min-height: 0; padding: 14px; }
+  .refHomeExact .refPackagePrice { margin-top: 12px; padding-top: 0; }
+  .refHomeExact .refPackageTitleRow h3 { min-height: 0; }
+  .refHomeExact .refHeroNotes { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  .refHomeExact .refHeroNote { padding: 10px 8px; gap: 7px; }
+  .refHomeExact .refHeroNote span { flex-shrink: 0; }
+  .refHomeExact .refPartnerGridLabs { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .refHomeExact .refPartnerItem.partnerNamed { grid-column: 1/-1; min-height: 80px; padding: 10px; }
+  .refHomeExact .refPartnerItem:not(.partnerNamed) { min-height: 60px; border: 0; padding: 8px 4px; font-size: 10px; gap: 4px; }
+  .refHomeExact .refSectionHead { flex-wrap: wrap; gap: 8px; }
+  .refHomeExact .refSectionHead > a { min-height: 44px; display: inline-flex; align-items: center; }
+  .refHomeExact .catalogPincodeControls { width: 100%; }
+  .refHomeExact .catalogPincode input { min-width: 0; width: 100%; font-size: 16px; }
+  .refHomeExact .catalogPincodeControls .btn { width: 100%; }
+  .refHomeExact .productCard { padding: 18px; }
+}
