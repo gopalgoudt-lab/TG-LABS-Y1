@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://www.tglabs.in/thyroid-test-hyderabad' },
   robots: { index: true, follow: true },
   openGraph: {
-    title: 'Thyroid Test in Hyderabad - TSH, T3 & T4 | TG Labs',
+    title: 'Thyroid Test in Hyderabad | TG Labs',
     description: 'Browse currently displayable thyroid profile, TSH, T3 and T4 options, compare eligible partner labs, and confirm live price and home collection availability before booking.',
     url: 'https://www.tglabs.in/thyroid-test-hyderabad',
     type: 'website',
