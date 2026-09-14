@@ -3,7 +3,7 @@ import BrandLogo from '@/components/BrandLogo';
 import { healthArticles } from '@/lib/health-content';
 
 export const metadata:Metadata={
- title:'Health Blog | TG Labs',
+ title:'Health Blog',
  description:'Patient-friendly guides to common diagnostic tests and preventive health topics from TG Labs.',
  alternates:{canonical:'https://www.tglabs.in/health-blog'},
  openGraph:{title:'TG Labs Health Blog',description:'Clear, patient-friendly guides to common diagnostic tests and preventive health topics.',url:'https://www.tglabs.in/health-blog',type:'website'}
