@@ -27,6 +27,7 @@
     "test:phase4o-seo": "node --import tsx --test tests/phase4o-thyroid-test-seo.test.ts",
     "test:phase4p-seo": "node --import tsx --test tests/phase4p-diabetes-test-seo.test.ts",
     "test:phase4q-seo": "node --import tsx --test tests/phase4q-cbc-test-seo.test.ts",
+    "test:phase4r-seo": "node --import tsx --test tests/phase4r-vitamin-d-test-seo.test.ts",
     "test:technician-login-hardening": "node --import tsx --test tests/technician-login-hardening.test.ts",
     "test:ai-report-reliability": "node --import tsx --test tests/ai-report-reliability.test.ts",
     "postinstall": "prisma generate",
