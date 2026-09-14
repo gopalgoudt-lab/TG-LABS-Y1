@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { prisma } from '@/lib/prisma';
 import { displayableOffers, publicOfferSelect } from '@/lib/catalog-data';
+import { healthArticles } from '@/lib/health-content';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const routes: Array<{ route: string; changeFrequency: 'daily' | 'weekly' | 'monthly'; priority: number }> = [
     { route: '/', changeFrequency: 'daily', priority: 1 },
     { route: '/compare/labs', changeFrequency: 'weekly', priority: 0.8 },
+    { route: '/health-blog', changeFrequency: 'weekly', priority: 0.7 },
     { route: '/contact-us', changeFrequency: 'monthly', priority: 0.6 },
     { route: '/privacy-policy', changeFrequency: 'monthly', priority: 0.4 },
     { route: '/terms', changeFrequency: 'monthly', priority: 0.4 },
@@ -45,9 +47,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
+  const healthRoutes: MetadataRoute.Sitemap = healthArticles.map((article) => ({
+    url: `${base}/health-blog/${article.slug}`,
+    lastModified: new Date(article.updated),
+    changeFrequency: 'monthly' as const,
+    priority: 0.65,
+  }));
+
   return [
     ...routes.map(({ route, changeFrequency, priority }) => ({ url: `${base}${route}`, lastModified: now, changeFrequency, priority })),
     ...testRoutes,
     ...packageRoutes,
+    ...healthRoutes,
   ];
 }
