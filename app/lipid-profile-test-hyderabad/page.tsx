@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import BrandLogo from '@/components/BrandLogo';
 
 export const metadata: Metadata = {
-  title: 'Lipid Profile Test in Hyderabad | TG Labs',
+  title: { absolute: 'Lipid Profile Test in Hyderabad | TG Labs' },
   description: 'Explore lipid profile and cholesterol blood test options in Hyderabad through TG Labs. Test availability, partner eligibility, price and home collection depend on the live catalog and pincode.',
   alternates: { canonical: 'https://www.tglabs.in/lipid-profile-test-hyderabad' },
   robots: { index: true, follow: true },
