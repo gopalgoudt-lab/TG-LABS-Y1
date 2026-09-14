@@ -5,7 +5,7 @@ import { healthArticleBySlug, healthArticles } from '@/lib/health-content';
 
 export function generateStaticParams(){return healthArticles.map(({slug})=>({slug}));}
 
-export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{const {slug}=await params;const article=healthArticleBySlug(slug);if(!article)return {};const url=`https://www.tglabs.in/health-blog/${article.slug}`;return {title:`${article.title} | TG Labs`,description:article.description,alternates:{canonical:url},openGraph:{title:article.title,description:article.description,url,type:'article'}};}
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{const {slug}=await params;const article=healthArticleBySlug(slug);if(!article)return {};const url=`https://www.tglabs.in/health-blog/${article.slug}`;return {title:article.title,description:article.description,alternates:{canonical:url},openGraph:{title:article.title,description:article.description,url,type:'article'}};}
 
 export default async function HealthArticlePage({params}:{params:Promise<{slug:string}>}){const {slug}=await params;const article=healthArticleBySlug(slug);if(!article)notFound();const url=`https://www.tglabs.in/health-blog/${article.slug}`;const jsonLd={'@context':'https://schema.org','@type':'Article',headline:article.title,description:article.description,dateModified:article.updated,mainEntityOfPage:url,publisher:{'@type':'Organization',name:'TG Labs',url:'https://www.tglabs.in'}};
  return <main style={{minHeight:'100vh',background:'#f7fbf9',color:'#173c35',fontFamily:'Arial,sans-serif'}}>
