@@ -33,5 +33,6 @@ test('crawler guidance keeps private workflows out of crawl targets', () => {
 test('public sitemap remains the discovery source for indexable content', () => {
   assert.match(sitemap, /\/health-blog/);
   assert.match(sitemap, /\/tests\/\$\{test\.slug\}/);
-  assert.match(sitemap, /\/packages/);
+  assert.ok(sitemap.includes("`${base}/${item.packageType === 'PROFILE' ? 'profiles' : 'packages'}/${item.slug}`"));
+  assert.match(sitemap, /\.\.\.packageRoutes/);
 });
