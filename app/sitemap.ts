@@ -13,6 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { route: '/home-blood-test-hyderabad', changeFrequency: 'weekly', priority: 0.82 },
     { route: '/full-body-checkup-hyderabad', changeFrequency: 'weekly', priority: 0.8 },
     { route: '/thyroid-test-hyderabad', changeFrequency: 'weekly', priority: 0.78 },
+    { route: '/diabetes-test-hyderabad', changeFrequency: 'weekly', priority: 0.77 },
     { route: '/compare/labs', changeFrequency: 'weekly', priority: 0.8 },
     { route: '/health-blog', changeFrequency: 'weekly', priority: 0.7 },
     { route: '/contact-us', changeFrequency: 'monthly', priority: 0.6 },
