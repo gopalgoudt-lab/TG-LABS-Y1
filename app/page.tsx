@@ -7,6 +7,7 @@ import SelectedPartnerBanner from '@/components/home/SelectedPartnerBanner';
 import '@/app/homepage-reference.css';
 import '@/app/homepage-reference-exact.css';
 import '@/app/homepage-reference-media.css';
+import '@/app/homepage-mobile-review.css';
 
 const packages = [
   { title: 'Aarogyam Pro', subtitle: 'Full Body Checkup', tests: '70+ Tests', fasting: 'Fasting Required', image: 'https://images.pexels.com/photos/7904471/pexels-photo-7904471.jpeg?auto=compress&cs=tinysrgb&w=260', alt: 'Doctor representing full body health check', query: 'full body' },
@@ -14,7 +15,7 @@ const packages = [
   { title: 'Executive Health Check', subtitle: 'For Women', tests: '80+ Tests', fasting: 'Fasting Required', image: 'https://images.pexels.com/photos/5998467/pexels-photo-5998467.jpeg?auto=compress&cs=tinysrgb&w=260', alt: 'Female doctor representing women health check', query: 'women health' },
   { title: 'Diabetes Care Package', subtitle: 'Preventive Screening', tests: '50+ Tests', fasting: 'Fasting Required', image: 'https://images.pexels.com/photos/33200678/pexels-photo-33200678.jpeg?auto=compress&cs=tinysrgb&w=260', alt: 'Blood glucose meter for diabetes screening', query: 'diabetes' },
   { title: 'Thyroid Profile', subtitle: 'T3, T4, TSH', tests: '3 Tests', fasting: 'Fasting Not Required', image: 'https://images.pexels.com/photos/6749781/pexels-photo-6749781.jpeg?auto=compress&cs=tinysrgb&w=260', alt: 'Healthcare professional representing thyroid testing', query: 'thyroid' },
-  { title: 'Vitamin D (25-OH)', subtitle: 'Vitamin Screening', tests: '1 Test', fasting: 'Fasting Not Required', image: 'https://images.pexels.com/photos/29183566/pexels-photo-29183566.jpeg?auto=compress&cs=tinysrgb&w=260', alt: 'Healthy sunlight and wellness for vitamin screening', query: 'vitamin d' },
+  { title: 'Vitamin D (25-OH)', subtitle: 'Vitamin Screening', tests: '1 Test', fasting: 'Fasting Not Required', image: '/brand/vitamin-d.svg', alt: 'Vitamin D sun icon', query: 'vitamin d' },
 ];
 
 export default function Home() {
