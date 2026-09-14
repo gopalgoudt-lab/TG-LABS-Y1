@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import BrandLogo from '@/components/BrandLogo';
 
 export const metadata: Metadata = {
-  title: 'Diagnostic Tests in Hyderabad | TG Labs',
+  title: 'Diagnostic Tests in Hyderabad',
   description: 'Browse diagnostic tests and health packages in Hyderabad, compare eligible partner-lab options, and check home sample collection availability by pincode.',
   alternates: { canonical: 'https://www.tglabs.in/diagnostic-tests-hyderabad' },
   robots: { index: true, follow: true },
