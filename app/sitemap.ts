@@ -20,6 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { route: '/hba1c-test-hyderabad', changeFrequency: 'weekly', priority: 0.76 },
     { route: '/fasting-blood-sugar-test-hyderabad', changeFrequency: 'weekly', priority: 0.76 },
     { route: '/postprandial-blood-sugar-test-hyderabad', changeFrequency: 'weekly', priority: 0.75 },
+    { route: '/random-blood-sugar-test-hyderabad', changeFrequency: 'weekly', priority: 0.75 },
     { route: '/cbc-test-hyderabad', changeFrequency: 'weekly', priority: 0.76 },
     { route: '/vitamin-d-test-hyderabad', changeFrequency: 'weekly', priority: 0.75 },
     { route: '/vitamin-b12-test-hyderabad', changeFrequency: 'weekly', priority: 0.75 },
