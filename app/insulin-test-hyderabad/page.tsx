@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import BrandLogo from '@/components/BrandLogo';
 
 export const metadata: Metadata = {
-  title: 'Insulin Test in Hyderabad | TG Labs',
+  title: 'Insulin Test in Hyderabad',
   description: 'Browse insulin test options in Hyderabad and confirm current partner, pricing, preparation requirements and home collection eligibility in the live TG Labs catalog.',
   alternates: { canonical: 'https://www.tglabs.in/insulin-test-hyderabad' },
   robots: { index: true, follow: true },
