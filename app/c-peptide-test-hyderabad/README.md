@@ -1,1 +1,0 @@
-Phase 5D discovery route. Availability and booking remain governed by the live catalog, partner eligibility, pincode and slot rules.
