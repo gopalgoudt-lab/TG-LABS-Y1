@@ -34,6 +34,7 @@
     "test:phase4v-seo": "node --import tsx --test tests/phase4v-kidney-function-test-seo.test.ts",
     "test:phase4w-seo": "node --import tsx --test tests/phase4w-vitamin-b12-test-seo.test.ts",
     "test:phase4x-seo": "node --import tsx --test tests/phase4x-hba1c-test-seo.test.ts",
+    "test:phase4y-seo": "node --import tsx --test tests/phase4y-fbs-seo.test.ts",
     "test:technician-login-hardening": "node --import tsx --test tests/technician-login-hardening.test.ts",
     "test:ai-report-reliability": "node --import tsx --test tests/ai-report-reliability.test.ts",
     "postinstall": "prisma generate",
