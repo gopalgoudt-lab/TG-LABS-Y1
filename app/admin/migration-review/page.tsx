@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Migration Review | TG Labs', robots: { index: false, follow: false } };
