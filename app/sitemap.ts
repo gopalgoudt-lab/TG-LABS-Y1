@@ -37,6 +37,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { route: '/uric-acid-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
     { route: '/electrolytes-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
     { route: '/calcium-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
+    { route: '/magnesium-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
     { route: '/compare/labs', changeFrequency: 'weekly', priority: 0.8 },
     { route: '/health-blog', changeFrequency: 'weekly', priority: 0.7 },
     { route: '/contact-us', changeFrequency: 'monthly', priority: 0.6 },
