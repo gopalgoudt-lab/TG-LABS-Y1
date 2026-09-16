@@ -42,6 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { route: '/calcium-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
     { route: '/magnesium-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
     { route: '/phosphorus-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
+    { route: '/serum-iron-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
     { route: '/creatinine-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
     { route: '/bun-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
     { route: '/urea-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
