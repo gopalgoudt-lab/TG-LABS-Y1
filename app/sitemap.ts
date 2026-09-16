@@ -37,6 +37,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { route: '/uric-acid-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
     { route: '/electrolytes-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
     { route: '/sodium-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
+    { route: '/potassium-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
     { route: '/chloride-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
     { route: '/calcium-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
     { route: '/magnesium-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
@@ -52,7 +53,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { route: '/terms', changeFrequency: 'monthly', priority: 0.4 },
     { route: '/data-deletion', changeFrequency: 'monthly', priority: 0.4 },
   ];
-
   const [tests, packages] = await Promise.all([
     prisma.diagnosticTest.findMany({ where: { active: true }, select: { slug: true, active: true, updatedAt: true, partnerOffers: { select: publicOfferSelect } } }),
     prisma.diagnosticPackage.findMany({ where: { active: true }, select: { slug: true, active: true, packageType: true, updatedAt: true, partnerOffers: { select: publicOfferSelect } } }),
