@@ -42,6 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { route: '/creatinine-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
     { route: '/bun-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
     { route: '/urea-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
+    { route: '/egfr-test-hyderabad', changeFrequency: 'weekly', priority: 0.74 },
     { route: '/compare/labs', changeFrequency: 'weekly', priority: 0.8 },
     { route: '/health-blog', changeFrequency: 'weekly', priority: 0.7 },
     { route: '/contact-us', changeFrequency: 'monthly', priority: 0.6 },
