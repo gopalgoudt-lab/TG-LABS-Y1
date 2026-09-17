@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const pagePath = 'app/admin/catalog-editor/page.tsx';
 const apiPath = 'app/api/admin/catalog-editor/[kind]/[id]/route.ts';
+const searchApiPath = 'app/api/admin/catalog-editor/search/route.ts';
 
 test('admin catalog editor exposes test and package metadata/pricing controls', () => {
   assert.equal(fs.existsSync(pagePath), true, 'admin catalog editor page must exist');
@@ -20,6 +21,18 @@ test('admin catalog editor provides interactive search, selection and save workf
   }
   assert.match(page, /fetch\s*\(/, 'interactive editor must load/save catalog data');
   assert.match(page, /PATCH/, 'interactive editor must save through PATCH');
+});
+
+test('admin catalog editor has a real partner-scoped read-only search endpoint', () => {
+  assert.equal(fs.existsSync(searchApiPath), true, 'catalog search GET API must exist');
+  const page = fs.readFileSync(pagePath, 'utf8');
+  const searchApi = fs.readFileSync(searchApiPath, 'utf8');
+  assert.match(page, /partner=/i, 'editor search request must send the selected partner');
+  assert.match(page, /kind=/i, 'editor search request must send test/package kind');
+  assert.match(page, /q=/i, 'editor search request must send the search query');
+  assert.match(searchApi, /export\s+async\s+function\s+GET|export\s+function\s+GET/, 'catalog search API must expose GET');
+  assert.match(searchApi, /partner/i, 'catalog search API must scope results by partner');
+  assert.doesNotMatch(searchApi, /\.(update|updateMany|create|delete|deleteMany|upsert)\s*\(/, 'catalog search API must remain read-only');
 });
 
 test('catalog editor API preserves activation and serviceability safety boundary', () => {
