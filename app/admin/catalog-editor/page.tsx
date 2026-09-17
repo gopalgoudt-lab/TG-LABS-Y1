@@ -40,7 +40,7 @@ export default function AdminCatalogEditorPage() {
       const item = data.items?.[0];
       if (!item) throw new Error('No matching catalog item found');
       setForm({
-        id: String(item.id ?? ''), partner: String(item.partnerName ?? item.partner ?? ''), name: String(item.name ?? ''),
+        id: String(item.id ?? ''), partner: String(item.partnerSlug ?? form.partner ?? ''), name: String(item.name ?? ''),
         mrp: String(item.mrp ?? ''), price: String(item.price ?? ''), description: String(item.description ?? ''),
         sampleType: String(item.sampleType ?? ''), preparation: String(item.preparation ?? ''), tatHours: String(item.tatHours ?? ''),
       });
@@ -93,11 +93,11 @@ export default function AdminCatalogEditorPage() {
       <form onSubmit={searchCatalog} className="rounded-xl border p-5 space-y-4">
         <h2 className="text-xl font-semibold">Search catalog</h2>
         <div className="grid gap-4 md:grid-cols-3">
-          <label>Partner<input className="mt-1 w-full rounded border p-2" value={form.partner} onChange={(e) => setField('partner', e.target.value)} placeholder="Partner" /></label>
+          <label>Partner<select className="mt-1 w-full rounded border p-2" value={form.partner} onChange={(e) => setField('partner', e.target.value)}><option value="">Select partner</option><option value="tg-labs-partner">Metropolis</option><option value="sagepath-labs">Sagepath Labs</option><option value="thyrocare">Thyrocare</option></select></label>
           <label>Type<select className="mt-1 w-full rounded border p-2" value={kind} onChange={(e) => setKind(e.target.value as CatalogKind)}><option value="test">Test</option><option value="package">Package</option></select></label>
           <label>Search<input className="mt-1 w-full rounded border p-2" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Test or Package name" /></label>
         </div>
-        <button className="rounded bg-blue-600 px-4 py-2 text-white" type="submit" disabled={status === 'loading'}>{status === 'loading' ? 'Searching…' : 'Search catalog'}</button>
+        <button className="rounded bg-blue-600 px-4 py-2 text-white" type="submit" disabled={status === 'loading' || !form.partner || !query.trim()}>{status === 'loading' ? 'Searching…' : 'Search catalog'}</button>
       </form>
 
       <form onSubmit={saveChanges} className="rounded-xl border p-5 space-y-4">
