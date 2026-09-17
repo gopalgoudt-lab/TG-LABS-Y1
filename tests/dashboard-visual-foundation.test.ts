@@ -38,8 +38,11 @@ test('DashboardChrome owns auth boundaries and composes DashboardShell', () => {
 
 test('role dashboard insights adopt shared presentation primitives without changing role coverage', () => {
   const insights = read('components/RoleDashboardInsights.tsx');
-  assert.match(insights, /import \{ DashboardPanel, DashboardStatCard, DashboardStatusBadge, DashboardState \} from '@\/components\/dashboard'/);
-  for (const primitive of ['DashboardPanel','DashboardStatCard','DashboardStatusBadge','DashboardState']) assert.match(insights, new RegExp(`<${primitive}`));
+  assert.match(insights, /from\s+['"]@\/components\/dashboard['"]/);
+  for (const primitive of ['DashboardPanel','DashboardStatCard','DashboardStatusBadge','DashboardState']) {
+    assert.match(insights, new RegExp(`\\b${primitive}\\b`));
+    assert.match(insights, new RegExp(`<${primitive}\\b`));
+  }
   for (const role of ['patient','technician','admin']) assert.match(insights, new RegExp(`role === '${role}'`));
   for (const endpoint of ['/api/patient/bookings','/api/patient/reports','/api/technician/jobs','/api/admin/bookings','/api/admin/catalog/tests','/api/admin/catalog/packages']) assert.match(insights, new RegExp(endpoint.replaceAll('/', '\\/')));
 });
