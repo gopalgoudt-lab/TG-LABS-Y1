@@ -23,3 +23,10 @@ test('dashboard states never fabricate operational values', () => {
   assert.match(source, /empty/);
   assert.match(source, /error/);
 });
+
+test('dashboard foundation includes focus and responsive contracts', () => {
+  const css = read('app/dashboard-foundation.css');
+  assert.match(css, /:focus-visible/);
+  assert.match(css, /@media/);
+  assert.match(css, /overflow-x:\s*auto/);
+});
