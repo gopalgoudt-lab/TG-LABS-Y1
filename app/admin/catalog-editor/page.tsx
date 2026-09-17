@@ -34,7 +34,7 @@ export default function AdminCatalogEditorPage() {
     setStatus('loading');
     setMessage('');
     try {
-      const response = await fetch(`/api/admin/catalog-editor/search?kind=${kind}&q=${encodeURIComponent(query)}`);
+      const response = await fetch(`/api/admin/catalog-editor/search?partner=${encodeURIComponent(form.partner)}&kind=${kind}&q=${encodeURIComponent(query)}`);
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
       const item = data.items?.[0];
