@@ -30,3 +30,19 @@ test('dashboard foundation includes focus and responsive contracts', () => {
   assert.match(css, /@media/);
   assert.match(css, /overflow-x:\s*auto/);
 });
+
+test('presentation shell contains no authentication or production data access', () => {
+  const shell = read('components/dashboard/DashboardShell.tsx');
+  for (const forbidden of ['firebase/auth','getFirebaseAuth','/api/admin/session','prisma','DATABASE_URL']) assert.doesNotMatch(shell, new RegExp(forbidden.replaceAll('/', '\\/')));
+});
+
+test('DashboardChrome owns auth boundaries and composes DashboardShell', () => {
+  const chrome = read('components/DashboardChrome.tsx');
+  assert.match(chrome, /import \{ DashboardShell \} from '@\/components\/dashboard'/);
+  assert.match(chrome, /<DashboardShell/);
+  assert.match(chrome, /signOut/);
+  assert.match(chrome, /\/api\/admin\/session/);
+  assert.match(chrome, /\/admin\/login/);
+  assert.match(chrome, /\/technician\/login/);
+  for (const role of ['patient','technician','admin']) assert.match(chrome, new RegExp(role));
+});
