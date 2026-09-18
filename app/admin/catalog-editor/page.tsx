@@ -15,11 +15,11 @@ type EditorForm = {
   description: string;
   sampleType: string;
   preparation: string;
-  tatHours: string;
+  tat: string;
 };
 
 const emptyForm: EditorForm = {
-  id: '', partner: '', name: '', mrp: '', price: '', description: '', sampleType: '', preparation: '', tatHours: '',
+  id: '', partner: '', name: '', mrp: '', price: '', description: '', sampleType: '', preparation: '', tat: '',
 };
 
 export default function AdminCatalogEditorPage() {
@@ -42,7 +42,7 @@ export default function AdminCatalogEditorPage() {
       setForm({
         id: String(item.id ?? ''), partner: String(item.partnerSlug ?? form.partner ?? ''), name: String(item.name ?? ''),
         mrp: String(item.mrp ?? ''), price: String(item.price ?? ''), description: String(item.description ?? ''),
-        sampleType: String(item.sampleType ?? ''), preparation: String(item.preparation ?? ''), tatHours: String(item.tatHours ?? ''),
+        sampleType: String(item.sampleType ?? ''), preparation: String(item.preparation ?? ''), tat: String(item.tatHours ?? ''),
       });
       setStatus('idle');
     } catch (error) {
@@ -67,7 +67,7 @@ export default function AdminCatalogEditorPage() {
           description: form.description,
           sampleType: form.sampleType,
           preparation: form.preparation,
-          tatHours: form.tatHours === '' ? null : Number(form.tatHours),
+          tat: form.tat === '' ? null : form.tat,
         }),
       });
       if (!response.ok) throw new Error('Save failed');
@@ -108,7 +108,7 @@ export default function AdminCatalogEditorPage() {
           <label>Selling price<input type="number" className="mt-1 w-full rounded border p-2" value={form.price} onChange={(e) => setField('price', e.target.value)} /></label>
           <label>Sample type<input className="mt-1 w-full rounded border p-2" value={form.sampleType} onChange={(e) => setField('sampleType', e.target.value)} /></label>
           <label>Preparation<input className="mt-1 w-full rounded border p-2" value={form.preparation} onChange={(e) => setField('preparation', e.target.value)} /></label>
-          <label>TAT (hours)<input type="number" className="mt-1 w-full rounded border p-2" value={form.tatHours} onChange={(e) => setField('tatHours', e.target.value)} /></label>
+          <label>TAT<input className="mt-1 w-full rounded border p-2" value={form.tat} onChange={(e) => setField('tat', e.target.value)} placeholder="e.g. 24 hours or 11:00/18:00" /></label>
         </div>
         <label className="block">Description<textarea className="mt-1 min-h-28 w-full rounded border p-2" value={form.description} onChange={(e) => setField('description', e.target.value)} /></label>
         <section className="rounded border p-4"><h3 className="font-semibold">Pricing &amp; Gross margin</h3><p className="text-sm">Gross margin: {margin === null ? '—' : margin}. Informational only; activation, booking and serviceability remain protected.</p></section>
