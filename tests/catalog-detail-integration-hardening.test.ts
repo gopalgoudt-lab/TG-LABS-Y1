@@ -11,7 +11,7 @@ test("patient detail add-to-cart uses containment-aware cart helper", () => {
 
 test("patient detail image action uses a safe image reference guard", () => {
   assert.match(detail, /safeImage/);
-  assert.match(detail, /data:image\//);
-  assert.match(detail, /https:\/\//);
+  assert.match(detail, /png\|jpeg\|jpg\|webp\|gif/);
+  assert.match(detail, /https:/);
   assert.doesNotMatch(detail, /href=\{product\.imageData\}/);
 });
