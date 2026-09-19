@@ -10,14 +10,16 @@ type Product = {
   offers:PublicOffer[]; includedTestCount?:number; includedTests?:{id:string;slug:string;name:string}[];
   tests?:{slug:string;name:string}[];
 };
-function fastingText(product:Product){if(!product.fastingNeeded)return 'Fasting information not recorded; confirm before collection';return product.fastingHours?`${product.fastingHours} hours fasting recorded`:'Fasting required; confirm duration before collection';}\nfunction safeImage(value?:string|null){if(!value)return null;const trimmed=value.trim();if(/^data:image\\/(?:png|jpeg|jpg|webp|gif);base64,/i.test(trimmed))return trimmed;if(/^https:\\/\\//i.test(trimmed))return trimmed;return null;}
+function fastingText(product:Product){if(!product.fastingNeeded)return 'Fasting information not recorded; confirm before collection';return product.fastingHours?`${product.fastingHours} hours fasting recorded`:'Fasting required; confirm duration before collection';}
+function safeImage(value?:string|null){if(!value)return null;const trimmed=value.trim();if(/^data:image\\/(?:png|jpeg|jpg|webp|gif);base64,/i.test(trimmed))return trimmed;if(/^https:\\/\\//i.test(trimmed))return trimmed;return null;}
 export default function CatalogDetail({product}:{product:Product}){
  const [added,setAdded]=useState(false); const [alreadyIncluded,setAlreadyIncluded]=useState(false); const [showAllTests,setShowAllTests]=useState(false);
  function add(offer:PublicOffer,pincode:string){const key='tglabs-cart';const cart=readCatalogCart(localStorage.getItem(key));const item={productType:product.type as 'TEST'|'PROFILE'|'PACKAGE',productIdentifier:product.id,productName:product.name,offerIdentifier:offer.offerId,partnerIdentifier:offer.partner.slug,partnerName:offer.partner.name,tat:offer.tat??null,mrp:offer.mrp??null,displayedPrice:offer.price,pincode};const composition=new Map<string,readonly string[]>();if(product.type!=='TEST')composition.set(product.id,(product.includedTests??[]).map(test=>test.id));const result=addCatalogItemWithContainment(cart,item,composition);if(result.status==='already-included'){setAdded(false);setAlreadyIncluded(true);return;}localStorage.setItem(key,JSON.stringify(result.items));setAlreadyIncluded(false);setAdded(true);window.dispatchEvent(new Event('tglabs-cart-updated'));}
  const lowestPrice=product.offers.length?Math.min(...product.offers.map(offer=>offer.price)):null;
  const includedTests=product.includedTests??[];
  const includedTestCount=product.includedTestCount??includedTests.length;
- const visibleTests=showAllTests?includedTests:includedTests.slice(0,8);\n const detailsImage=safeImage(product.imageData);
+ const visibleTests=showAllTests?includedTests:includedTests.slice(0,8);
+ const detailsImage=safeImage(product.imageData);
  return <main className="testDetailPage">
   <nav className="testBreadcrumb" aria-label="Breadcrumb"><a href="/">Home</a><span>›</span><span>Tests</span><span>›</span><span aria-current="page">{product.name}</span></nav>
   <header className="testHero"><div className="testHeroCopy"><div className="testEyebrow">Diagnostic test</div><h1>{product.name}</h1>{product.aliases?.length?<p className="testAliases">Also known as: {product.aliases.slice(0,4).join(', ')}</p>:null}{product.categories?.length?<div className="testCategories">{product.categories.map(category=><a key={category.slug} href={`/categories/${category.slug}`}>{category.name}</a>)}</div>:null}
