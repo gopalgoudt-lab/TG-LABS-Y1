@@ -15,6 +15,6 @@ test("catalog detail derives patient-facing terminology from product type", () =
 
 test("catalog detail image and accessibility labels use dynamic terminology", () => {
   assert.match(source, /View \{itemNoun\} details/);
-  assert.match(source, /aria-label=\{[^}]*itemNoun/);
+  assert.match(source, /aria-label=\{`[^`]*\$\{itemNounTitle\}/);
   assert.match(source, /alt=\{[^}]*itemNoun/);
 });
