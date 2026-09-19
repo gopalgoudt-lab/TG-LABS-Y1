@@ -36,3 +36,52 @@ export function readCatalogCart(raw: string | null) {
     return [];
   }
 }
+
+
+import { findRedundantIndividualTests } from './catalog/containment';
+
+type CatalogComposition = ReadonlyMap<string, readonly string[]>;
+
+export function addCatalogItemWithContainment(
+  current: readonly CatalogCartItem[],
+  incoming: CatalogCartItem,
+  composition: CatalogComposition,
+) {
+  const currentWithoutSameProduct = current.filter(
+    (item) => item.productIdentifier !== incoming.productIdentifier,
+  );
+
+  if (incoming.productType === 'TEST') {
+    const selectedContainers = currentWithoutSameProduct
+      .filter((item) => item.productType !== 'TEST')
+      .map((item) => ({ kind: 'package' as const, id: item.productIdentifier }));
+    const covered = new Set<string>();
+    for (const container of selectedContainers) {
+      for (const testId of composition.get(container.id) ?? []) covered.add(testId);
+    }
+    if (covered.has(incoming.productIdentifier)) {
+      return {
+        status: 'already-included' as const,
+        items: [...current],
+        removedRedundantTestIds: [] as string[],
+      };
+    }
+  }
+
+  const candidate = [...currentWithoutSameProduct, incoming];
+  const containmentItems = candidate.map((item) =>
+    item.productType === 'TEST'
+      ? { kind: 'test' as const, id: item.productIdentifier }
+      : { kind: 'package' as const, id: item.productIdentifier },
+  );
+  const redundantIds = findRedundantIndividualTests(containmentItems, composition);
+  const redundant = new Set(redundantIds);
+
+  return {
+    status: 'added' as const,
+    items: candidate.filter(
+      (item) => item.productType !== 'TEST' || !redundant.has(item.productIdentifier),
+    ),
+    removedRedundantTestIds: redundantIds,
+  };
+}
