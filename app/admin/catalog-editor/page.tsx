@@ -18,13 +18,14 @@ type EditorForm = {
   tat: string;
   imageData: string;
   includedTestIds: string;
+  packageType: 'PACKAGE' | 'PROFILE';
 };
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const emptyForm: EditorForm = {
-  id: '', partner: '', name: '', mrp: '', price: '', description: '', sampleType: '', preparation: '', tat: '', imageData: '', includedTestIds: '',
+  id: '', partner: '', name: '', mrp: '', price: '', description: '', sampleType: '', preparation: '', tat: '', imageData: '', includedTestIds: '', packageType: 'PACKAGE',
 };
 
 export default function AdminCatalogEditorPage() {
@@ -49,6 +50,7 @@ export default function AdminCatalogEditorPage() {
         mrp: String(item.mrp ?? ''), price: String(item.price ?? ''), description: String(item.description ?? ''),
         sampleType: String(item.sampleType ?? ''), preparation: String(item.preparation ?? ''), tat: String(item.tatHours ?? ''),
         imageData: String(item.imageData ?? ''), includedTestIds: Array.isArray(item.includedTestIds) ? item.includedTestIds.join(', ') : '',
+        packageType: item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE',
       });
       setStatus('idle');
     } catch (error) {
@@ -75,7 +77,7 @@ export default function AdminCatalogEditorPage() {
           preparation: form.preparation,
           tat: form.tat === '' ? null : form.tat,
           imageData: form.imageData.trim() === '' ? null : form.imageData.trim(),
-          ...(kind === 'package' ? { includedTestIds: form.includedTestIds.split(',').map(value => value.trim()).filter(Boolean) } : {}),
+          ...(kind === 'package' ? { packageType: form.packageType, includedTestIds: form.includedTestIds.split(',').map(value => value.trim()).filter(Boolean) } : {}),
         }),
       });
       if (!response.ok) throw new Error('Save failed');
@@ -137,6 +139,7 @@ export default function AdminCatalogEditorPage() {
           <label>TAT<input className="mt-1 w-full rounded border p-2" value={form.tat} onChange={(e) => setField('tat', e.target.value)} placeholder="e.g. 24 hours or 11:00/18:00" /></label>
         </div>
         <label className="block">Test details image<input type="file" accept="image/jpeg,image/png,image/webp" className="mt-1 block w-full rounded border p-2" onChange={(e) => void selectImage(e.target.files?.[0])} /><span className="mt-1 block text-xs text-slate-600">JPEG, PNG or WebP; maximum 2 MB.</span></label>\n        {form.imageData && <div className="rounded border p-3"><img src={form.imageData} alt="Catalog image preview" className="max-h-72 w-auto rounded object-contain" /></div>}
+        {kind === 'package' && <label className="block">Catalog type<select className="mt-1 w-full rounded border p-2" value={form.packageType} onChange={(e) => setField('packageType', e.target.value)}><option value="PACKAGE">Package</option><option value="PROFILE">Profile</option></select></label>}
         {kind === 'package' && <label className="block">Included tests (catalog IDs, comma-separated)<textarea className="mt-1 min-h-20 w-full rounded border p-2" value={form.includedTestIds} onChange={(e) => setField('includedTestIds', e.target.value)} /></label>}
         <label className="block">Description<textarea className="mt-1 min-h-28 w-full rounded border p-2" value={form.description} onChange={(e) => setField('description', e.target.value)} /></label>
         <section className="rounded border p-4"><h3 className="font-semibold">Pricing &amp; Gross margin</h3><p className="text-sm">Gross margin: {margin === null ? '—' : margin}. Informational only; activation, booking and serviceability remain protected.</p></section>
