@@ -16,6 +16,7 @@ const patchSchema = z.object({
   sampleTypes: z.array(z.string().trim().min(1).max(100)).max(20).optional(),
   sampleTypeOther: z.string().trim().max(200).nullable().optional(),
   imageData: z.string().max(2_000_000).nullable().optional(),
+  packageType: z.enum(["PACKAGE", "PROFILE"]).optional(),
   includedTestIds: z.array(z.string().trim().min(1).max(200)).max(500).optional(),
 }).strict().refine(value => Object.keys(value).length > 0, { message: 'Provide at least one approved catalog field.' });
 
@@ -30,7 +31,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ kind:
     const { kind, id } = await context.params;
     if (kind !== 'test' && kind !== 'package') return NextResponse.json({ error: 'Unsupported catalog item type.' }, { status: 404 });
     const body = patchSchema.parse(await request.json());
-    if (kind === 'test' && body.includedTestIds !== undefined) return NextResponse.json({ error: 'Included tests apply only to packages/profiles.' }, { status: 400 });
+    if (kind === 'test' && (body.includedTestIds !== undefined || body.packageType !== undefined)) return NextResponse.json({ error: 'Package/profile fields apply only to packages/profiles.' }, { status: 400 });
     const { includedTestIds, ...metadata } = body;
 
     const model = kind === 'test' ? prisma.diagnosticTest : prisma.diagnosticPackage;
