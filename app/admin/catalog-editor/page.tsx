@@ -13,7 +13,8 @@ type EditorForm = {
   mrp: string;
   price: string;
   description: string;
-  sampleType: string;
+  sampleTypes: string[];
+  sampleTypeOther: string;
   preparation: string;
   tat: string;
   imageData: string;
@@ -25,7 +26,7 @@ const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const emptyForm: EditorForm = {
-  id: '', partner: '', name: '', mrp: '', price: '', description: '', sampleType: '', preparation: '', tat: '', imageData: '', includedTestIds: '', packageType: 'PACKAGE',
+  id: '', partner: '', name: '', mrp: '', price: '', description: '', sampleTypes: [], sampleTypeOther: '', preparation: '', tat: '', imageData: '', includedTestIds: '', packageType: 'PACKAGE',
 };
 
 export default function AdminCatalogEditorPage() {
@@ -48,7 +49,7 @@ export default function AdminCatalogEditorPage() {
       setForm({
         id: String(item.id ?? ''), partner: String(item.partnerSlug ?? form.partner ?? ''), name: String(item.name ?? ''),
         mrp: String(item.mrp ?? ''), price: String(item.price ?? ''), description: String(item.description ?? ''),
-        sampleType: String(item.sampleType ?? ''), preparation: String(item.preparation ?? ''), tat: String(item.tatHours ?? ''),
+        sampleTypes: Array.isArray(item.sampleTypes) ? item.sampleTypes.map(String) : [], sampleTypeOther: String(item.sampleTypeOther ?? ''), preparation: String(item.preparation ?? ''), tat: String(item.tatHours ?? ''),
         imageData: String(item.imageData ?? ''), includedTestIds: Array.isArray(item.includedTestIds) ? item.includedTestIds.join(', ') : '',
         packageType: item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE',
       });
@@ -73,7 +74,8 @@ export default function AdminCatalogEditorPage() {
           mrp: form.mrp === '' ? null : Number(form.mrp),
           price: form.price === '' ? null : Number(form.price),
           description: form.description,
-          sampleTypeOther: form.sampleType,
+          sampleTypes: form.sampleTypes,
+          sampleTypeOther: form.sampleTypes.includes('OTHER') ? form.sampleTypeOther : null,
           preparation: form.preparation,
           tat: form.tat === '' ? null : form.tat,
           imageData: form.imageData.trim() === '' ? null : form.imageData.trim(),
@@ -90,6 +92,12 @@ export default function AdminCatalogEditorPage() {
   }
 
   const setField = (field: keyof EditorForm, value: string) => setForm((current) => ({ ...current, [field]: value }));
+  const sampleTypeOptions = ['SERUM', 'EDTA', 'FLUORIDE', 'URINE', 'SODIUM CITRATE', 'SODIUM HEPARIN', 'LITHIUM HEPARIN', 'OTHER'] as const;
+  const toggleSampleType = (value: string) => setForm((current) => ({
+    ...current,
+    sampleTypes: current.sampleTypes.includes(value) ? current.sampleTypes.filter(item => item !== value) : [...current.sampleTypes, value],
+    sampleTypeOther: value === 'OTHER' && current.sampleTypes.includes('OTHER') ? '' : current.sampleTypeOther,
+  }));
   async function selectImage(file: File | undefined) {
     if (!file) return;
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
@@ -134,7 +142,7 @@ export default function AdminCatalogEditorPage() {
           <label>Name<input className="mt-1 w-full rounded border p-2" value={form.name} onChange={(e) => setField('name', e.target.value)} /></label>
           <label>MRP<input type="number" className="mt-1 w-full rounded border p-2" value={form.mrp} onChange={(e) => setField('mrp', e.target.value)} /></label>
           <label>Selling price<input type="number" className="mt-1 w-full rounded border p-2" value={form.price} onChange={(e) => setField('price', e.target.value)} /></label>
-          <label>Sample type<input className="mt-1 w-full rounded border p-2" value={form.sampleType} onChange={(e) => setField('sampleType', e.target.value)} /></label>
+          <fieldset className="rounded border p-3"><legend className="px-1">Sample type</legend><select multiple className="mt-1 min-h-40 w-full rounded border p-2" value={form.sampleTypes} onChange={(e) => { const selected = Array.from(e.currentTarget.selectedOptions, option => option.value); setForm(current => ({ ...current, sampleTypes: selected, sampleTypeOther: selected.includes('OTHER') ? current.sampleTypeOther : '' })); }}>{sampleTypeOptions.map(option => <option key={option} value={option}>{option === 'OTHER' ? 'Others' : option}</option>)}</select><span className="mt-1 block text-xs text-slate-600">Hold Ctrl (Windows) or Command (Mac) to select more than one sample type.</span>{form.sampleTypes.includes('OTHER') && <label className="mt-2 block">Other sample type<input className="mt-1 w-full rounded border p-2" value={form.sampleTypeOther} onChange={(e) => setField('sampleTypeOther', e.target.value)} placeholder="Enter sample type manually" /></label>}</fieldset>
           <label>Preparation<input className="mt-1 w-full rounded border p-2" value={form.preparation} onChange={(e) => setField('preparation', e.target.value)} /></label>
           <label>TAT<input className="mt-1 w-full rounded border p-2" value={form.tat} onChange={(e) => setField('tat', e.target.value)} placeholder="e.g. 24 hours or 11:00/18:00" /></label>
         </div>
