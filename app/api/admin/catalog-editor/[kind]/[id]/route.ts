@@ -7,6 +7,7 @@ import { adminFromRequest } from '@/lib/admin-audit';
 export const dynamic = 'force-dynamic';
 
 const patchSchema = z.object({
+  partnerSlug: z.string().trim().min(1).max(200),
   name: z.string().trim().min(2).max(200).optional(),
   description: z.string().trim().max(4000).nullable().optional(),
   preparation: z.string().trim().max(2000).nullable().optional(),
@@ -32,15 +33,27 @@ export async function PATCH(request: Request, context: { params: Promise<{ kind:
     if (kind !== 'test' && kind !== 'package') return NextResponse.json({ error: 'Unsupported catalog item type.' }, { status: 404 });
     const body = patchSchema.parse(await request.json());
     if (kind === 'test' && (body.includedTestIds !== undefined || body.packageType !== undefined)) return NextResponse.json({ error: 'Package/profile fields apply only to packages/profiles.' }, { status: 400 });
-    const { includedTestIds, ...metadata } = body;
+    const { includedTestIds, partnerSlug, ...metadata } = body;
 
     const model = kind === 'test' ? prisma.diagnosticTest : prisma.diagnosticPackage;
     const before = await (model as any).findUnique({ where: { id } });
     if (!before) return NextResponse.json({ error: 'Catalog item not found.' }, { status: 404 });
 
     const updated = await prisma.$transaction(async tx => {
+      const partner = await tx.diagnosticPartner.findFirst({
+        where: { OR: [{ slug: { equals: partnerSlug, mode: 'insensitive' } }, { name: { equals: partnerSlug, mode: 'insensitive' } }] },
+        select: { id: true },
+      });
+      if (!partner) throw new Error('PARTNER_NOT_FOUND');
       const txModel = kind === 'test' ? tx.diagnosticTest : tx.diagnosticPackage;
       const item = await (txModel as any).update({ where: { id }, data: metadata });
+      if (body.tat !== undefined) {
+        if (kind === 'test') {
+          await tx.testPartnerOffer.updateMany({ where: { testId: id, partnerId: partner.id }, data: { tat: body.tat } });
+        } else {
+          await tx.packagePartnerOffer.updateMany({ where: { packageId: id, partnerId: partner.id }, data: { tat: body.tat } });
+        }
+      }
       if (kind === 'package' && includedTestIds !== undefined) {
         const uniqueTestIds = [...new Set(includedTestIds)];
         const validCount = await tx.diagnosticTest.count({ where: { id: { in: uniqueTestIds } } });
@@ -57,7 +70,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ kind:
         metadata: {
           actorRole: admin.role,
           actorSource: 'TG_LABS_ADMIN',
-          changedFields: Object.keys(body),
+          changedFields: Object.keys(body).filter(key => key !== 'partnerSlug'),
           before: Object.fromEntries(Object.keys(metadata).map(key => [key, before[key] ?? null])),
         },
         ipAddress: (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null,
