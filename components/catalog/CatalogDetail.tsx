@@ -19,7 +19,10 @@ export default function CatalogDetail({product}:{product:Product}){
  const includedTests=product.includedTests??[];
  const includedTestCount=product.includedTestCount??includedTests.length; const derivedParameterCount=product.parameterCount?Math.max(0, Number(product.parameterCount)-includedTestCount):0;
  const visibleTests=showAllTests?includedTests:includedTests.slice(0,8);
- const detailsImage=safeImage(product.imageData);\n const itemNoun=product.type==='PROFILE'?'profile':product.type==='PACKAGE'?'package':'test';\n const itemNounTitle=itemNoun[0].toUpperCase()+itemNoun.slice(1);\n const measureVerb=product.type==='TEST'?'measure?':'include?';
+ const detailsImage=safeImage(product.imageData);
+ const itemNoun=product.type==='PROFILE'?'profile':product.type==='PACKAGE'?'package':'test';
+ const itemNounTitle=itemNoun[0].toUpperCase()+itemNoun.slice(1);
+ const measureVerb=product.type==='TEST'?'measure?':'include?';
  return <main className="testDetailPage">
   <nav className="testBreadcrumb" aria-label="Breadcrumb"><a href="/">Home</a><span>›</span><span>{product.type==='PROFILE'?'Profiles':product.type==='PACKAGE'?'Packages':'Tests'}</span><span>›</span><span aria-current="page">{product.name}</span></nav>
   <header className="testHero"><div className="testHeroCopy"><div className="testEyebrow">Diagnostic {itemNoun}</div><h1>{product.name}</h1>{product.aliases?.length?<p className="testAliases">Also known as: {product.aliases.slice(0,4).join(', ')}</p>:null}{product.categories?.length?<div className="testCategories">{product.categories.map(category=><a key={category.slug} href={`/categories/${category.slug}`}>{category.name}</a>)}</div>:null}
