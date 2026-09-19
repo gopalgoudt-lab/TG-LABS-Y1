@@ -68,7 +68,7 @@ export default function AdminCatalogEditorPage() {
           mrp: form.mrp === '' ? null : Number(form.mrp),
           price: form.price === '' ? null : Number(form.price),
           description: form.description,
-          sampleType: form.sampleType,
+          sampleTypeOther: form.sampleType,
           preparation: form.preparation,
           tat: form.tat === '' ? null : form.tat,
           imageData: form.imageData.trim() === '' ? null : form.imageData.trim(),
