@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const editor = fs.readFileSync("components/admin/CatalogEditor.tsx", "utf8");
+const editor = fs.readFileSync("app/admin/catalog-editor/page.tsx", "utf8");
 const route = fs.readFileSync("app/api/admin/catalog-editor/[kind]/[id]/route.ts", "utf8");
 
 test("admin package editor exposes controlled PROFILE/PACKAGE classification", () => {
