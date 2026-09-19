@@ -27,6 +27,11 @@ export async function GET(request: Request) {
       q: url.searchParams.get('q') ?? '',
     });
 
+    const fingerprintRows = await prisma.$queryRawUnsafe<Array<{ database_name: string; branch_id: string | null }>>(
+      "SELECT current_database() AS database_name, current_setting('neon.branch_id', true) AS branch_id"
+    );
+    const databaseFingerprint = fingerprintRows[0] ?? { database_name: 'unknown', branch_id: null };
+
     const diagnosticPartner = await prisma.diagnosticPartner.findFirst({
       where: {
         OR: [
