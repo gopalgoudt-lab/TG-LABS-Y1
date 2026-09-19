@@ -15,6 +15,8 @@ const patchSchema = z.object({
   tat: z.string().trim().max(200).nullable().optional(),
   sampleTypes: z.array(z.string().trim().min(1).max(100)).max(20).optional(),
   sampleTypeOther: z.string().trim().max(200).nullable().optional(),
+  imageData: z.string().max(2_000_000).nullable().optional(),
+  includedTestIds: z.array(z.string().trim().min(1).max(200)).max(500).optional(),
 }).strict().refine(value => Object.keys(value).length > 0, { message: 'Provide at least one approved catalog field.' });
 
 function authFailure(error: unknown) {
@@ -28,6 +30,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ kind:
     const { kind, id } = await context.params;
     if (kind !== 'test' && kind !== 'package') return NextResponse.json({ error: 'Unsupported catalog item type.' }, { status: 404 });
     const body = patchSchema.parse(await request.json());
+    if (kind === 'test' && body.includedTestIds !== undefined) return NextResponse.json({ error: 'Included tests apply only to packages/profiles.' }, { status: 400 });
+    const { includedTestIds, ...metadata } = body;
 
     const model = kind === 'test' ? prisma.diagnosticTest : prisma.diagnosticPackage;
     const before = await (model as any).findUnique({ where: { id } });
@@ -35,7 +39,14 @@ export async function PATCH(request: Request, context: { params: Promise<{ kind:
 
     const updated = await prisma.$transaction(async tx => {
       const txModel = kind === 'test' ? tx.diagnosticTest : tx.diagnosticPackage;
-      const item = await (txModel as any).update({ where: { id }, data: body });
+      const item = await (txModel as any).update({ where: { id }, data: metadata });
+      if (kind === 'package' && includedTestIds !== undefined) {
+        const uniqueTestIds = [...new Set(includedTestIds)];
+        const validCount = await tx.diagnosticTest.count({ where: { id: { in: uniqueTestIds } } });
+        if (validCount !== uniqueTestIds.length) throw new Error('INVALID_INCLUDED_TEST');
+        await tx.packageItem.deleteMany({ where: { packageId: id } });
+        if (uniqueTestIds.length) await tx.packageItem.createMany({ data: uniqueTestIds.map(testId => ({ packageId: id, testId })) });
+      }
       await tx.adminAuditLog.create({ data: {
         adminPhone: admin.phone,
         action: kind === 'test' ? 'DIAGNOSTIC_TEST_METADATA_UPDATED' : 'DIAGNOSTIC_PACKAGE_METADATA_UPDATED',
@@ -46,7 +57,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ kind:
           actorRole: admin.role,
           actorSource: 'TG_LABS_ADMIN',
           changedFields: Object.keys(body),
-          before: Object.fromEntries(Object.keys(body).map(key => [key, before[key] ?? null])),
+          before: Object.fromEntries(Object.keys(metadata).map(key => [key, before[key] ?? null])),
         },
         ipAddress: (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null,
         userAgent: request.headers.get('user-agent') || null,
