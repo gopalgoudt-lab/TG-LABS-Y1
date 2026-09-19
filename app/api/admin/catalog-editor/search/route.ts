@@ -88,6 +88,7 @@ export async function GET(request: Request) {
         preparation: catalogPackage.preparation,
         tatHours: tat ?? catalogPackage.tat,
         imageData: catalogPackage.imageData,
+        packageType: catalogPackage.packageType,
         includedTestIds: catalogPackage.tests.map(item => item.testId),
       })),
     });
