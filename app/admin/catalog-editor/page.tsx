@@ -70,6 +70,7 @@ export default function AdminCatalogEditorPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          partnerSlug: form.partner,
           name: form.name,
           mrp: form.mrp === '' ? null : Number(form.mrp),
           price: form.price === '' ? null : Number(form.price),
