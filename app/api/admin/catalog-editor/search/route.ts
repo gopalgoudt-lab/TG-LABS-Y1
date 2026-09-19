@@ -61,6 +61,7 @@ export async function GET(request: Request) {
           sampleType: test.sampleTypeOther || test.sampleTypes.join(', '),
           preparation: test.preparation,
           tatHours: tat ?? test.tat,
+          imageData: test.imageData,
         })),
       });
     }
@@ -70,7 +71,7 @@ export async function GET(request: Request) {
         partnerId: diagnosticPartner.id,
         package: { name: { contains: q, mode: 'insensitive' } },
       },
-      include: { package: true },
+      include: { package: { include: { tests: { select: { testId: true } } } } },
       orderBy: { package: { name: 'asc' } },
       take: 25,
     });
@@ -86,6 +87,8 @@ export async function GET(request: Request) {
         sampleType: catalogPackage.sampleTypeOther || catalogPackage.sampleTypes.join(', '),
         preparation: catalogPackage.preparation,
         tatHours: tat ?? catalogPackage.tat,
+        imageData: catalogPackage.imageData,
+        includedTestIds: catalogPackage.tests.map(item => item.testId),
       })),
     });
   } catch (error) {

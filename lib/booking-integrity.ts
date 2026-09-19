@@ -29,6 +29,10 @@ export function validateAndPriceBooking(
   }
 
   const packageTestIds = new Set(packages.flatMap((pkg) => pkg.tests.map((item) => item.test.id)));
+  if (selections.some((selection) => packageTestIds.has(selection.testId))) {
+    throw new Error('TEST_ALREADY_INCLUDED_IN_PACKAGE');
+  }
+
   const diagnosticAmount =
     packages.reduce((sum, pkg) => sum + pkg.price, 0) +
     offers.reduce((sum, offer) => sum + (packageTestIds.has(offer.testId) ? 0 : offer.price), 0);
