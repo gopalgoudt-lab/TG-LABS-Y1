@@ -20,6 +20,9 @@ type EditorForm = {
   includedTestIds: string;
 };
 
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 const emptyForm: EditorForm = {
   id: '', partner: '', name: '', mrp: '', price: '', description: '', sampleType: '', preparation: '', tat: '', imageData: '', includedTestIds: '',
 };
@@ -85,6 +88,24 @@ export default function AdminCatalogEditorPage() {
   }
 
   const setField = (field: keyof EditorForm, value: string) => setForm((current) => ({ ...current, [field]: value }));
+  async function selectImage(file: File | undefined) {
+    if (!file) return;
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setStatus('error'); setMessage('Error: Choose a JPEG, PNG or WebP image.'); return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setStatus('error'); setMessage('Error: Image must be 2 MB or smaller.'); return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== 'string') return;
+      setField('imageData', reader.result);
+      setStatus('idle'); setMessage('Image ready. Save changes to apply it.');
+    };
+    reader.onerror = () => { setStatus('error'); setMessage('Error: Could not read image.'); };
+    reader.readAsDataURL(file);
+  }
+
   const margin = form.mrp && form.price ? Number(form.price) - Number(form.mrp) : null;
 
   return (
@@ -115,7 +136,7 @@ export default function AdminCatalogEditorPage() {
           <label>Preparation<input className="mt-1 w-full rounded border p-2" value={form.preparation} onChange={(e) => setField('preparation', e.target.value)} /></label>
           <label>TAT<input className="mt-1 w-full rounded border p-2" value={form.tat} onChange={(e) => setField('tat', e.target.value)} placeholder="e.g. 24 hours or 11:00/18:00" /></label>
         </div>
-        <label className="block">Test details image (data URL or approved image reference)<textarea className="mt-1 min-h-20 w-full rounded border p-2" value={form.imageData} onChange={(e) => setField('imageData', e.target.value)} /></label>
+        <label className="block">Test details image<input type="file" accept="image/jpeg,image/png,image/webp" className="mt-1 block w-full rounded border p-2" onChange={(e) => void selectImage(e.target.files?.[0])} /><span className="mt-1 block text-xs text-slate-600">JPEG, PNG or WebP; maximum 2 MB.</span></label>\n        {form.imageData && <div className="rounded border p-3"><img src={form.imageData} alt="Catalog image preview" className="max-h-72 w-auto rounded object-contain" /></div>}
         {kind === 'package' && <label className="block">Included tests (catalog IDs, comma-separated)<textarea className="mt-1 min-h-20 w-full rounded border p-2" value={form.includedTestIds} onChange={(e) => setField('includedTestIds', e.target.value)} /></label>}
         <label className="block">Description<textarea className="mt-1 min-h-28 w-full rounded border p-2" value={form.description} onChange={(e) => setField('description', e.target.value)} /></label>
         <section className="rounded border p-4"><h3 className="font-semibold">Pricing &amp; Gross margin</h3><p className="text-sm">Gross margin: {margin === null ? '—' : margin}. Informational only; activation, booking and serviceability remain protected.</p></section>
