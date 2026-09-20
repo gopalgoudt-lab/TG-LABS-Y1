@@ -42,3 +42,6 @@
   .refHomeExact .catalogPincodeControls .btn { width: 100%; }
   .refHomeExact .productCard { padding: 18px; }
 }
+
+/* Catalog price hierarchy: mobile-first and compact on larger screens. */
+.catalogPriceBlock{display:flex;flex-direction:column;gap:.25rem}.catalogSellingRow{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}.catalogSellingPrice{font-size:1.55rem;line-height:1.1;color:#0f766e}.catalogDiscount{font-size:.8rem;font-weight:800;padding:.2rem .45rem;border-radius:999px;background:#e6f7f3;color:#0f766e}.catalogPriceMeta{font-size:.95rem;color:#52656a}.catalogMrp s{text-decoration-thickness:2px}@media(min-width:768px){.catalogSellingPrice{font-size:1.35rem}}
