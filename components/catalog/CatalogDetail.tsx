@@ -6,7 +6,7 @@ import PartnerOfferCard, { type PublicOffer } from './PartnerOfferCard';
 type Product = {
   id:string; type:string; slug:string; name:string; aliases?:string[]; description?:string|null;
   preparation?:string|null; imageData?:string|null; fastingNeeded:boolean; fastingHours?:number|null;
-  parameterCount?:number|null; sampleTypes:string[]; categories?:{slug:string;name:string;description?:string|null}[];
+  parameterCount?:number|null; sampleTypes:string[]; homeCollectionCharge?:number; categories?:{slug:string;name:string;description?:string|null}[];
   offers:PublicOffer[]; includedTestCount?:number; includedTests?:{id:string;slug:string;name:string}[];
   tests?:{slug:string;name:string}[];
   includedProfiles?:{id:string;slug:string;name:string;parameterCount?:number|null;includedTests:{id:string;slug:string;name:string}[]}[];
@@ -31,7 +31,7 @@ function includedProfileDisplayName(productId:string,profile:IncludedProfile){
 }
 export default function CatalogDetail({product}:{product:Product}){
  const [added,setAdded]=useState(false); const [alreadyIncluded,setAlreadyIncluded]=useState(false); const [showAllTests,setShowAllTests]=useState(false); const [showDetailsImage,setShowDetailsImage]=useState(false); const [openProfileIds,setOpenProfileIds]=useState<string[]>([]);
- function add(offer:PublicOffer,pincode:string){const key='tglabs-cart';const cart=readCatalogCart(localStorage.getItem(key));const item={productType:product.type as 'TEST'|'PROFILE'|'PACKAGE',productIdentifier:product.id,productName:product.name,offerIdentifier:offer.offerId,partnerIdentifier:offer.partner.slug,partnerName:offer.partner.name,tat:offer.tat??null,mrp:offer.mrp??null,displayedPrice:offer.price,pincode};const composition=new Map<string,readonly string[]>();if(product.type!=='TEST')composition.set(product.id,(product.includedTests??[]).map(test=>test.id));const result=addCatalogItemWithContainment(cart,item,composition);if(result.status==='already-included'){setAdded(false);setAlreadyIncluded(true);return;}localStorage.setItem(key,JSON.stringify(result.items));setAlreadyIncluded(false);setAdded(true);window.dispatchEvent(new Event('tglabs-cart-updated'));}
+ function add(offer:PublicOffer,pincode:string){const key='tglabs-cart';const cart=readCatalogCart(localStorage.getItem(key));const item={productType:product.type as 'TEST'|'PROFILE'|'PACKAGE',productIdentifier:product.id,productName:product.name,offerIdentifier:offer.offerId,partnerIdentifier:offer.partner.slug,partnerName:offer.partner.name,tat:offer.tat??null,mrp:offer.mrp??null,displayedPrice:offer.price,homeCollectionCharge:product.homeCollectionCharge??0,pincode};const composition=new Map<string,readonly string[]>();if(product.type!=='TEST')composition.set(product.id,(product.includedTests??[]).map(test=>test.id));const result=addCatalogItemWithContainment(cart,item,composition);if(result.status==='already-included'){setAdded(false);setAlreadyIncluded(true);return;}localStorage.setItem(key,JSON.stringify(result.items));setAlreadyIncluded(false);setAdded(true);window.dispatchEvent(new Event('tglabs-cart-updated'));}
  const lowestPrice=product.offers.length?Math.min(...product.offers.map(offer=>offer.price)):null;
  const includedTests=product.includedTests??[];
  const includedTestCount=product.includedTestCount??includedTests.length; const derivedParameterCount=product.parameterCount?Math.max(0, Number(product.parameterCount)-includedTestCount):0;
