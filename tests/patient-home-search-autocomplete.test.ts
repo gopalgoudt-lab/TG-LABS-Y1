@@ -18,3 +18,12 @@ test('patient homepage search offers live selectable public catalog suggestions'
   assert.match(search, /router\.push\(detailsHref\(item\)\)/);
   assert.match(search, /router\.push\(\`\/\?q=/);
 });
+
+test('mobile patient suggestions size to content and scroll without overlap', () => {
+  const css = fs.readFileSync('app/homepage-mobile-review.css', 'utf8');
+  assert.match(css, /max-height:min\(52vh,360px\)/);
+  assert.match(css, /height:auto!important/);
+  assert.match(css, /min-height:64px!important/);
+  assert.match(css, /white-space:normal/);
+  assert.match(css, /overflow-wrap:anywhere/);
+});
