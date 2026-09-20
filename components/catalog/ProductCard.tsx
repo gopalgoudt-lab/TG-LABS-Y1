@@ -22,6 +22,8 @@ export default function ProductCard({ product, pincode }: { product: PublicProdu
   const [added, setAdded] = useState(false);
   const [status, setStatus] = useState('');
   const [checking, setChecking] = useState(false);
+  const hasDiscount = Boolean(offer?.mrp && offer.mrp > offer.price);
+  const discountPercent = hasDiscount ? Math.round(((offer!.mrp! - offer!.price) / offer!.mrp!) * 100) : 0;
 
   function persistToCart(pin: string) {
     if (!offer) return;
@@ -93,7 +95,7 @@ export default function ProductCard({ product, pincode }: { product: PublicProdu
       </div>
       {offer && (
         <>
-          <p className="fromPrice">From <b>₹{offer.price}</b> • {offer.partner.name}</p>
+          <p className="fromPrice">{hasDiscount && <><span className="catalogMrp">MRP <s>₹{offer.mrp}</s></span>{' '}</>}<span>From <b>₹{offer.price}</b></span>{hasDiscount && <span className="catalogDiscount"> • {discountPercent}% off</span>}<span> • {offer.partner.name}</span></p>
           <button type="button" className="btn primary" onClick={addToCart} disabled={checking}>
             {checking ? 'Checking…' : added ? 'Added to Cart' : 'Add to Cart'}
           </button>
