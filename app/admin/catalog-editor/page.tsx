@@ -5,6 +5,7 @@ import { FormEvent, useState } from 'react';
 export const dynamic = 'force-dynamic';
 
 type CatalogKind = 'test' | 'package';
+type EditorMode = 'TEST' | 'PROFILE' | 'PACKAGE';
 
 type EditorForm = {
   id: string;
@@ -32,6 +33,7 @@ const emptyForm: EditorForm = {
 
 export default function AdminCatalogEditorPage() {
   const [kind, setKind] = useState<CatalogKind>('test');
+  const [editorMode, setEditorMode] = useState<EditorMode>('TEST');
   const [query, setQuery] = useState('');
   const [form, setForm] = useState<EditorForm>(emptyForm);
   const [status, setStatus] = useState<'idle' | 'loading' | 'saving' | 'success' | 'error'>('idle');
@@ -47,7 +49,7 @@ export default function AdminCatalogEditorPage() {
     setStatus('loading');
     setMessage('');
     try {
-      const response = await fetch(`/api/admin/catalog-editor/search?partner=${encodeURIComponent(form.partner)}&kind=${kind}&q=${encodeURIComponent(query)}`);
+      const response = await fetch(`/api/admin/catalog-editor/search?partner=${encodeURIComponent(form.partner)}&kind=${kind}${kind === 'package' ? `&packageType=${editorMode}` : ''}&q=${encodeURIComponent(query)}`);
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
       const item = data.items?.[0];
@@ -60,6 +62,7 @@ export default function AdminCatalogEditorPage() {
         packageType: item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE',
       });
       setSelectedProfiles(Array.isArray(item.includedProfiles) ? item.includedProfiles : []);
+      setEditorMode(kind === 'test' ? 'TEST' : item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE');
       setStatus('idle');
     } catch (error) {
       setStatus('error');
@@ -198,7 +201,7 @@ export default function AdminCatalogEditorPage() {
     <main className="mx-auto max-w-6xl space-y-6 p-6">
       <div>
         <p className="text-sm font-semibold uppercase tracking-wide">Admin catalog controls</p>
-        <h1 className="text-3xl font-bold">Test &amp; Package Editor</h1>
+        <h1 className="text-3xl font-bold">Test, Profile &amp; Package Editor</h1>
         <p className="mt-2 text-sm text-slate-600">Edit approved descriptive and pricing metadata. Activation, booking and serviceability remain protected.</p>
       </div>
 
@@ -206,14 +209,14 @@ export default function AdminCatalogEditorPage() {
         <h2 className="text-xl font-semibold">Search catalog</h2>
         <div className="grid gap-4 md:grid-cols-3">
           <label>Partner<select className="mt-1 w-full rounded border p-2" value={form.partner} onChange={(e) => setField('partner', e.target.value)}><option value="">Select partner</option><option value="tg-labs-partner">Metropolis</option><option value="sagepath-labs">Sagepath Labs</option><option value="thyrocare">Thyrocare</option></select></label>
-          <label>Type<select className="mt-1 w-full rounded border p-2" value={kind} onChange={(e) => setKind(e.target.value as CatalogKind)}><option value="test">Test</option><option value="package">Package</option></select></label>
-          <label>Search<input className="mt-1 w-full rounded border p-2" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Test or Package name" /></label>
+          <label>Edit<select className="mt-1 w-full rounded border p-2" value={editorMode} onChange={(e) => { const mode = e.target.value as EditorMode; setEditorMode(mode); setKind(mode === 'TEST' ? 'test' : 'package'); setForm(current => ({ ...current, id: '', packageType: mode === 'PROFILE' ? 'PROFILE' : 'PACKAGE' })); setSelectedProfiles([]); }}><option value="TEST">Test</option><option value="PROFILE">Profile</option><option value="PACKAGE">Package</option></select></label>
+          <label>Search<input className="mt-1 w-full rounded border p-2" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={editorMode === 'TEST' ? 'Test name' : editorMode === 'PROFILE' ? 'Profile name' : 'Package name'} /></label>
         </div>
         <button className="rounded bg-blue-600 px-4 py-2 text-white" type="submit" disabled={status === 'loading' || !form.partner || !query.trim()}>{status === 'loading' ? 'Searching…' : 'Search catalog'}</button>
       </form>
 
       <form onSubmit={saveChanges} className="rounded-xl border p-5 space-y-4">
-        <h2 className="text-xl font-semibold">{kind === 'test' ? 'Tests' : 'Packages'} editor</h2>
+        <h2 className="text-xl font-semibold">Edit {editorMode === 'TEST' ? 'Test' : editorMode === 'PROFILE' ? 'Profile' : 'Package'}</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <label>Name<input className="mt-1 w-full rounded border p-2" value={form.name} onChange={(e) => setField('name', e.target.value)} /></label>
           <label>MRP<input type="number" className="mt-1 w-full rounded border p-2" value={form.mrp} onChange={(e) => setField('mrp', e.target.value)} /></label>
