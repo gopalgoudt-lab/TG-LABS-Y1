@@ -1,0 +1,2 @@
+import assert from 'node:assert/strict';import test from 'node:test';import fs from 'node:fs';
+test('Aarogyam 1.8 uses brochure electrolytes label and report-only Vitamin D2',()=>{const d=fs.readFileSync('components/catalog/CatalogDetail.tsx','utf8');assert.match(d,/productId==='thyrocare-package-aa1-8wu-8'\)\&\&profile\.id==='thyrocare-profile-seel-69'\)return 'ELECTROLYTES PROFILE'/);assert.match(d,/thyrocare-package-fatsvp-136':\['Vitamin D2'\]/);});
