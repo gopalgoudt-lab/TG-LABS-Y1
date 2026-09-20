@@ -22,13 +22,14 @@ type EditorForm = {
   imageData: string;
   includedTestIds: string;
   packageType: 'PACKAGE' | 'PROFILE';
+  active: boolean;
 };
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const emptyForm: EditorForm = {
-  id: '', partner: '', name: '', mrp: '', price: '', description: '', sampleTypes: [], sampleTypeOther: '', preparation: '', fastingNeeded: false, tat: '', imageData: '', includedTestIds: '', packageType: 'PACKAGE',
+  id: '', partner: '', name: '', mrp: '', price: '', description: '', sampleTypes: [], sampleTypeOther: '', preparation: '', fastingNeeded: false, tat: '', imageData: '', includedTestIds: '', packageType: 'PACKAGE', active: true,
 };
 
 function ProfileSearchTests({ partner, profile }: { partner: string; profile: { id: string; name: string } }) {
@@ -73,7 +74,7 @@ export default function AdminCatalogEditorPage() {
       mrp: String(item.mrp ?? ''), price: String(item.price ?? ''), description: String(item.description ?? ''),
       sampleTypes: Array.isArray(item.sampleTypes) ? item.sampleTypes.map(String) : [], sampleTypeOther: String(item.sampleTypeOther ?? ''), preparation: String(item.preparation ?? ''), fastingNeeded: Boolean(item.fastingNeeded), tat: String(item.tatHours ?? ''),
       imageData: String(item.imageData ?? ''), includedTestIds: Array.isArray(item.includedTestIds) ? item.includedTestIds.join(', ') : '',
-      packageType: item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE',
+      packageType: item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE', active: item.active !== false,
     });
     setSelectedProfiles(Array.isArray(item.includedProfiles) ? item.includedProfiles : []);
     setEditorMode(kind === 'test' ? 'TEST' : item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE');
@@ -197,6 +198,7 @@ export default function AdminCatalogEditorPage() {
           fastingNeeded: form.fastingNeeded,
           tat: form.tat === '' ? null : form.tat,
           imageData: form.imageData.trim() === '' ? null : form.imageData.trim(),
+          active: form.active,
           ...(kind === 'package' ? { packageType: form.packageType, includedTestIds: form.includedTestIds.split(',').map(value => value.trim()).filter(Boolean), includedProfileIds: selectedProfiles.map(profile => profile.id) } : {}),
         }),
       });
@@ -244,7 +246,7 @@ export default function AdminCatalogEditorPage() {
       <div>
         <p className="text-sm font-semibold uppercase tracking-wide">Admin catalog controls</p>
         <h1 className="text-3xl font-bold">Test, Profile &amp; Package Editor</h1>
-        <p className="mt-2 text-sm text-slate-600">Edit approved descriptive and pricing metadata. Activation, booking and serviceability remain protected.</p>
+        <p className="mt-2 text-sm text-slate-600">Edit approved catalog metadata, pricing and item availability. Partner booking, operations and serviceability remain protected.</p>
       </div>
 
       <form onSubmit={searchCatalog} className="rounded-xl border p-5 space-y-4">
@@ -267,13 +269,14 @@ export default function AdminCatalogEditorPage() {
           <label>Preparation<input className="mt-1 w-full rounded border p-2" value={form.preparation} onChange={(e) => setField('preparation', e.target.value)} /></label>
           <label>Fasting required<select className="mt-1 w-full rounded border p-2" value={form.fastingNeeded ? 'yes' : 'no'} onChange={(e) => setForm(current => ({ ...current, fastingNeeded: e.target.value === 'yes' }))}><option value="yes">Yes</option><option value="no">No</option></select></label>
           <label>TAT<input className="mt-1 w-full rounded border p-2" value={form.tat} onChange={(e) => setField('tat', e.target.value)} placeholder="e.g. 24 hours or 11:00/18:00" /></label>
+          <label>Service status<select className="mt-1 w-full rounded border p-2" value={form.active ? 'active' : 'inactive'} onChange={(e) => setForm(current => ({ ...current, active: e.target.value === 'active' }))}><option value="active">Active</option><option value="inactive">Inactive</option></select><span className="mt-1 block text-xs text-slate-600">Inactive items stay in Admin but are unavailable for new patient bookings.</span></label>
         </div>
         <label className="block">Test details image<input type="file" accept="image/jpeg,image/png,image/webp" className="mt-1 block w-full rounded border p-2" onChange={(e) => void selectImage(e.target.files?.[0])} /><span className="mt-1 block text-xs text-slate-600">JPEG, PNG or WebP; maximum 2 MB.</span></label>\n        {form.imageData && <div className="rounded border p-3"><img src={form.imageData} alt="Catalog image preview" className="max-h-72 w-auto rounded object-contain" /></div>}
         {kind === 'package' && <label className="block">Catalog type<select className="mt-1 w-full rounded border p-2" value={form.packageType} onChange={(e) => setField('packageType', e.target.value)}><option value="PACKAGE">Package</option><option value="PROFILE">Profile</option></select></label>}
         {kind === 'package' && form.packageType === 'PACKAGE' && <section className="rounded border p-4 space-y-3"><h3 className="font-semibold">Included profiles</h3><div className="flex gap-2"><input className="w-full rounded border p-2" value={includedProfileQuery} onChange={(e) => setIncludedProfileQuery(e.target.value)} placeholder="Search TG Labs profiles by name" /><button type="button" className="rounded border px-4 py-2" onClick={() => void searchIncludedProfiles()} disabled={!form.partner || !includedProfileQuery.trim()}>Search profiles</button></div>{includedProfileResults.length > 0 && <div className="max-h-72 overflow-auto rounded border">{includedProfileResults.map(profile => <div key={profile.id} className="border-b p-2 last:border-b-0"><div className="flex items-center justify-between gap-2"><span className="font-medium">{profile.name}</span><button type="button" className="rounded border px-2 py-1 text-xs" onClick={() => void addIncludedProfile(profile)}>Add profile</button></div><details className="mt-2"><summary className="cursor-pointer text-sm font-medium text-blue-700">View included tests</summary><ProfileSearchTests partner={form.partner} profile={profile} /></details></div>)}</div>}{selectedProfiles.map(profile => <details key={profile.id} className="rounded border p-3"><summary className="cursor-pointer font-medium">{profile.name} [{profile.tests.length}]</summary><div className="mt-2 space-y-1">{profile.tests.length ? profile.tests.map(test => <p key={test.id} className="text-sm">{test.name}</p>) : <p className="text-sm text-slate-600">No tests linked to this profile.</p>}</div><button type="button" className="mt-2 rounded border px-2 py-1 text-xs" onClick={() => removeIncludedProfile(profile.id)}>Remove profile</button></details>)}</section>}
         {kind === 'package' && <section className="rounded border p-4 space-y-3"><h3 className="font-semibold">Included tests</h3><div className="flex gap-2"><input className="w-full rounded border p-2" value={includedTestQuery} onChange={(e) => setIncludedTestQuery(e.target.value)} placeholder="Search TG Labs tests by name" /><button type="button" className="rounded border px-4 py-2" onClick={() => void searchIncludedTests()} disabled={!form.partner || !includedTestQuery.trim()}>Search tests</button></div>{includedTestResults.length > 0 && <div className="max-h-56 overflow-auto rounded border">{includedTestResults.map(test => <button key={test.id} type="button" className="block w-full border-b p-2 text-left last:border-b-0 hover:bg-slate-50" onClick={() => addIncludedTest(test)}>{test.name}</button>)}</div>}<div><p className="text-xs text-slate-600">Selected catalog IDs are saved internally. Search and select tests instead of typing names.</p><textarea readOnly aria-label="Selected included test catalog IDs" className="mt-1 min-h-20 w-full rounded border bg-slate-50 p-2" value={form.includedTestIds} /></div>{form.includedTestIds && <div className="flex flex-wrap gap-2">{form.includedTestIds.split(',').map(value => value.trim()).filter(Boolean).map(testId => <button key={testId} type="button" className="rounded border px-2 py-1 text-xs" onClick={() => removeIncludedTest(testId)}>Remove {testId}</button>)}</div>}</section>}
         <label className="block">Description<textarea className="mt-1 min-h-28 w-full rounded border p-2" value={form.description} onChange={(e) => setField('description', e.target.value)} /></label>
-        <section className="rounded border p-4"><h3 className="font-semibold">Pricing &amp; Gross margin</h3><p className="text-sm">Gross margin: {margin === null ? '—' : margin}. Informational only; activation, booking and serviceability remain protected.</p></section>
+        <section className="rounded border p-4"><h3 className="font-semibold">Pricing &amp; Gross margin</h3><p className="text-sm">Gross margin: {margin === null ? '—' : margin}. Informational only; partner booking, operations and serviceability remain protected.</p></section>
         <button className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50" type="submit" disabled={!form.id || status === 'saving'}>{status === 'saving' ? 'Saving…' : 'Save changes'}</button>
         {message && <p role="status" className={status === 'error' ? 'text-red-700' : 'text-green-700'}>{message}</p>}
       </form>
