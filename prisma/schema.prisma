@@ -167,6 +167,8 @@ model DiagnosticPackage {
   createdAt         DateTime                    @default(now())
   updatedAt         DateTime                    @updatedAt
   tests             PackageItem[]
+  includedProfiles  PackageProfileItem[]        @relation("PackageIncludesProfiles")
+  includedInPackages PackageProfileItem[]        @relation("ProfileIncludedInPackages")
   bookings          BookingPackage[]
   partnerOffers     PackagePartnerOffer[]
   categories        DiagnosticPackageCategory[]
@@ -246,6 +248,17 @@ model PartnerServiceability {
   @@unique([partnerId, pincode])
   @@index([pincode, active, homeCollectionEnabled])
   @@index([partnerId, active])
+}
+
+model PackageProfileItem {
+  id        String            @id @default(cuid())
+  packageId String
+  profileId String
+  package   DiagnosticPackage @relation("PackageIncludesProfiles", fields: [packageId], references: [id], onDelete: Cascade)
+  profile   DiagnosticPackage @relation("ProfileIncludedInPackages", fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, profileId])
+  @@index([profileId])
 }
 
 model PackageItem {

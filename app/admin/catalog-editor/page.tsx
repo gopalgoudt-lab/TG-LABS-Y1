@@ -38,6 +38,9 @@ export default function AdminCatalogEditorPage() {
   const [message, setMessage] = useState('');
   const [includedTestQuery, setIncludedTestQuery] = useState('');
   const [includedTestResults, setIncludedTestResults] = useState<Array<{ id: string; name: string }>>([]);
+  const [includedProfileQuery, setIncludedProfileQuery] = useState('');
+  const [includedProfileResults, setIncludedProfileResults] = useState<Array<{ id: string; name: string; tests: Array<{ id: string; name: string }> }>>([]);
+  const [selectedProfiles, setSelectedProfiles] = useState<Array<{ id: string; name: string; tests: Array<{ id: string; name: string }> }>>([]);
 
   async function searchCatalog(event: FormEvent) {
     event.preventDefault();
@@ -56,6 +59,7 @@ export default function AdminCatalogEditorPage() {
         imageData: String(item.imageData ?? ''), includedTestIds: Array.isArray(item.includedTestIds) ? item.includedTestIds.join(', ') : '',
         packageType: item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE',
       });
+      setSelectedProfiles(Array.isArray(item.includedProfiles) ? item.includedProfiles : []);
       setStatus('idle');
     } catch (error) {
       setStatus('error');
@@ -89,6 +93,44 @@ export default function AdminCatalogEditorPage() {
     setForm(current => ({ ...current, includedTestIds: ids.join(', ') }));
   }
 
+  async function searchIncludedProfiles() {
+    if (!form.partner || !includedProfileQuery.trim()) return;
+    try {
+      const response = await fetch(`/api/admin/catalog-editor/search?partner=${encodeURIComponent(form.partner)}&kind=package&packageType=PROFILE&q=${encodeURIComponent(includedProfileQuery)}`);
+      if (!response.ok) throw new Error('Included-profile search failed');
+      const data = await response.json();
+      setIncludedProfileResults((data.items ?? []).map((item: { id: string; name: string; includedTestIds?: string[]; includedProfiles?: unknown[] }) => ({
+        id: String(item.id),
+        name: String(item.name),
+        tests: [],
+      })));
+    } catch (error) {
+      setStatus('error');
+      setMessage(error instanceof Error ? `Error: ${error.message}` : 'Error searching included profiles');
+    }
+  }
+
+  async function addIncludedProfile(profile: { id: string; name: string }) {
+    if (selectedProfiles.some(item => item.id === profile.id)) return;
+    try {
+      const response = await fetch(`/api/admin/catalog-editor/search?partner=${encodeURIComponent(form.partner)}&kind=package&packageType=PROFILE&q=${encodeURIComponent(profile.name)}`);
+      if (!response.ok) throw new Error('Profile details failed');
+      const data = await response.json();
+      const exact = (data.items ?? []).find((item: { id: string }) => String(item.id) === profile.id);
+      const tests = Array.isArray(exact?.includedTests) ? exact.includedTests.map((test: { id: string; name: string }) => ({ id: String(test.id), name: String(test.name) })) : [];
+      setSelectedProfiles(current => [...current, { id: profile.id, name: profile.name, tests }]);
+      setIncludedProfileQuery('');
+      setIncludedProfileResults([]);
+    } catch (error) {
+      setStatus('error');
+      setMessage(error instanceof Error ? `Error: ${error.message}` : 'Error loading profile');
+    }
+  }
+
+  function removeIncludedProfile(profileId: string) {
+    setSelectedProfiles(current => current.filter(profile => profile.id !== profileId));
+  }
+
   async function saveChanges(event: FormEvent) {
     event.preventDefault();
     if (!form.id) return;
@@ -110,7 +152,7 @@ export default function AdminCatalogEditorPage() {
           fastingNeeded: form.fastingNeeded,
           tat: form.tat === '' ? null : form.tat,
           imageData: form.imageData.trim() === '' ? null : form.imageData.trim(),
-          ...(kind === 'package' ? { packageType: form.packageType, includedTestIds: form.includedTestIds.split(',').map(value => value.trim()).filter(Boolean) } : {}),
+          ...(kind === 'package' ? { packageType: form.packageType, includedTestIds: form.includedTestIds.split(',').map(value => value.trim()).filter(Boolean), includedProfileIds: selectedProfiles.map(profile => profile.id) } : {}),
         }),
       });
       if (!response.ok) {
@@ -183,6 +225,7 @@ export default function AdminCatalogEditorPage() {
         </div>
         <label className="block">Test details image<input type="file" accept="image/jpeg,image/png,image/webp" className="mt-1 block w-full rounded border p-2" onChange={(e) => void selectImage(e.target.files?.[0])} /><span className="mt-1 block text-xs text-slate-600">JPEG, PNG or WebP; maximum 2 MB.</span></label>\n        {form.imageData && <div className="rounded border p-3"><img src={form.imageData} alt="Catalog image preview" className="max-h-72 w-auto rounded object-contain" /></div>}
         {kind === 'package' && <label className="block">Catalog type<select className="mt-1 w-full rounded border p-2" value={form.packageType} onChange={(e) => setField('packageType', e.target.value)}><option value="PACKAGE">Package</option><option value="PROFILE">Profile</option></select></label>}
+        {kind === 'package' && form.packageType === 'PACKAGE' && <section className="rounded border p-4 space-y-3"><h3 className="font-semibold">Included profiles</h3><div className="flex gap-2"><input className="w-full rounded border p-2" value={includedProfileQuery} onChange={(e) => setIncludedProfileQuery(e.target.value)} placeholder="Search TG Labs profiles by name" /><button type="button" className="rounded border px-4 py-2" onClick={() => void searchIncludedProfiles()} disabled={!form.partner || !includedProfileQuery.trim()}>Search profiles</button></div>{includedProfileResults.length > 0 && <div className="max-h-56 overflow-auto rounded border">{includedProfileResults.map(profile => <button key={profile.id} type="button" className="block w-full border-b p-2 text-left last:border-b-0 hover:bg-slate-50" onClick={() => void addIncludedProfile(profile)}>{profile.name}</button>)}</div>}{selectedProfiles.map(profile => <details key={profile.id} className="rounded border p-3"><summary className="cursor-pointer font-medium">{profile.name} [{profile.tests.length}]</summary><div className="mt-2 space-y-1">{profile.tests.length ? profile.tests.map(test => <p key={test.id} className="text-sm">{test.name}</p>) : <p className="text-sm text-slate-600">No tests linked to this profile.</p>}</div><button type="button" className="mt-2 rounded border px-2 py-1 text-xs" onClick={() => removeIncludedProfile(profile.id)}>Remove profile</button></details>)}</section>}
         {kind === 'package' && <section className="rounded border p-4 space-y-3"><h3 className="font-semibold">Included tests</h3><div className="flex gap-2"><input className="w-full rounded border p-2" value={includedTestQuery} onChange={(e) => setIncludedTestQuery(e.target.value)} placeholder="Search TG Labs tests by name" /><button type="button" className="rounded border px-4 py-2" onClick={() => void searchIncludedTests()} disabled={!form.partner || !includedTestQuery.trim()}>Search tests</button></div>{includedTestResults.length > 0 && <div className="max-h-56 overflow-auto rounded border">{includedTestResults.map(test => <button key={test.id} type="button" className="block w-full border-b p-2 text-left last:border-b-0 hover:bg-slate-50" onClick={() => addIncludedTest(test)}>{test.name}</button>)}</div>}<div><p className="text-xs text-slate-600">Selected catalog IDs are saved internally. Search and select tests instead of typing names.</p><textarea readOnly aria-label="Selected included test catalog IDs" className="mt-1 min-h-20 w-full rounded border bg-slate-50 p-2" value={form.includedTestIds} /></div>{form.includedTestIds && <div className="flex flex-wrap gap-2">{form.includedTestIds.split(',').map(value => value.trim()).filter(Boolean).map(testId => <button key={testId} type="button" className="rounded border px-2 py-1 text-xs" onClick={() => removeIncludedTest(testId)}>Remove {testId}</button>)}</div>}</section>}
         <label className="block">Description<textarea className="mt-1 min-h-28 w-full rounded border p-2" value={form.description} onChange={(e) => setField('description', e.target.value)} /></label>
         <section className="rounded border p-4"><h3 className="font-semibold">Pricing &amp; Gross margin</h3><p className="text-sm">Gross margin: {margin === null ? '—' : margin}. Informational only; activation, booking and serviceability remain protected.</p></section>

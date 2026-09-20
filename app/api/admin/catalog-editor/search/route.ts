@@ -10,6 +10,7 @@ const searchSchema = z.object({
   partner: z.string().trim().min(1).max(200),
   kind: z.enum(['test', 'package']),
   q: z.string().trim().min(1).max(200),
+  packageType: z.enum(['PACKAGE', 'PROFILE']).optional(),
 });
 
 function authFailure(error: unknown) {
@@ -21,10 +22,11 @@ export async function GET(request: Request) {
   try {
     await adminFromRequest(request);
     const url = new URL(request.url);
-    const { partner, kind, q } = searchSchema.parse({
+    const { partner, kind, q, packageType } = searchSchema.parse({
       partner: url.searchParams.get('partner') ?? '',
       kind: url.searchParams.get('kind') ?? '',
       q: url.searchParams.get('q') ?? '',
+      packageType: url.searchParams.get('packageType') || undefined,
     });
 
     const fingerprintRows = await prisma.$queryRawUnsafe<Array<{ database_name: string; branch_id: string | null }>>(
@@ -76,9 +78,12 @@ export async function GET(request: Request) {
     const offers = await prisma.packagePartnerOffer.findMany({
       where: {
         partnerId: diagnosticPartner.id,
-        package: { name: { contains: q, mode: 'insensitive' } },
+        package: { name: { contains: q, mode: 'insensitive' }, ...(packageType ? { packageType } : {}) },
       },
-      include: { package: { include: { tests: { select: { testId: true } } } } },
+      include: { package: { include: {
+        tests: { include: { test: { select: { id: true, name: true } } } },
+        includedProfiles: { include: { profile: { include: { tests: { include: { test: { select: { id: true, name: true } } } } } } } },
+      } } },
       orderBy: { package: { name: 'asc' } },
       take: 25,
     });
@@ -99,6 +104,12 @@ export async function GET(request: Request) {
         imageData: catalogPackage.imageData,
         packageType: catalogPackage.packageType,
         includedTestIds: catalogPackage.tests.map(item => item.testId),
+        includedTests: catalogPackage.tests.map(item => ({ id: item.test.id, name: item.test.name })),
+        includedProfiles: catalogPackage.includedProfiles.map(item => ({
+          id: item.profile.id,
+          name: item.profile.name,
+          tests: item.profile.tests.map(profileTest => ({ id: profileTest.test.id, name: profileTest.test.name })),
+        })),
       })),
     });
   } catch (error) {
