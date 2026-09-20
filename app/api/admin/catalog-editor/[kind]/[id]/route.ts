@@ -55,9 +55,18 @@ export async function PATCH(request: Request, context: { params: Promise<{ kind:
         }
       }
       if (kind === 'package' && includedTestIds !== undefined) {
-        const uniqueTestIds = [...new Set(includedTestIds)];
-        const validCount = await tx.diagnosticTest.count({ where: { id: { in: uniqueTestIds } } });
-        if (validCount !== uniqueTestIds.length) throw new Error('INVALID_INCLUDED_TEST');
+        const uniqueInputs = [...new Set(includedTestIds)];
+        const matchingTests = await tx.diagnosticTest.findMany({
+          where: { OR: [{ id: { in: uniqueInputs } }, { name: { in: uniqueInputs, mode: 'insensitive' } }] },
+          select: { id: true, name: true },
+        });
+        const resolvedTestIds = uniqueInputs.map(value => {
+          const normalized = value.trim().toLocaleLowerCase();
+          const matches = matchingTests.filter(test => test.id === value || test.name.trim().toLocaleLowerCase() === normalized);
+          return matches.length === 1 ? matches[0].id : null;
+        });
+        if (resolvedTestIds.some(testId => testId === null)) throw new Error('INVALID_INCLUDED_TEST');
+        const uniqueTestIds = [...new Set(resolvedTestIds as string[])];
         await tx.packageItem.deleteMany({ where: { packageId: id } });
         if (uniqueTestIds.length) await tx.packageItem.createMany({ data: uniqueTestIds.map(testId => ({ packageId: id, testId })) });
       }
@@ -82,6 +91,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ kind:
     return NextResponse.json({ item: updated });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Only approved catalog metadata and pricing fields may be changed.', fields: error.flatten().fieldErrors }, { status: 400 });
+    if (error instanceof Error && error.message === 'INVALID_INCLUDED_TEST') {
+      return NextResponse.json({ error: 'One or more included tests could not be matched uniquely. Use an exact TG Labs test name or catalog ID.' }, { status: 400 });
+    }
     if (authFailure(error)) {
       const auth = adminAuthError(error);
       return NextResponse.json({ error: auth.error }, { status: auth.status });
