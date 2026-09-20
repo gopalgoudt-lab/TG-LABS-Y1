@@ -95,7 +95,7 @@ export default function ProductCard({ product, pincode }: { product: PublicProdu
       </div>
       {offer && (
         <>
-          <p className="fromPrice">{hasDiscount && <><span className="catalogMrp">MRP <s>₹{offer.mrp}</s></span>{' '}</>}<span>From <b>₹{offer.price}</b></span>{hasDiscount && <span className="catalogDiscount"> • {discountPercent}% off</span>}<span> • {offer.partner.name}</span></p>
+          <div className="fromPrice catalogPriceBlock"><div className="catalogSellingRow"><strong className="catalogSellingPrice">₹{offer.price}</strong>{hasDiscount && <span className="catalogDiscount">{discountPercent}% OFF</span>}</div><div className="catalogPriceMeta">{hasDiscount && <span className="catalogMrp"><s>₹{offer.mrp}</s> MRP</span>}<span>{hasDiscount ? ' · ' : ''}{offer.partner.name}</span></div></div>
           <button type="button" className="btn primary" onClick={addToCart} disabled={checking}>
             {checking ? 'Checking…' : added ? 'Added to Cart' : 'Add to Cart'}
           </button>
