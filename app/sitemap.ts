@@ -9,6 +9,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = 'https://www.tglabs.in';
   const routes: Array<{ route: string; changeFrequency: 'daily' | 'weekly' | 'monthly'; priority: number }> = [
     { route: '/', changeFrequency: 'daily', priority: 1 },
+    { route: '/thyrocare-sithaphalmandi', changeFrequency: 'weekly', priority: 0.8 },
+    { route: '/home-blood-test-sithaphalmandi', changeFrequency: 'weekly', priority: 0.8 },
+    { route: '/thyrocare-packages-sithaphalmandi', changeFrequency: 'weekly', priority: 0.8 },
     { route: '/diagnostic-tests-hyderabad', changeFrequency: 'weekly', priority: 0.85 },
     { route: '/home-blood-test-hyderabad', changeFrequency: 'weekly', priority: 0.82 },
     { route: '/full-body-checkup-hyderabad', changeFrequency: 'weekly', priority: 0.8 },

@@ -34,6 +34,7 @@ export default function ContactPage() {
         </section>
         <section style={{ ...card, marginTop: 20 }}>
           <h2 style={{ marginTop: 0 }}>Book or access reports</h2>
+          <p>For Thyrocare Sithaphalmandi enquiries, see the <a href="/thyrocare-sithaphalmandi">local centre page and dedicated contact number</a>.</p>
           <p>Use the new TG Labs catalog to choose tests and partner options. Existing patients can securely access their bookings and reports from the patient portal.</p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 18 }}>
             <a href="/" style={{ background: '#087f6f', color: '#fff', padding: '11px 16px', borderRadius: 10, fontWeight: 800, textDecoration: 'none' }}>Browse tests &amp; packages</a>
