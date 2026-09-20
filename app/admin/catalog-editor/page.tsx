@@ -16,6 +16,7 @@ type EditorForm = {
   sampleTypes: string[];
   sampleTypeOther: string;
   preparation: string;
+  fastingNeeded: boolean;
   tat: string;
   imageData: string;
   includedTestIds: string;
@@ -26,7 +27,7 @@ const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const emptyForm: EditorForm = {
-  id: '', partner: '', name: '', mrp: '', price: '', description: '', sampleTypes: [], sampleTypeOther: '', preparation: '', tat: '', imageData: '', includedTestIds: '', packageType: 'PACKAGE',
+  id: '', partner: '', name: '', mrp: '', price: '', description: '', sampleTypes: [], sampleTypeOther: '', preparation: '', fastingNeeded: false, tat: '', imageData: '', includedTestIds: '', packageType: 'PACKAGE',
 };
 
 export default function AdminCatalogEditorPage() {
@@ -49,7 +50,7 @@ export default function AdminCatalogEditorPage() {
       setForm({
         id: String(item.id ?? ''), partner: String(item.partnerSlug ?? form.partner ?? ''), name: String(item.name ?? ''),
         mrp: String(item.mrp ?? ''), price: String(item.price ?? ''), description: String(item.description ?? ''),
-        sampleTypes: Array.isArray(item.sampleTypes) ? item.sampleTypes.map(String) : [], sampleTypeOther: String(item.sampleTypeOther ?? ''), preparation: String(item.preparation ?? ''), tat: String(item.tatHours ?? ''),
+        sampleTypes: Array.isArray(item.sampleTypes) ? item.sampleTypes.map(String) : [], sampleTypeOther: String(item.sampleTypeOther ?? ''), preparation: String(item.preparation ?? ''), fastingNeeded: Boolean(item.fastingNeeded), tat: String(item.tatHours ?? ''),
         imageData: String(item.imageData ?? ''), includedTestIds: Array.isArray(item.includedTestIds) ? item.includedTestIds.join(', ') : '',
         packageType: item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE',
       });
