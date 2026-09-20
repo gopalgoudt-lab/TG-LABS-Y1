@@ -6,7 +6,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { readCatalogCart } from '@/lib/catalog-cart';
 
-type CartItem = { kind: 'test' | 'package'; id: string; name: string; price: number; offerId: string; partnerId: string; partnerName: string; tat?: string | null; pincode?: string };
+type CartItem = { kind: 'test' | 'package'; id: string; name: string; price: number; offerId: string; partnerId: string; partnerName: string; tat?: string | null; pincode?: string; homeCollectionCharge?: number };
 type CatalogPackage = { id: string; tests?: { id: string }[] };
 type CollectionPaymentMethod = 'CASH' | 'UPI';
 
@@ -51,7 +51,7 @@ export default function CheckoutPage() {
     if (stored) {
       try {
         const safe=readCatalogCart(stored);
-        setCart(safe.map((x)=>({kind:x.productType==='TEST'?'test':'package',id:x.productIdentifier,name:x.productIdentifier,price:x.displayedPrice,offerId:x.offerIdentifier,partnerId:x.partnerIdentifier,partnerName:x.partnerIdentifier,pincode:x.pincode})));
+        setCart(safe.map((x)=>({kind:x.productType==='TEST'?'test':'package',id:x.productIdentifier,name:x.productIdentifier,price:x.displayedPrice,offerId:x.offerIdentifier,partnerId:x.partnerIdentifier,partnerName:x.partnerIdentifier,pincode:x.pincode,homeCollectionCharge:x.homeCollectionCharge??0})));
       } catch {
         setCart([]);
       }
@@ -95,7 +95,8 @@ export default function CheckoutPage() {
     return sum + Number(item.price || 0);
   }, 0), [cart, packageTestIds]);
 
-  const total = diagnosticTotal + (printedReport ? PRINTED_REPORT_FEE : 0);
+  const homeCollectionCharge = mode === 'home' ? Math.max(0, ...cart.map((item) => Number(item.homeCollectionCharge || 0))) : 0;
+  const total = diagnosticTotal + (printedReport ? PRINTED_REPORT_FEE : 0) + homeCollectionCharge;
   const displayedTotal = serverTotal ?? total;
   const hasPackage = cart.some((item) => item.kind === 'package');
   const minDate = new Date().toISOString().slice(0, 10);
@@ -190,6 +191,7 @@ export default function CheckoutPage() {
       </form>
     </section><aside className="card orderSummary"><small>ORDER SUMMARY</small>
       {cart.map((item) => { const included = item.kind === 'test' && packageTestIds.has(item.id); return <div className="summaryRow" key={`${item.kind}-${item.id}`}><span>{item.name}<small style={{ display: 'block' }}>{included ? `Included in selected package • ${item.partnerName}` : item.kind === 'package' ? 'Health package' : `${item.partnerName} • ${item.tat||'TAT confirmed before booking'}`}</small></span><b>{included ? 'Included' : `₹${Number(item.price || 0).toLocaleString('en-IN')}`}</b></div>; })}
+      {mode === 'home' && homeCollectionCharge > 0 && <div className="summaryRow printRow"><span>Home collection charge<small style={{ display: 'block' }}>One charge per booking</small></span><b>₹{homeCollectionCharge.toLocaleString('en-IN')}</b></div>}
       {printedReport && <div className="summaryRow printRow"><span>Printed Reports<small style={{ display: 'block' }}>Delivery in 24–48 hrs</small></span><b>₹100</b></div>}
       <div className="summaryTotal"><span>Total price</span><b>₹{total.toLocaleString('en-IN')}</b></div><div className="secureSummary">Payment due at sample collection by {collectionPaymentMethod === 'UPI' ? 'UPI' : 'cash'}.</div>
     </aside></div>
