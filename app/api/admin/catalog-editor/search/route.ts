@@ -81,7 +81,7 @@ export async function GET(request: Request) {
         package: { name: { contains: q, mode: 'insensitive' }, ...(packageType ? { packageType } : {}) },
       },
       include: { package: { include: {
-        tests: { select: { testId: true } },
+        tests: { include: { test: { select: { id: true, name: true } } } },
         includedProfiles: { include: { profile: { include: { tests: { include: { test: { select: { id: true, name: true } } } } } } } },
       } } },
       orderBy: { package: { name: 'asc' } },
@@ -104,6 +104,7 @@ export async function GET(request: Request) {
         imageData: catalogPackage.imageData,
         packageType: catalogPackage.packageType,
         includedTestIds: catalogPackage.tests.map(item => item.testId),
+        includedTests: catalogPackage.tests.map(item => ({ id: item.test.id, name: item.test.name })),
         includedProfiles: catalogPackage.includedProfiles.map(item => ({
           id: item.profile.id,
           name: item.profile.name,
