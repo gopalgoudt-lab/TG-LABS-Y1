@@ -117,9 +117,8 @@ export default function AdminCatalogEditorPage() {
       if (!response.ok) throw new Error('Profile details failed');
       const data = await response.json();
       const exact = (data.items ?? []).find((item: { id: string }) => String(item.id) === profile.id);
-      const testIds = Array.isArray(exact?.includedTestIds) ? exact.includedTestIds.map(String) : [];
-      const testNames = Array.isArray(exact?.includedProfiles) ? [] : [];
-      setSelectedProfiles(current => [...current, { id: profile.id, name: profile.name, tests: testIds.map((id: string) => ({ id, name: id })) }]);
+      const tests = Array.isArray(exact?.includedTests) ? exact.includedTests.map((test: { id: string; name: string }) => ({ id: String(test.id), name: String(test.name) })) : [];
+      setSelectedProfiles(current => [...current, { id: profile.id, name: profile.name, tests }]);
       setIncludedProfileQuery('');
       setIncludedProfileResults([]);
     } catch (error) {
