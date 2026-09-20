@@ -21,7 +21,7 @@ const aarogyamCampReportParameters:Record<string,string[]>={
  'thyrocare-profile-cardiac-risk-aacp2':['ApoB / ApoA1 Ratio'],
  'thyrocare-profile-ironpro-47':['% Transferrin Saturation','Unsat. Iron-binding Capacity (UIBC)'],
 };
-const aarogyamCampPackageIds=new Set(['thyrocare-package-aacp1-33','thyrocare-package-aacp2-34','thyrocare-package-acp3-35']);
+const aarogyamCampPackageIds=new Set(['thyrocare-package-aacp1-33','thyrocare-package-aacp2-34','thyrocare-package-acp3-35','thyrocare-package-aa1-2wu-2']);
 type IncludedProfile=NonNullable<Product['includedProfiles']>[number];
 function includedProfileDisplayName(productId:string,profile:IncludedProfile){
  if((productId==='thyrocare-package-aacp2-34'||productId==='thyrocare-package-acp3-35')&&profile.id==='thyrocare-profile-vdtab12c-87')return 'VITAMIN PROFILE';
