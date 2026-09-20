@@ -19,6 +19,7 @@ const patchSchema = z.object({
   sampleTypeOther: z.string().trim().max(200).nullable().optional(),
   imageData: z.string().max(2_000_000).nullable().optional(),
   active: z.boolean().optional(),
+  homeCollectionCharge: z.number().int().refine((value) => [0, 50, 100, 200, 300, 400, 500].includes(value), 'Invalid home collection charge').optional(),
   packageType: z.enum(["PACKAGE", "PROFILE"]).optional(),
   includedTestIds: z.array(z.string().trim().min(1).max(200)).max(500).optional(),
   includedProfileIds: z.array(z.string().trim().min(1).max(200)).max(100).optional(),
