@@ -12,7 +12,9 @@ test('patient package details expose expandable included profiles without double
   assert.match(dto, /includedProfiles:\(v\.includedProfiles\?\?\[\]\)\.map/);
   assert.match(detail, /Included profiles/);
   assert.match(detail, /parameters across/);
-  assert.match(detail, /<details key=\{profile\.id\}>/);
+  assert.match(detail, /aria-expanded=\{isOpen\}/);
+  assert.match(detail, /View tests/);
+  assert.match(detail, /Hide tests/);
   assert.match(detail, /not double-counted/);
   assert.match(detail, /\/tests\/\$\{test\.slug\}/);
 });
