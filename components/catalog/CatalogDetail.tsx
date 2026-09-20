@@ -21,11 +21,11 @@ const aarogyamCampReportParameters:Record<string,string[]>={
  'thyrocare-profile-cardiac-risk-aacp2':['ApoB / ApoA1 Ratio'],
  'thyrocare-profile-ironpro-47':['% Transferrin Saturation','Unsat. Iron-binding Capacity (UIBC)'],
 };
-const aarogyamCampPackageIds=new Set(['thyrocare-package-aacp1-33','thyrocare-package-aacp2-34','thyrocare-package-acp3-35','thyrocare-package-aa1-2wu-2','thyrocare-package-aa1-3wu-3','thyrocare-package-aa1-4wu-4','thyrocare-package-aa1-5wu-5']);
+const aarogyamCampPackageIds=new Set(['thyrocare-package-aacp1-33','thyrocare-package-aacp2-34','thyrocare-package-acp3-35','thyrocare-package-aa1-2wu-2','thyrocare-package-aa1-3wu-3','thyrocare-package-aa1-4wu-4','thyrocare-package-aa1-5wu-5','thyrocare-package-aa1-6wu-6']);
 type IncludedProfile=NonNullable<Product['includedProfiles']>[number];
 function includedProfileDisplayName(productId:string,profile:IncludedProfile){
- if((productId==='thyrocare-package-aacp2-34'||productId==='thyrocare-package-acp3-35'||productId==='thyrocare-package-aa1-3wu-3'||productId==='thyrocare-package-aa1-4wu-4'||productId==='thyrocare-package-aa1-5wu-5')&&profile.id==='thyrocare-profile-vdtab12c-87')return 'VITAMIN PROFILE';
- if((productId==='thyrocare-package-aa1-4wu-4'||productId==='thyrocare-package-aa1-5wu-5')&&profile.id==='thyrocare-profile-seel-69')return 'ELECTROLYTES PROFILE';
+ if((productId==='thyrocare-package-aacp2-34'||productId==='thyrocare-package-acp3-35'||productId==='thyrocare-package-aa1-3wu-3'||productId==='thyrocare-package-aa1-4wu-4'||productId==='thyrocare-package-aa1-5wu-5'||productId==='thyrocare-package-aa1-6wu-6')&&profile.id==='thyrocare-profile-vdtab12c-87')return 'VITAMIN PROFILE';
+ if((productId==='thyrocare-package-aa1-4wu-4'||productId==='thyrocare-package-aa1-5wu-5'||productId==='thyrocare-package-aa1-6wu-6')&&profile.id==='thyrocare-profile-seel-69')return 'ELECTROLYTES PROFILE';
  return profile.name;
 }
 export default function CatalogDetail({product}:{product:Product}){

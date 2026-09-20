@@ -1,0 +1,2 @@
+import assert from 'node:assert/strict'; import test from 'node:test'; import fs from 'node:fs';
+test('Aarogyam 1.6 with UTSH uses verified report mappings and brochure profile labels',()=>{const d=fs.readFileSync('components/catalog/CatalogDetail.tsx','utf8');assert.match(d,/thyrocare-package-aa1-6wu-6/);assert.match(d,/aarogyamCampPackageIds\.has\(product\.id\)/);assert.match(d,/return 'VITAMIN PROFILE'/);assert.match(d,/return 'ELECTROLYTES PROFILE'/);});
