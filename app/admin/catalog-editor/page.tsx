@@ -55,6 +55,9 @@ export default function AdminCatalogEditorPage() {
   const [kind, setKind] = useState<CatalogKind>('test');
   const [editorMode, setEditorMode] = useState<EditorMode>('TEST');
   const [query, setQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<any>>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTimer, setSearchTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [form, setForm] = useState<EditorForm>(emptyForm);
   const [status, setStatus] = useState<'idle' | 'loading' | 'saving' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -64,30 +67,49 @@ export default function AdminCatalogEditorPage() {
   const [includedProfileResults, setIncludedProfileResults] = useState<Array<{ id: string; name: string; tests: Array<{ id: string; name: string }> }>>([]);
   const [selectedProfiles, setSelectedProfiles] = useState<Array<{ id: string; name: string; tests: Array<{ id: string; name: string }> }>>([]);
 
-  async function searchCatalog(event: FormEvent) {
-    event.preventDefault();
-    setStatus('loading');
+  function selectCatalogItem(item: any) {
+    setForm({
+      id: String(item.id ?? ''), partner: String(item.partnerSlug ?? form.partner ?? ''), name: String(item.name ?? ''),
+      mrp: String(item.mrp ?? ''), price: String(item.price ?? ''), description: String(item.description ?? ''),
+      sampleTypes: Array.isArray(item.sampleTypes) ? item.sampleTypes.map(String) : [], sampleTypeOther: String(item.sampleTypeOther ?? ''), preparation: String(item.preparation ?? ''), fastingNeeded: Boolean(item.fastingNeeded), tat: String(item.tatHours ?? ''),
+      imageData: String(item.imageData ?? ''), includedTestIds: Array.isArray(item.includedTestIds) ? item.includedTestIds.join(', ') : '',
+      packageType: item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE',
+    });
+    setSelectedProfiles(Array.isArray(item.includedProfiles) ? item.includedProfiles : []);
+    setEditorMode(kind === 'test' ? 'TEST' : item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE');
+    setQuery(String(item.name ?? ''));
+    setSearchOpen(false);
+    setStatus('idle');
     setMessage('');
+  }
+
+  async function loadCatalogSuggestions(value: string) {
+    if (!form.partner || !value.trim()) { setSearchResults([]); setSearchOpen(false); return; }
+    setStatus('loading');
     try {
-      const response = await fetch(`/api/admin/catalog-editor/search?partner=${encodeURIComponent(form.partner)}&kind=${kind}${kind === 'package' ? `&packageType=${editorMode}` : ''}&q=${encodeURIComponent(query)}`);
+      const response = await fetch(`/api/admin/catalog-editor/search?partner=${encodeURIComponent(form.partner)}&kind=${kind}${kind === 'package' ? `&packageType=${editorMode}` : ''}&q=${encodeURIComponent(value)}`);
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
-      const item = data.items?.[0];
-      if (!item) throw new Error('No matching catalog item found');
-      setForm({
-        id: String(item.id ?? ''), partner: String(item.partnerSlug ?? form.partner ?? ''), name: String(item.name ?? ''),
-        mrp: String(item.mrp ?? ''), price: String(item.price ?? ''), description: String(item.description ?? ''),
-        sampleTypes: Array.isArray(item.sampleTypes) ? item.sampleTypes.map(String) : [], sampleTypeOther: String(item.sampleTypeOther ?? ''), preparation: String(item.preparation ?? ''), fastingNeeded: Boolean(item.fastingNeeded), tat: String(item.tatHours ?? ''),
-        imageData: String(item.imageData ?? ''), includedTestIds: Array.isArray(item.includedTestIds) ? item.includedTestIds.join(', ') : '',
-        packageType: item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE',
-      });
-      setSelectedProfiles(Array.isArray(item.includedProfiles) ? item.includedProfiles : []);
-      setEditorMode(kind === 'test' ? 'TEST' : item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE');
+      setSearchResults(Array.isArray(data.items) ? data.items : []);
+      setSearchOpen(true);
       setStatus('idle');
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Error searching catalog');
     }
+  }
+
+  function changeCatalogQuery(value: string) {
+    setQuery(value);
+    setForm(current => ({ ...current, id: '' }));
+    if (searchTimer) clearTimeout(searchTimer);
+    const timer = setTimeout(() => void loadCatalogSuggestions(value), 250);
+    setSearchTimer(timer);
+  }
+
+  async function searchCatalog(event: FormEvent) {
+    event.preventDefault();
+    await loadCatalogSuggestions(query);
   }
 
   async function searchIncludedTests() {
@@ -230,7 +252,7 @@ export default function AdminCatalogEditorPage() {
         <div className="grid gap-4 md:grid-cols-3">
           <label>Partner<select className="mt-1 w-full rounded border p-2" value={form.partner} onChange={(e) => setField('partner', e.target.value)}><option value="">Select partner</option><option value="tg-labs-partner">Metropolis</option><option value="sagepath-labs">Sagepath Labs</option><option value="thyrocare">Thyrocare</option></select></label>
           <label>Edit<select className="mt-1 w-full rounded border p-2" value={editorMode} onChange={(e) => { const mode = e.target.value as EditorMode; setEditorMode(mode); setKind(mode === 'TEST' ? 'test' : 'package'); setForm(current => ({ ...current, id: '', packageType: mode === 'PROFILE' ? 'PROFILE' : 'PACKAGE' })); setSelectedProfiles([]); }}><option value="TEST">Test</option><option value="PROFILE">Profile</option><option value="PACKAGE">Package</option></select></label>
-          <label>Search<input className="mt-1 w-full rounded border p-2" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={editorMode === 'TEST' ? 'Test name' : editorMode === 'PROFILE' ? 'Profile name' : 'Package name'} /></label>
+          <label className="relative">Search<input role="combobox" aria-autocomplete="list" aria-expanded={searchOpen} className="mt-1 w-full rounded border p-2" value={query} onChange={(e) => changeCatalogQuery(e.target.value)} onFocus={() => { if (searchResults.length) setSearchOpen(true); }} placeholder={editorMode === 'TEST' ? 'Test name' : editorMode === 'PROFILE' ? 'Profile name' : 'Package name'} />{searchOpen && <div role="listbox" className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded border bg-white shadow-lg">{searchResults.length ? searchResults.map((item) => <button key={String(item.id)} type="button" role="option" className="block w-full border-b p-3 text-left last:border-b-0 hover:bg-slate-50 focus:bg-slate-50" onClick={() => selectCatalogItem(item)}><span className="block font-medium">{String(item.name ?? '')}</span><span className="block text-xs text-slate-600">{editorMode === 'TEST' ? 'Test' : editorMode === 'PROFILE' ? 'Profile' : 'Package'}{item.catalogCode ? ` · ${item.catalogCode}` : ''}</span></button>) : <p className="p-3 text-sm text-slate-600">No matching catalog items.</p>}</div>}</label>
         </div>
         <button className="rounded bg-blue-600 px-4 py-2 text-white" type="submit" disabled={status === 'loading' || !form.partner || !query.trim()}>{status === 'loading' ? 'Searching…' : 'Search catalog'}</button>
       </form>
