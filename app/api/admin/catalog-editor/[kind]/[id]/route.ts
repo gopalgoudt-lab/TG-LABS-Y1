@@ -20,6 +20,7 @@ const patchSchema = z.object({
   imageData: z.string().max(2_000_000).nullable().optional(),
   packageType: z.enum(["PACKAGE", "PROFILE"]).optional(),
   includedTestIds: z.array(z.string().trim().min(1).max(200)).max(500).optional(),
+  includedProfileIds: z.array(z.string().trim().min(1).max(200)).max(100).optional(),
 }).strict().refine(value => Object.keys(value).length > 0, { message: 'Provide at least one approved catalog field.' });
 
 function authFailure(error: unknown) {
@@ -33,8 +34,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ kind:
     const { kind, id } = await context.params;
     if (kind !== 'test' && kind !== 'package') return NextResponse.json({ error: 'Unsupported catalog item type.' }, { status: 404 });
     const body = patchSchema.parse(await request.json());
-    if (kind === 'test' && (body.includedTestIds !== undefined || body.packageType !== undefined)) return NextResponse.json({ error: 'Package/profile fields apply only to packages/profiles.' }, { status: 400 });
-    const { includedTestIds, partnerSlug, ...metadata } = body;
+    if (kind === 'test' && (body.includedTestIds !== undefined || body.includedProfileIds !== undefined || body.packageType !== undefined)) return NextResponse.json({ error: 'Package/profile fields apply only to packages/profiles.' }, { status: 400 });
+    const { includedTestIds, includedProfileIds, partnerSlug, ...metadata } = body;
 
     const model = kind === 'test' ? prisma.diagnosticTest : prisma.diagnosticPackage;
     const before = await (model as any).findUnique({ where: { id } });
@@ -53,6 +54,22 @@ export async function PATCH(request: Request, context: { params: Promise<{ kind:
           await tx.testPartnerOffer.updateMany({ where: { testId: id, partnerId: partner.id }, data: { tat: body.tat } });
         } else {
           await tx.packagePartnerOffer.updateMany({ where: { packageId: id, partnerId: partner.id }, data: { tat: body.tat } });
+        }
+      }
+      if (kind === 'package' && includedProfileIds !== undefined) {
+        const uniqueProfileIds = [...new Set(includedProfileIds)];
+        if (uniqueProfileIds.includes(id)) throw new Error('INVALID_INCLUDED_PROFILE');
+        const validProfiles = await tx.packagePartnerOffer.count({
+          where: {
+            partnerId: partner.id,
+            packageId: { in: uniqueProfileIds },
+            package: { packageType: 'PROFILE' },
+          },
+        });
+        if (validProfiles !== uniqueProfileIds.length) throw new Error('INVALID_INCLUDED_PROFILE');
+        await tx.packageProfileItem.deleteMany({ where: { packageId: id } });
+        if (uniqueProfileIds.length) {
+          await tx.packageProfileItem.createMany({ data: uniqueProfileIds.map(profileId => ({ packageId: id, profileId })) });
         }
       }
       if (kind === 'package' && includedTestIds !== undefined) {
@@ -92,6 +109,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ kind:
     return NextResponse.json({ item: updated });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Only approved catalog metadata and pricing fields may be changed.', fields: error.flatten().fieldErrors }, { status: 400 });
+    if (error instanceof Error && error.message === 'INVALID_INCLUDED_PROFILE') {
+      return NextResponse.json({ error: 'One or more included profiles are invalid. Select a TG Labs profile offered by the same partner.' }, { status: 400 });
+    }
     if (error instanceof Error && error.message === 'INVALID_INCLUDED_TEST') {
       return NextResponse.json({ error: 'One or more included tests could not be matched uniquely. Use an exact TG Labs test name or catalog ID.' }, { status: 400 });
     }
