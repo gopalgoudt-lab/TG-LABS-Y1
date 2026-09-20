@@ -10,6 +10,7 @@ export const cartItemSchema = z.object({
   tat: z.string().min(1).max(160).nullable().optional(),
   mrp: z.number().int().positive().nullable().optional(),
   displayedPrice: z.number().int().positive(),
+  homeCollectionCharge: z.number().int().min(0).max(500).optional().default(0),
   pincode: z.string().regex(/^[1-9][0-9]{5}$/).optional(),
 }).strict();
 
