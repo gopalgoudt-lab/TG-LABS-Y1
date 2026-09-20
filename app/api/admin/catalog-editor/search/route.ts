@@ -72,6 +72,7 @@ export async function GET(request: Request) {
           tatHours: tat ?? test.tat,
           imageData: test.imageData,
           active: test.active,
+          homeCollectionCharge: test.homeCollectionCharge,
         })),
       });
     }
@@ -105,6 +106,7 @@ export async function GET(request: Request) {
         imageData: catalogPackage.imageData,
         packageType: catalogPackage.packageType,
         active: catalogPackage.active,
+        homeCollectionCharge: catalogPackage.homeCollectionCharge,
         includedTestIds: catalogPackage.tests.map(item => item.testId),
         includedTests: catalogPackage.tests.map(item => ({ id: item.test.id, name: item.test.name })),
         includedProfiles: catalogPackage.includedProfiles.map(item => ({
