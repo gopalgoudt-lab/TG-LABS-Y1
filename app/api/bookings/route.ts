@@ -72,6 +72,7 @@ function bookingPayload(booking: {
   totalAmount: number;
   printedReport: boolean;
   printedReportFee: number;
+  homeCollectionCharge: number;
   doctorName: string | null;
   mode: string;
   collectionDate: Date;
@@ -83,9 +84,10 @@ function bookingPayload(booking: {
     paymentStatus: booking.paymentStatus,
     paymentMode: booking.paymentMode,
     totalAmount: booking.totalAmount,
-    diagnosticAmount: diagnosticAmount ?? booking.totalAmount - booking.printedReportFee,
+    diagnosticAmount: diagnosticAmount ?? booking.totalAmount - booking.printedReportFee - booking.homeCollectionCharge,
     printedReport: booking.printedReport,
     printedReportFee: booking.printedReportFee,
+    homeCollectionCharge: booking.homeCollectionCharge,
     doctorName: booking.doctorName,
     mode: booking.mode,
     collectionDate: booking.collectionDate.toISOString(),
@@ -148,7 +150,7 @@ export async function POST(request: Request) {
               price: true,
               tat: true,
               availability:true,active:true,sourceReference:true,lastVerifiedAt:true,effectiveFrom:true,effectiveTo:true,
-              test:{select:{active:true}},
+              test:{select:{active:true,homeCollectionCharge:true}},
               partner: { select: { id: true, name: true, active:true,bookingEnabled:true,operationalEnabled:true,displayEnabled:true } },
             },
           })
@@ -159,7 +161,7 @@ export async function POST(request: Request) {
             select: {
               id:true,packageId:true,price:true,tat:true,availability:true,active:true,sourceReference:true,lastVerifiedAt:true,effectiveFrom:true,effectiveTo:true,
               partner:{select:{id:true,name:true,active:true,bookingEnabled:true,operationalEnabled:true,displayEnabled:true}},
-              package:{select:{id:true,name:true,packageType:true,active:true,tests:{select:{test:{select:{id:true,name:true,price:true,active:true}}}}}},
+              package:{select:{id:true,name:true,packageType:true,active:true,homeCollectionCharge:true,tests:{select:{test:{select:{id:true,name:true,price:true,active:true}}}}}},
             },
           })
         : Promise.resolve([]),
@@ -207,7 +209,8 @@ export async function POST(request: Request) {
 
     const diagnosticAmount = pricing.diagnosticAmount;
     const printedReportFee = body.printedReport ? PRINTED_REPORT_FEE : 0;
-    const totalAmount = pricing.totalAmount;
+    const homeCollectionCharge = body.mode === 'home' ? Math.max(0, ...directOffers.map((offer:any) => offer.test.homeCollectionCharge ?? 0), ...packages.map((offer:any) => offer.package.homeCollectionCharge ?? 0)) : 0;
+    const totalAmount = pricing.totalAmount + homeCollectionCharge;
 
     const patient = await prisma.patient.upsert({
       where: { phone: body.phone },
@@ -234,6 +237,7 @@ export async function POST(request: Request) {
           doctorName: body.doctorName || null,
           printedReport: body.printedReport,
           printedReportFee,
+          homeCollectionCharge,
           paymentMode,
           status: payAtCollection ? 'CONFIRMED' : 'PENDING',
           paymentStatus: 'PENDING',
