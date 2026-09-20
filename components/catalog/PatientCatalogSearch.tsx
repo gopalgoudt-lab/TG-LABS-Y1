@@ -7,7 +7,7 @@ type Suggestion = {
   slug: string;
   name: string;
   type: 'TEST' | 'PROFILE' | 'PACKAGE';
-  offers?: Array<{ price: number; partner: { name: string } }>;
+  partnerOffers?: Array<{ price: number; partner: { name: string } }>;
 };
 
 function detailsHref(item: Suggestion) {
@@ -88,7 +88,7 @@ export default function PatientCatalogSearch() {
         {open && (
           <div id="patient-catalog-suggestions" className="patientSearchSuggestions" role="listbox">
             {items.length ? items.map((item) => {
-              const offer = item.offers?.[0];
+              const offer = item.partnerOffers?.[0];
               return (
                 <button key={`${item.type}-${item.slug}`} type="button" role="option" onClick={() => router.push(detailsHref(item))}>
                   <span className="patientSuggestionName">{item.name}</span>
