@@ -11,6 +11,7 @@ const patchSchema = z.object({
   name: z.string().trim().min(2).max(200).optional(),
   description: z.string().trim().max(4000).nullable().optional(),
   preparation: z.string().trim().max(2000).nullable().optional(),
+  fastingNeeded: z.boolean().optional(),
   mrp: z.number().int().min(0).optional(),
   price: z.number().int().min(0).optional(),
   tat: z.string().trim().max(200).nullable().optional(),
