@@ -71,6 +71,7 @@ export async function GET(request: Request) {
           fastingNeeded: test.fastingNeeded,
           tatHours: tat ?? test.tat,
           imageData: test.imageData,
+          active: test.active,
         })),
       });
     }
@@ -103,6 +104,7 @@ export async function GET(request: Request) {
         tatHours: tat ?? catalogPackage.tat,
         imageData: catalogPackage.imageData,
         packageType: catalogPackage.packageType,
+        active: catalogPackage.active,
         includedTestIds: catalogPackage.tests.map(item => item.testId),
         includedTests: catalogPackage.tests.map(item => ({ id: item.test.id, name: item.test.name })),
         includedProfiles: catalogPackage.includedProfiles.map(item => ({
