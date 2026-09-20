@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const page=fs.readFileSync('app/admin/catalog-editor/page.tsx','utf8');
+const route=fs.readFileSync('app/api/admin/catalog-editor/[kind]/[id]/route.ts','utf8');
+const search=fs.readFileSync('app/api/admin/catalog-editor/search/route.ts','utf8');
+const schema=fs.readFileSync('prisma/schema.prisma','utf8');
+test('admin exposes requested home collection charge choices',()=>{for(const n of [50,100,200,300,400,500]) assert.match(page,new RegExp('value=[{\\\"]*'+n));assert.match(page,/Home collection charge/i);});
+test('catalog models persist a safe home collection charge',()=>{assert.equal((schema.match(/homeCollectionCharge\s+Int\s+@default\(0\)/g)||[]).length,2);});
+test('admin search and patch round-trip home collection charge',()=>{assert.match(search,/homeCollectionCharge:\s*test\.homeCollectionCharge/);assert.match(search,/homeCollectionCharge:\s*catalogPackage\.homeCollectionCharge/);assert.match(route,/homeCollectionCharge:\s*z\.number\(\)\.int\(\)/);});
