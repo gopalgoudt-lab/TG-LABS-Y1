@@ -49,6 +49,14 @@ export async function PATCH(request: Request, context: { params: Promise<{ kind:
       if (!partner) throw new Error('PARTNER_NOT_FOUND');
       const txModel = kind === 'test' ? tx.diagnosticTest : tx.diagnosticPackage;
       const item = await (txModel as any).update({ where: { id }, data: metadata });
+      if (body.price !== undefined || body.mrp !== undefined) {
+        const offerData = { ...(body.price !== undefined ? { price: body.price } : {}), ...(body.mrp !== undefined ? { mrp: body.mrp } : {}) };
+        if (kind === 'test') {
+          await tx.testPartnerOffer.updateMany({ where: { testId: id, partnerId: partner.id }, data: offerData });
+        } else {
+          await tx.packagePartnerOffer.updateMany({ where: { packageId: id, partnerId: partner.id }, data: offerData });
+        }
+      }
       if (body.tat !== undefined) {
         if (kind === 'test') {
           await tx.testPartnerOffer.updateMany({ where: { testId: id, partnerId: partner.id }, data: { tat: body.tat } });
