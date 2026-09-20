@@ -26,7 +26,7 @@ const aarogyamCampPackageIds=new Set(['thyrocare-package-aacp1-33','thyrocare-pa
 type IncludedProfile=NonNullable<Product['includedProfiles']>[number];
 function includedProfileDisplayName(productId:string,profile:IncludedProfile){
  if((productId==='thyrocare-package-aacp2-34'||productId==='thyrocare-package-acp3-35'||productId==='thyrocare-package-aa1-3wu-3'||productId==='thyrocare-package-aa1-4wu-4'||productId==='thyrocare-package-aa1-5wu-5'||productId==='thyrocare-package-aa1-6wu-6'||productId==='thyrocare-package-aa1-7wu-7')&&profile.id==='thyrocare-profile-vdtab12c-87')return 'VITAMIN PROFILE';
- if((productId==='thyrocare-package-aa1-4wu-4'||productId==='thyrocare-package-aa1-5wu-5'||productId==='thyrocare-package-aa1-6wu-6'||productId==='thyrocare-package-aa1-7wu-7')&&profile.id==='thyrocare-profile-seel-69')return 'ELECTROLYTES PROFILE';
+ if((productId==='thyrocare-package-aa1-4wu-4'||productId==='thyrocare-package-aa1-5wu-5'||productId==='thyrocare-package-aa1-6wu-6'||productId==='thyrocare-package-aa1-7wu-7'||productId==='thyrocare-package-aa1-8wu-8')&&profile.id==='thyrocare-profile-seel-69')return 'ELECTROLYTES PROFILE';
  return profile.name;
 }
 export default function CatalogDetail({product}:{product:Product}){
