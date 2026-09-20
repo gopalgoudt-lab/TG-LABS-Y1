@@ -21,7 +21,8 @@ const aarogyamCampReportParameters:Record<string,string[]>={
  'thyrocare-profile-cardiac-risk-aacp2':['ApoB / ApoA1 Ratio'],
 };
 const aarogyamCampPackageIds=new Set(['thyrocare-package-aacp1-33','thyrocare-package-aacp2-34']);
-function includedProfileDisplayName(productId:string,profile:Product['includedProfiles'][number]){
+type IncludedProfile=NonNullable<Product['includedProfiles']>[number];
+function includedProfileDisplayName(productId:string,profile:IncludedProfile){
  if(productId==='thyrocare-package-aacp2-34'&&profile.id==='thyrocare-profile-vdtab12c-87')return 'VITAMIN PROFILE';
  return profile.name;
 }
