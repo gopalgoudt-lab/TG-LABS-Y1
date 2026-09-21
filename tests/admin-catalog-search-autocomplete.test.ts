@@ -14,3 +14,19 @@ test('admin catalog search provides live selectable autocomplete results', () =>
   assert.match(page, /partner=\$\{encodeURIComponent\(form\.partner\)\}/);
   assert.match(page, /packageType=\$\{editorMode\}/);
 });
+
+
+test('Search catalog selects an unambiguous result', () => {
+  const page = fs.readFileSync('app/admin/catalog-editor/page.tsx', 'utf8');
+  assert.match(page, /loadCatalogSuggestions\(query, true\)/);
+  assert.match(page, /selectSingle && items\.length === 1/);
+  assert.match(page, /selectCatalogItem\(items\[0\]\)/);
+});
+
+test('admin test search stays partner scoped and supports name alias and catalog code', () => {
+  const searchApi = fs.readFileSync('app/api/admin/catalog-editor/search/route.ts', 'utf8');
+  assert.match(searchApi, /partnerId: diagnosticPartner\.id/);
+  assert.match(searchApi, /name: \{ contains: q, mode: 'insensitive' \}/);
+  assert.match(searchApi, /aliases: \{ has: q \}/);
+  assert.match(searchApi, /catalogCode: \{ contains: q, mode: 'insensitive' \}/);
+});
