@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { adminAuthError } from '@/lib/admin-auth';
-import { adminFromRequest, writeAdminAuditStrict } from '@/lib/admin-audit';
+import { adminFromRequest } from '@/lib/admin-audit';
 
 const schema=z.object({
  status:z.enum(['PENDING','INVOICED','APPROVED','PARTIALLY_PAID','PAID','DISPUTED','VOID']),
@@ -15,7 +15,7 @@ const schema=z.object({
 
 export async function PATCH(request:Request,{params}:{params:Promise<{id:string}>}){
  try{
-  await adminFromRequest(request);
+  const admin=await adminFromRequest(request);
   const {id}=await params; const body=schema.parse(await request.json());
   const current=await prisma.partnerPayable.findUnique({where:{id}}); if(!current)return NextResponse.json({error:'Partner payable not found.'},{status:404});
   if(body.paidAmount>current.amount)return NextResponse.json({error:'Paid amount cannot exceed payable amount.'},{status:400});
@@ -26,7 +26,7 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
   if(['APPROVED','PARTIALLY_PAID','PAID'].includes(body.status)&&!body.invoiceNumber)return NextResponse.json({error:'Invoice number is required before approval or payment.'},{status:400});
   const payable=await prisma.$transaction(async tx=>{
    const updated=await tx.partnerPayable.update({where:{id},data:{status:body.status,invoiceNumber:body.invoiceNumber||null,invoiceDate:body.invoiceDate?new Date(body.invoiceDate):null,paidAmount:body.paidAmount,settledAt:body.status==='PAID'?(body.settledAt?new Date(body.settledAt):new Date()):null,approvedAt:['APPROVED','PARTIALLY_PAID','PAID'].includes(body.status)&&!current.approvedAt?new Date():current.approvedAt,notes:body.notes||null}});
-   await writeAdminAuditStrict(request,tx,{action:'PARTNER_PAYABLE_UPDATED',entityType:'PartnerPayable',entityId:id,summary:'Partner payable status or settlement evidence updated.',metadata:{fromStatus:current.status,toStatus:body.status,fromPaidAmount:current.paidAmount,toPaidAmount:body.paidAmount,fromInvoiceNumber:current.invoiceNumber,toInvoiceNumber:body.invoiceNumber||null,fromInvoiceDate:current.invoiceDate?.toISOString()||null,toInvoiceDate:body.invoiceDate||null,fromSettledAt:current.settledAt?.toISOString()||null,toSettledAt:body.status==='PAID'?(body.settledAt||'AUTO_NOW'):null}});
+   await tx.adminAuditLog.create({data:{adminPhone:admin.phone,action:'PARTNER_PAYABLE_UPDATED',entityType:'PartnerPayable',entityId:id,summary:'Partner payable status or settlement evidence updated.',metadata:{actorRole:'ADMIN',actorSource:'TG_LABS_ADMIN',fromStatus:current.status,toStatus:body.status,fromPaidAmount:current.paidAmount,toPaidAmount:body.paidAmount,fromInvoiceNumber:current.invoiceNumber,toInvoiceNumber:body.invoiceNumber||null,fromInvoiceDate:current.invoiceDate?.toISOString()||null,toInvoiceDate:body.invoiceDate||null,fromSettledAt:current.settledAt?.toISOString()||null,toSettledAt:body.status==='PAID'?(body.settledAt||'AUTO_NOW'):null},ipAddress:(request.headers.get('x-forwarded-for')||'').split(',')[0].trim()||null,userAgent:request.headers.get('user-agent')||null}});
    return updated;
   });
   return NextResponse.json({payable});
