@@ -50,7 +50,11 @@ export async function GET(request: Request) {
       const offers = await prisma.testPartnerOffer.findMany({
         where: {
           partnerId: diagnosticPartner.id,
-          test: { name: { contains: q, mode: 'insensitive' } },
+          OR: [
+            { test: { name: { contains: q, mode: 'insensitive' } } },
+            { test: { aliases: { has: q } } },
+            { test: { catalogCode: { contains: q, mode: 'insensitive' } } },
+          ],
         },
         include: { test: true },
         orderBy: { test: { name: 'asc' } },
