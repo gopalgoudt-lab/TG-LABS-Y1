@@ -65,3 +65,29 @@ export async function writeAdminAudit(
     console.error('Admin audit logging failed', error);
   }
 }
+
+export async function writeAdminAuditStrict(
+  request: Request,
+  db: Pick<typeof prisma, 'adminAuditLog'>,
+  input: {
+    action: string;
+    entityType: string;
+    entityId?: string | null;
+    summary: string;
+    metadata?: Prisma.InputJsonValue | null;
+  },
+) {
+  const actor = await auditActorFromRequest(request);
+  await db.adminAuditLog.create({
+    data: {
+      adminPhone: actor.phone,
+      action: input.action,
+      entityType: input.entityType,
+      entityId: input.entityId || null,
+      summary: input.summary,
+      metadata: mergeMetadata(input.metadata, actor),
+      ipAddress: (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null,
+      userAgent: request.headers.get('user-agent') || null,
+    },
+  });
+}
