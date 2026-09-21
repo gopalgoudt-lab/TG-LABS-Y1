@@ -68,7 +68,7 @@ export async function writeAdminAudit(
 
 export async function writeAdminAuditStrict(
   request: Request,
-  db: Pick<Prisma.TransactionClient, 'adminAuditLog'>,
+  db: { adminAuditLog: { create(args: Prisma.AdminAuditLogCreateArgs): Promise<unknown> } },
   input: {
     action: string;
     entityType: string;
