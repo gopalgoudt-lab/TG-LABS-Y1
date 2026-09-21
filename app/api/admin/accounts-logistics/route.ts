@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 export const dynamic='force-dynamic';
 export async function GET(){
- const [bookings,transactions,webhooks]=await Promise.all([
+ const [bookings,transactions,webhooks,payables]=await Promise.all([
   prisma.booking.findMany({orderBy:{createdAt:'desc'},take:200,include:{patient:{select:{name:true}},assignedTechnician:{select:{name:true}}}}),
   prisma.paymentTransaction.findMany({orderBy:{createdAt:'desc'},take:300}),
   prisma.razorpayWebhookEvent.findMany({orderBy:{receivedAt:'desc'},take:300}),
+  prisma.partnerPayable.findMany({orderBy:{createdAt:'desc'},take:300}),
  ]);
  const txByBooking=new Map<string,typeof transactions>(); for(const tx of transactions){const list=txByBooking.get(tx.bookingId)||[];list.push(tx);txByBooking.set(tx.bookingId,list)}
  const webhookPaymentIds=new Set(webhooks.filter(w=>w.processedAt&&!w.processingError&&w.paymentId).map(w=>w.paymentId as string));
@@ -18,5 +19,5 @@ export async function GET(){
   return reasons.length?[{bookingId:b.id,patient:b.patient.name,totalAmount:b.totalAmount,paymentStatus:b.paymentStatus,paymentMode:b.paymentMode,reasons}]:[];
  });
  const logistics=bookings.filter(b=>b.status!=='CANCELLED'&&b.workflowStatus!=='REPORT_DELIVERED').map(b=>({id:b.id,patient:b.patient.name,collectionDate:b.collectionDate,slot:b.slot,mode:b.mode,pincode:b.pincode,paymentStatus:b.paymentStatus,totalAmount:b.totalAmount,workflowStatus:b.workflowStatus,technician:b.assignedTechnician?.name||null,printedReport:b.printedReport}));
- return NextResponse.json({summary:{bookings:bookings.length,paid:bookings.filter(b=>b.paymentStatus==='PAID').length,paidValue:bookings.filter(b=>b.paymentStatus==='PAID').reduce((s,b)=>s+b.totalAmount,0),verifiedTransactions:transactions.filter(t=>t.status==='PAID'&&t.signatureVerified).length,paymentExceptions:exceptions.length,logisticsExceptions:logistics.filter(b=>!b.technician&&b.mode==='HOME'||['SAMPLE_COLLECTED','SAMPLE_RECEIVED_AT_LAB'].includes(b.workflowStatus)||b.printedReport&&b.workflowStatus!=='REPORT_DELIVERED').length},exceptions,logistics,partnerSettlementTracking:false});
+ return NextResponse.json({summary:{bookings:bookings.length,paid:bookings.filter(b=>b.paymentStatus==='PAID').length,paidValue:bookings.filter(b=>b.paymentStatus==='PAID').reduce((s,b)=>s+b.totalAmount,0),verifiedTransactions:transactions.filter(t=>t.status==='PAID'&&t.signatureVerified).length,paymentExceptions:exceptions.length,logisticsExceptions:logistics.filter(b=>!b.technician&&b.mode==='HOME'||['SAMPLE_COLLECTED','SAMPLE_RECEIVED_AT_LAB'].includes(b.workflowStatus)||b.printedReport&&b.workflowStatus!=='REPORT_DELIVERED').length,partnerPayable:payables.reduce((n,p)=>n+p.amount,0),partnerPaid:payables.reduce((n,p)=>n+p.paidAmount,0),partnerOutstanding:payables.reduce((n,p)=>n+(p.amount-p.paidAmount),0)},exceptions,logistics,payables,partnerSettlementTracking:true});
 }
