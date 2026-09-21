@@ -85,14 +85,19 @@ export default function AdminCatalogEditorPage() {
     setMessage('');
   }
 
-  async function loadCatalogSuggestions(value: string) {
+  async function loadCatalogSuggestions(value: string, selectSingle = false) {
     if (!form.partner || !value.trim()) { setSearchResults([]); setSearchOpen(false); return; }
     setStatus('loading');
     try {
       const response = await fetch(`/api/admin/catalog-editor/search?partner=${encodeURIComponent(form.partner)}&kind=${kind}${kind === 'package' ? `&packageType=${editorMode}` : ''}&q=${encodeURIComponent(value)}`);
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
-      setSearchResults(Array.isArray(data.items) ? data.items : []);
+      const items = Array.isArray(data.items) ? data.items : [];
+      setSearchResults(items);
+      if (selectSingle && items.length === 1) {
+        selectCatalogItem(items[0]);
+        return;
+      }
       setSearchOpen(true);
       setStatus('idle');
     } catch (error) {
@@ -111,7 +116,7 @@ export default function AdminCatalogEditorPage() {
 
   async function searchCatalog(event: FormEvent) {
     event.preventDefault();
-    await loadCatalogSuggestions(query);
+    await loadCatalogSuggestions(query, true);
   }
 
   async function searchIncludedTests() {
