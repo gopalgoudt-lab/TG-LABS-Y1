@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
+const page=fs.readFileSync('app/admin/accounts-logistics/page.tsx','utf8');
+test('payable UI uses only guarded APIs and explicit confirmations',()=>{assert.match(page,/\/api\/admin\/accounts-logistics\/payables/);assert.match(page,/method:'POST'/);assert.match(page,/method:'PATCH'/);assert.doesNotMatch(page,/method:'DELETE'/);assert.match(page,/confirm\('Create this partner payable/);assert.match(page,/confirm\('Save this audited payable update/);});
+test('payable UI does not derive partner cost',()=>{assert.match(page,/does not calculate partner cost from patient price or margin/);assert.doesNotMatch(page,/partner.*(?:margin|percentage).*\*/i);assert.match(page,/No payable can be deleted here/);});
