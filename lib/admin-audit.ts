@@ -68,7 +68,7 @@ export async function writeAdminAudit(
 
 export async function writeAdminAuditStrict(
   request: Request,
-  db: Pick<typeof prisma, 'adminAuditLog'>,
+  db: Pick<Prisma.TransactionClient, 'adminAuditLog'>,
   input: {
     action: string;
     entityType: string;
