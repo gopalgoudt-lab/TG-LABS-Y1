@@ -3,7 +3,7 @@ import BrandLogo from '@/components/BrandLogo';
 
 const url='https://www.tglabs.in/thyrocare-sithaphalmandi';
 export const metadata:Metadata={
- title:'Thyrocare Sithaphalmandi, Secunderabad | TG Labs',
+ title:{absolute:'Thyrocare Sithaphalmandi, Secunderabad | TG Labs'},
  description:'Find Thyrocare diagnostic testing and home sample collection options for Sithaphalmandi and nearby Secunderabad through TG Labs. Check live tests, packages, prices and booking eligibility.',
  alternates:{canonical:url},robots:{index:true,follow:true},
  openGraph:{title:'Thyrocare Sithaphalmandi, Secunderabad | TG Labs',description:'Local Thyrocare testing access, home sample collection and TG Labs booking support for Sithaphalmandi, Secunderabad.',url,type:'website'}
