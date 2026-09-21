@@ -7,3 +7,5 @@ test('page supports patient action and local SEO',()=>{assert.match(page,/LocalB
 test('sitemap includes dedicated location page',()=>{assert.match(sitemap,/thyrocare-sithaphalmandi/);});
 
 test('location page presents stronger local conversion actions',()=>{assert.match(page,/Book Home Collection/);assert.match(page,/Local booking support/);assert.match(page,/tel:\+919701162302/);});
+
+test('location page uses an absolute title to avoid duplicate TG Labs suffix',()=>{assert.match(page,/title:\{absolute:'Thyrocare Sithaphalmandi, Secunderabad \| TG Labs'\}/);});
