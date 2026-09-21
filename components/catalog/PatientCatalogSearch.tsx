@@ -10,6 +10,24 @@ type Suggestion = {
   offers?: Array<{ price: number; partner: { name: string } }>;
 };
 
+function suggestionRank(item: Suggestion, query: string) {
+  const name = item.name.toLocaleLowerCase();
+  const q = query.trim().toLocaleLowerCase();
+  const typeRank = item.type === 'TEST' ? 0 : item.type === 'PROFILE' ? 1 : 2;
+  if (name === q) return typeRank;
+  if (name.startsWith(q)) return 10 + typeRank;
+  const words = name.split(/[^a-z0-9]+/).filter(Boolean);
+  if (words.includes(q)) return 20 + typeRank;
+  return 30 + typeRank;
+}
+
+function rankSuggestions(items: Suggestion[], query: string) {
+  return [...items].sort((a, b) =>
+    suggestionRank(a, query) - suggestionRank(b, query) ||
+    a.name.localeCompare(b.name)
+  );
+}
+
 function detailsHref(item: Suggestion) {
   if (item.type === 'TEST') return `/tests/${encodeURIComponent(item.slug)}`;
   return `/profiles/${encodeURIComponent(item.slug)}`;
@@ -39,13 +57,18 @@ export default function PatientCatalogSearch() {
       requestRef.current = controller;
       setLoading(true);
       try {
-        const response = await fetch(`/api/catalog?search=${encodeURIComponent(value)}&limit=8`, {
-          signal: controller.signal,
-          cache: 'no-store',
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error('Search failed');
-        setItems(Array.isArray(data.products) ? data.products : []);
+        const encoded = encodeURIComponent(value);
+        const [testResponse, catalogResponse] = await Promise.all([
+          fetch(`/api/catalog?search=${encoded}&type=TEST&limit=8`, { signal: controller.signal, cache: 'no-store' }),
+          fetch(`/api/catalog?search=${encoded}&limit=8`, { signal: controller.signal, cache: 'no-store' }),
+        ]);
+        const [testData, catalogData] = await Promise.all([testResponse.json(), catalogResponse.json()]);
+        if (!testResponse.ok || !catalogResponse.ok) throw new Error('Search failed');
+        const combined = [
+          ...(Array.isArray(testData.products) ? testData.products : []),
+          ...(Array.isArray(catalogData.products) ? catalogData.products : []),
+        ].filter((item, index, all) => all.findIndex((candidate) => candidate.type === item.type && candidate.slug === item.slug) === index);
+        setItems(rankSuggestions(combined, value).slice(0, 8));
         setOpen(true);
       } catch (error) {
         if ((error as Error).name !== 'AbortError') {
