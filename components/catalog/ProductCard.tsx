@@ -13,6 +13,7 @@ export type PublicProduct = {
   description?: string | null;
   fastingNeeded: boolean;
   sampleTypes: string[];
+  homeCollectionCharge?: number;
   offers: PublicOffer[];
 };
 
@@ -40,6 +41,7 @@ export default function ProductCard({ product, pincode }: { product: PublicProdu
       tat: offer.tat ?? null,
       mrp: offer.mrp ?? null,
       displayedPrice: offer.price,
+      homeCollectionCharge: product.homeCollectionCharge ?? 0,
       pincode: pin,
     };
 

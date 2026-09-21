@@ -23,13 +23,14 @@ type EditorForm = {
   includedTestIds: string;
   packageType: 'PACKAGE' | 'PROFILE';
   active: boolean;
+  homeCollectionCharge: string;
 };
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const emptyForm: EditorForm = {
-  id: '', partner: '', name: '', mrp: '', price: '', description: '', sampleTypes: [], sampleTypeOther: '', preparation: '', fastingNeeded: false, tat: '', imageData: '', includedTestIds: '', packageType: 'PACKAGE', active: true,
+  id: '', partner: '', name: '', mrp: '', price: '', description: '', sampleTypes: [], sampleTypeOther: '', preparation: '', fastingNeeded: false, tat: '', imageData: '', includedTestIds: '', packageType: 'PACKAGE', active: true, homeCollectionCharge: '0',
 };
 
 function ProfileSearchTests({ partner, profile }: { partner: string; profile: { id: string; name: string } }) {
@@ -74,7 +75,7 @@ export default function AdminCatalogEditorPage() {
       mrp: String(item.mrp ?? ''), price: String(item.price ?? ''), description: String(item.description ?? ''),
       sampleTypes: Array.isArray(item.sampleTypes) ? item.sampleTypes.map(String) : [], sampleTypeOther: String(item.sampleTypeOther ?? ''), preparation: String(item.preparation ?? ''), fastingNeeded: Boolean(item.fastingNeeded), tat: String(item.tatHours ?? ''),
       imageData: String(item.imageData ?? ''), includedTestIds: Array.isArray(item.includedTestIds) ? item.includedTestIds.join(', ') : '',
-      packageType: item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE', active: item.active !== false,
+      packageType: item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE', active: item.active !== false, homeCollectionCharge: String(item.homeCollectionCharge ?? 0),
     });
     setSelectedProfiles(Array.isArray(item.includedProfiles) ? item.includedProfiles : []);
     setEditorMode(kind === 'test' ? 'TEST' : item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE');
@@ -199,6 +200,7 @@ export default function AdminCatalogEditorPage() {
           tat: form.tat === '' ? null : form.tat,
           imageData: form.imageData.trim() === '' ? null : form.imageData.trim(),
           active: form.active,
+          homeCollectionCharge: Number(form.homeCollectionCharge || 0),
           ...(kind === 'package' ? { packageType: form.packageType, includedTestIds: form.includedTestIds.split(',').map(value => value.trim()).filter(Boolean), includedProfileIds: selectedProfiles.map(profile => profile.id) } : {}),
         }),
       });
@@ -269,6 +271,7 @@ export default function AdminCatalogEditorPage() {
           <label>Preparation<input className="mt-1 w-full rounded border p-2" value={form.preparation} onChange={(e) => setField('preparation', e.target.value)} /></label>
           <label>Fasting required<select className="mt-1 w-full rounded border p-2" value={form.fastingNeeded ? 'yes' : 'no'} onChange={(e) => setForm(current => ({ ...current, fastingNeeded: e.target.value === 'yes' }))}><option value="yes">Yes</option><option value="no">No</option></select></label>
           <label>TAT<input className="mt-1 w-full rounded border p-2" value={form.tat} onChange={(e) => setField('tat', e.target.value)} placeholder="e.g. 24 hours or 11:00/18:00" /></label>
+          <label>Home collection charge<select className="mt-1 w-full rounded border p-2" value={form.homeCollectionCharge} onChange={(e) => setField('homeCollectionCharge', e.target.value)}><option value="0">₹0 / Not configured</option><option value="50">₹50</option><option value="100">₹100</option><option value="200">₹200</option><option value="300">₹300</option><option value="400">₹400</option><option value="500">₹500</option></select></label>
           <label>Service status<select className="mt-1 w-full rounded border p-2" value={form.active ? 'active' : 'inactive'} onChange={(e) => setForm(current => ({ ...current, active: e.target.value === 'active' }))}><option value="active">Active</option><option value="inactive">Inactive</option></select><span className="mt-1 block text-xs text-slate-600">Inactive items stay in Admin but are unavailable for new patient bookings.</span></label>
         </div>
         <label className="block">Test details image<input type="file" accept="image/jpeg,image/png,image/webp" className="mt-1 block w-full rounded border p-2" onChange={(e) => void selectImage(e.target.files?.[0])} /><span className="mt-1 block text-xs text-slate-600">JPEG, PNG or WebP; maximum 2 MB.</span></label>\n        {form.imageData && <div className="rounded border p-3"><img src={form.imageData} alt="Catalog image preview" className="max-h-72 w-auto rounded object-contain" /></div>}

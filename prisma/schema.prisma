@@ -88,6 +88,7 @@ model DiagnosticTest {
   seoTitle          String?
   seoDescription    String?
   active            Boolean                  @default(true)
+  homeCollectionCharge Int                    @default(0)
   createdAt         DateTime                 @default(now())
   updatedAt         DateTime                 @updatedAt
   items             BookingItem[]
@@ -164,6 +165,7 @@ model DiagnosticPackage {
   seoTitle          String?
   seoDescription    String?
   active            Boolean                     @default(true)
+  homeCollectionCharge Int                       @default(0)
   createdAt         DateTime                    @default(now())
   updatedAt         DateTime                    @updatedAt
   tests             PackageItem[]
@@ -314,6 +316,7 @@ model Booking {
   doctorName           String?
   printedReport        Boolean              @default(false)
   printedReportFee     Int                  @default(0)
+  homeCollectionCharge Int                  @default(0)
   collectionDate       DateTime
   slot                 String
   status               BookingStatus        @default(PENDING)
