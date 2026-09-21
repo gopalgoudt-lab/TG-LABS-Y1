@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged, signOut, type Auth } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { getFirebaseAuth } from '@/lib/firebase';
-import { firebaseAuthErrorMessage } from '@/lib/firebase-auth-errors';
 import { parseAiReportResponse } from '@/lib/ai-report-client';
 import AiReportView from '@/components/AiReportView';
 
@@ -138,20 +137,6 @@ export default function PatientPage() {
   const date = (v: string) => new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(v));
   const stamp = (v?: string | null) => v ? new Date(v).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Pending';
 
-  async function handleSignOut() {
-    const auth = authOrRedirect();
-    if (!auth) return;
-    setError('');
-    try {
-      await signOut(auth);
-    } catch (error) {
-      setError(firebaseAuthErrorMessage(error, 'The local session could not be cleared cleanly. The sign-in page has been reopened for safety.'));
-    } finally {
-      router.replace('/auth');
-      router.refresh();
-    }
-  }
-
   async function downloadReceipt(booking: Booking) {
     const auth = authOrRedirect();
     if (!auth) return;
@@ -243,28 +228,9 @@ export default function PatientPage() {
   }
 
   return (
-    <main style={{ minHeight: '100vh', background: '#f6faf9', color: '#15312c' }}>
+    <main className="patientPortalContent" style={{ minHeight: '100vh', background: '#f6faf9', color: '#15312c' }}>
       <div style={{ maxWidth: 1180, margin: '0 auto', padding: '32px 20px 64px' }}>
-        <header style={{ display: 'flex', gap: 20, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: 28 }}>
-          <div>
-            <p style={ey}>TG LABS PATIENT PORTAL</p>
-            <h1 style={{ margin: '6px 0 4px', fontSize: 'clamp(30px,5vw,46px)' }}>My TG Labs</h1>
-            <p style={{ margin: 0, color: '#64748b' }}>{name ? `Welcome, ${name}` : 'Your secure diagnostic dashboard'} {phone ? `• ${phone}` : ''}</p>
-          </div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <a href="/tests" style={secondary}>Browse tests</a>
-            <a href="/booking" style={primary}>Book new test</a>
-            <button onClick={handleSignOut} style={secondary}>Sign out</button>
-          </div>
-        </header>
-
         {error && <div style={err}>{error}</div>}
-
-        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 16, marginBottom: 22 }}>
-          <Stat label="Total bookings" value={orders.length} />
-          <Stat label="Active" value={upcoming.length} />
-          <Stat label="Reports" value={reports.length} />
-        </section>
 
         {!loading && tracking && (
           <section style={{ ...panel, marginBottom: 22, border: '1px solid #b7ddd4' }}>
