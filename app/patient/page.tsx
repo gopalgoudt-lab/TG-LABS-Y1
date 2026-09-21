@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { onAuthStateChanged, type Auth } from 'firebase/auth';
+import { onAuthStateChanged, signOut, type Auth } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { parseAiReportResponse } from '@/lib/ai-report-client';
@@ -136,20 +136,6 @@ export default function PatientPage() {
   const tracking = upcoming[0] || orders[0];
   const date = (v: string) => new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(v));
   const stamp = (v?: string | null) => v ? new Date(v).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Pending';
-
-  async function handleSignOut() {
-    const auth = authOrRedirect();
-    if (!auth) return;
-    setError('');
-    try {
-      await signOut(auth);
-    } catch (error) {
-      setError(firebaseAuthErrorMessage(error, 'The local session could not be cleared cleanly. The sign-in page has been reopened for safety.'));
-    } finally {
-      router.replace('/auth');
-      router.refresh();
-    }
-  }
 
   async function downloadReceipt(booking: Booking) {
     const auth = authOrRedirect();
