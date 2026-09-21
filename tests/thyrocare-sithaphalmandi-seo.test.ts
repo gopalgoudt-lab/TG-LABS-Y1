@@ -9,3 +9,5 @@ test('sitemap includes dedicated location page',()=>{assert.match(sitemap,/thyro
 test('location page presents stronger local conversion actions',()=>{assert.match(page,/Book Home Collection/);assert.match(page,/Local booking support/);assert.match(page,/tel:\+919701162302/);});
 
 test('location page uses an absolute title to avoid duplicate TG Labs suffix',()=>{assert.match(page,/title:\{absolute:'Thyrocare Sithaphalmandi, Secunderabad \| TG Labs'\}/);});
+
+test('location page exposes verified WhatsApp and opening hours',()=>{assert.match(page,/https:\/\/wa\.me\/919701162302/);assert.match(page,/WhatsApp 97011 62302/);assert.match(page,/Monday–Saturday: 7:00 AM–9:00 PM/);assert.match(page,/Sunday: 7:00 AM–1:00 PM/);assert.match(page,/openingHoursSpecification/);});
