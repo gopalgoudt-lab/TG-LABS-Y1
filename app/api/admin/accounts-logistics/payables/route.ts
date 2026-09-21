@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { adminAuthError } from '@/lib/admin-auth';
-import { adminFromRequest, writeAdminAuditStrict } from '@/lib/admin-audit';
+import { adminFromRequest } from '@/lib/admin-audit';
 
 export const dynamic='force-dynamic';
 
@@ -18,7 +18,7 @@ const createSchema=z.object({
 
 export async function POST(request:Request){
  try{
-  await adminFromRequest(request);
+  const admin=await adminFromRequest(request);
   const body=createSchema.parse(await request.json());
   const booking=await prisma.booking.findUnique({where:{id:body.bookingId},select:{id:true,items:{select:{partnerId:true,partnerName:true}},packages:{select:{partnerId:true,partnerName:true}}}});
   if(!booking)return NextResponse.json({error:'Booking not found.'},{status:404});
@@ -28,7 +28,7 @@ export async function POST(request:Request){
   if(!partner.partnerName)return NextResponse.json({error:'Booking partner name is unavailable; payable cannot be created safely.'},{status:400});
   const payable=await prisma.$transaction(async tx=>{
    const created=await tx.partnerPayable.create({data:{bookingId:body.bookingId,partnerId:body.partnerId,partnerName:partner.partnerName,amount:body.amount,sourceReference:body.sourceReference||null,invoiceNumber:body.invoiceNumber||null,invoiceDate:body.invoiceDate?new Date(body.invoiceDate):null,notes:body.notes||null}});
-   await writeAdminAuditStrict(request,tx,{action:'PARTNER_PAYABLE_CREATED',entityType:'PartnerPayable',entityId:created.id,summary:'Partner payable created from verified invoice/source data.',metadata:{bookingId:body.bookingId,partnerId:body.partnerId,partnerName:partner.partnerName,amount:body.amount,sourceReference:body.sourceReference||null,invoiceNumber:body.invoiceNumber||null}});
+   await tx.adminAuditLog.create({data:{adminPhone:admin.phone,action:'PARTNER_PAYABLE_CREATED',entityType:'PartnerPayable',entityId:created.id,summary:'Partner payable created from verified invoice/source data.',metadata:{bookingId:body.bookingId,partnerId:body.partnerId,partnerName:partner.partnerName,amount:body.amount,sourceReference:body.sourceReference||null,invoiceNumber:body.invoiceNumber||null},ipAddress:(request.headers.get('x-forwarded-for')||'').split(',')[0].trim()||null,userAgent:request.headers.get('user-agent')||null}});
    return created;
   });
   return NextResponse.json({payable},{status:201});
