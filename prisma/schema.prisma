@@ -46,6 +46,16 @@ enum PartnerOfferAvailability {
   UNAVAILABLE
 }
 
+enum PartnerPayableStatus {
+  PENDING
+  INVOICED
+  APPROVED
+  PARTIALLY_PAID
+  PAID
+  DISPUTED
+  VOID
+}
+
 enum DiagnosticPackageType {
   PACKAGE
   PROFILE
@@ -357,6 +367,7 @@ model Booking {
   items                BookingItem[]
   packages             BookingPackage[]
   payments             PaymentTransaction[]
+  partnerPayables      PartnerPayable[]
 
   @@index([patientId])
   @@index([technicianId])
@@ -365,6 +376,32 @@ model Booking {
   @@index([paymentStatus])
   @@index([source])
   @@index([workflowStatus])
+}
+
+model PartnerPayable {
+  id              String               @id @default(cuid())
+  bookingId       String
+  partnerId       String
+  partnerName     String
+  amount          Int
+  currency        String               @default("INR")
+  status          PartnerPayableStatus @default(PENDING)
+  sourceReference String?
+  invoiceNumber   String?
+  invoiceDate     DateTime?
+  approvedAt      DateTime?
+  paidAmount      Int                  @default(0)
+  settledAt       DateTime?
+  notes           String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  booking         Booking              @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+
+  @@unique([bookingId, partnerId])
+  @@index([partnerId, status])
+  @@index([bookingId])
+  @@index([invoiceNumber])
+  @@index([settledAt])
 }
 
 model PaymentTransaction {
