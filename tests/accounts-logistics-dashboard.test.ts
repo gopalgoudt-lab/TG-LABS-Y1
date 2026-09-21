@@ -1,9 +1,7 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import fs from 'node:fs';
-const page=fs.readFileSync('app/admin/accounts-logistics/page.tsx','utf8');
-const chrome=fs.readFileSync('components/DashboardChrome.tsx','utf8');
-test('accounts logistics stays inside existing admin auth shell',()=>{assert.match(chrome,/Accounts & Logistics/);assert.match(chrome,/\/admin\/accounts-logistics/);assert.match(chrome,/\/api\/admin\/session/);});
-test('dashboard is read only and reuses operations data',()=>{assert.match(page,/fetch\('\/api\/admin\/operations'/);assert.doesNotMatch(page,/method:\s*['"](?:POST|PATCH|PUT|DELETE)/);});
-test('dashboard exposes accounts and logistics signals',()=>{for(const x of ['Paid booking value','Paid bookings','Pending / unpaid','Home collections active','Need technician','Samples in movement','Printed reports pending','Operational queue'])assert.match(page,new RegExp(x));});
-test('operational actions remain delegated to existing workspaces',()=>{assert.match(page,/\/admin\/bookings/);assert.match(page,/\/admin\/operations/);assert.match(page,/Use the existing Operations workspace/);});
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
+const page=fs.readFileSync('app/admin/accounts-logistics/page.tsx','utf8'),api=fs.readFileSync('app/api/admin/accounts-logistics/route.ts','utf8'),chrome=fs.readFileSync('components/DashboardChrome.tsx','utf8');
+test('accounts logistics stays inside existing admin shell',()=>{assert.match(chrome,/Accounts & Logistics/);assert.match(chrome,/\/admin\/accounts-logistics/);assert.match(chrome,/\/api\/admin\/session/);});
+test('dashboard and reconciliation API are read only',()=>{assert.match(page,/fetch\('\/api\/admin\/accounts-logistics'/);assert.doesNotMatch(page,/method:\s*['"](?:POST|PATCH|PUT|DELETE)/);assert.match(api,/export async function GET/);assert.doesNotMatch(api,/export async function (?:POST|PATCH|PUT|DELETE)/);assert.doesNotMatch(api,/prisma\.[A-Za-z]+?\.(?:create|update|delete|upsert)/);});
+test('reconciliation uses stored payment evidence',()=>{assert.match(api,/paymentTransaction\.findMany/);assert.match(api,/razorpayWebhookEvent\.findMany/);assert.match(api,/signatureVerified/);assert.match(page,/Payment reconciliation exceptions/);assert.match(page,/Verified paid transactions/);});
+test('financial mutations remain prohibited',()=>{assert.match(page,/never marks a payment paid, refunds a payment, or changes a booking/);assert.match(page,/Partner settlements/);assert.match(page,/Not tracked yet/);assert.match(api,/partnerSettlementTracking:false/);});
+test('logistics remains visible and delegates actions',()=>{assert.match(page,/Logistics queue/);assert.match(page,/\/admin\/bookings/);assert.match(page,/\/admin\/operations/);for(const x of ['Payment exceptions','Logistics exceptions','Paid booking value'])assert.match(page,new RegExp(x));});
