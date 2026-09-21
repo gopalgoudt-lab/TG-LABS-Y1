@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type Test={id:string;name:string;mrp:number;price:number;diagnosticPartner?:string|null;tat?:string|null;fastingNeeded:boolean;sampleTypes:string[];sampleTypeOther?:string|null;description?:string|null;imageData?:string|null};
 type Pack={id:string;name:string;mrp:number;price:number;diagnosticPartner?:string|null;tat?:string|null;fastingNeeded:boolean;sampleTypes:string[];sampleTypeOther?:string|null;description?:string|null;imageData?:string|null;tests:{test:Test}[]};
@@ -24,13 +24,12 @@ export default function AdminPage(){
  const [msg,setMsg]=useState(''); const [busy,setBusy]=useState(false);
  const load=async()=>{const [t,p,b]=await Promise.all([fetch('/api/admin/catalog/tests'),fetch('/api/admin/catalog/packages'),fetch('/api/admin/bookings')]);if(t.ok)setTests((await t.json()).tests);if(p.ok)setPackages((await p.json()).packages);if(b.ok)setBookings((await b.json()).bookings);};
  useEffect(()=>{load()},[]);
- const paid=useMemo(()=>bookings.filter(b=>b.paymentStatus==='PAID'),[bookings]); const revenue=paid.reduce((s,b)=>s+b.totalAmount,0);
+
  async function send(url:string,method:string,data:any,success:string){setBusy(true);setMsg('');try{const r=await fetch(url,{method,headers:data?{'Content-Type':'application/json'}:undefined,body:data?JSON.stringify(data):undefined});const j=await r.json();if(!r.ok)throw new Error(j.error||'Unable to save');setMsg(success);await load();return true}catch(e:any){setMsg(e.message);return false}finally{setBusy(false)}}
- return <main style={{minHeight:'100vh',background:'#f4f8f6',padding:'28px',color:'#12352f',fontFamily:'Arial, sans-serif'}}><div style={{maxWidth:1400,margin:'0 auto'}}>
-  <div style={{display:'flex',justifyContent:'space-between',gap:20,alignItems:'center',marginBottom:18,flexWrap:'wrap'}}><div><div style={{fontSize:12,fontWeight:900,color:'#087f6f',letterSpacing:1.4}}>TG LABS • PHASE 1</div><h1 style={{margin:'6px 0 0',fontSize:34}}>Admin Command Centre</h1><p style={{margin:'8px 0',color:'#60746f'}}>Live bookings, catalog management, pricing, sample requirements and manual staff bookings.</p></div><a href="/" style={{color:'#087f6f',fontWeight:800}}>Open website →</a></div>
+ return <main className="adminPortalContent" style={{minHeight:'100vh',background:'#f4f8f6',padding:'28px',color:'#12352f',fontFamily:'Arial, sans-serif'}}><div style={{maxWidth:1400,margin:'0 auto'}}>
   <nav style={{display:'flex',gap:8,overflowX:'auto',marginBottom:20}}>{tabs.map(x=><button key={x} onClick={()=>{setTab(x);setMsg('')}} style={{...btn,background:tab===x?'#087f6f':'#e6f1ee',color:tab===x?'#fff':'#17463d',whiteSpace:'nowrap'}}>{x}</button>)}</nav>
   {msg&&<div style={{...box,marginBottom:16,borderColor:msg.toLowerCase().includes('unable')||msg.toLowerCase().includes('check')?'#f0b8b8':'#9ed6ca'}}>{msg}</div>}
-  {tab==='Overview'&&<><section style={{...grid,marginBottom:20}}><Kpi n={bookings.length} label="Total bookings"/><Kpi n={paid.length} label="Paid bookings"/><Kpi n={`₹${revenue.toLocaleString('en-IN')}`} label="Paid value"/><Kpi n={tests.length} label="Tests"/><Kpi n={packages.length} label="Packages"/></section><section style={box}><h2>Latest bookings</h2><BookingTable rows={bookings.slice(0,10)}/></section></>}
+  {tab==='Overview'&&<section style={box}><h2>Latest bookings</h2><BookingTable rows={bookings.slice(0,10)}/></section>}
   {tab==='Bookings'&&<section style={box}><h2>Booking management</h2><p style={{color:'#667a74'}}>Website and admin-created bookings are read directly from PostgreSQL.</p><BookingTable rows={bookings}/></section>}
   {tab==='Catalog'&&<Catalog tests={tests} packages={packages} busy={busy} onUpdate={async(type,id,data)=>send(`/api/admin/catalog/${type}/${id}`,'PATCH',data,`${type==='tests'?'Test':'Package'} updated successfully.`)} onDelete={async(type,id)=>send(`/api/admin/catalog/${type}/${id}`,'DELETE',null,`${type==='tests'?'Test':'Package'} deleted successfully.`)}/>} 
   {tab==='Add Test'&&<TestForm busy={busy} onSave={async d=>{if(await send('/api/admin/catalog/tests','POST',d,'Diagnostic test added successfully.'))setTab('Catalog')}}/>}
@@ -38,7 +37,6 @@ export default function AdminPage(){
   {tab==='Manual Booking'&&<ManualBooking tests={tests} packages={packages} busy={busy} onSave={async d=>{if(await send('/api/admin/bookings','POST',d,'Manual booking created successfully.'))setTab('Bookings')}}/>}
  </div></main>
 }
-function Kpi({n,label}:{n:any,label:string}){return <article style={box}><div style={{fontSize:30,fontWeight:900,color:'#087f6f'}}>{n}</div><div style={{color:'#687c76',marginTop:6}}>{label}</div></article>}
 function BookingTable({rows}:{rows:Booking[]}){return <div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse',minWidth:900}}><thead><tr>{['Patient','Source','Tests / Sample','Collection','Payment','Status','Amount'].map(h=><th key={h} style={{textAlign:'left',padding:12,borderBottom:'1px solid #dce7e3',fontSize:12}}>{h}</th>)}</tr></thead><tbody>{rows.map(b=><tr key={b.id}><td style={{padding:12,borderBottom:'1px solid #edf2f0'}}><b>{b.patient.name}</b><br/><small>{b.patient.phone}</small></td><td>{b.source}</td><td>{b.items.map(i=><div key={i.test.id}><b>{i.test.name}</b><br/><small>{sampleText(i.test)}</small></div>)}</td><td>{new Date(b.collectionDate).toLocaleDateString('en-IN')}<br/><small>{b.mode} • {b.slot}</small></td><td><b>{b.paymentStatus}</b></td><td>{b.status}</td><td><b>₹{b.totalAmount}</b></td></tr>)}{!rows.length&&<tr><td colSpan={7} style={{padding:24,textAlign:'center'}}>No bookings yet.</td></tr>}</tbody></table></div>}
 
 function Catalog({tests,packages,busy,onUpdate,onDelete}:{tests:Test[];packages:Pack[];busy:boolean;onUpdate:(type:'tests'|'packages',id:string,data:any)=>Promise<boolean>;onDelete:(type:'tests'|'packages',id:string)=>Promise<boolean>}){
