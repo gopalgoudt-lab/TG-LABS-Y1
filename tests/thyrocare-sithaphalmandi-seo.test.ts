@@ -1,3 +1,4 @@
+// Preview retrigger: no production behavior change.
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
 const page=fs.readFileSync('app/thyrocare-sithaphalmandi/page.tsx','utf8');const sitemap=fs.readFileSync('app/sitemap.ts','utf8');
 test('location page has canonical local identity and contact',()=>{assert.match(page,/https:\/\/www\.tglabs\.in\/thyrocare-sithaphalmandi/);assert.match(page,/Sithaphalmandi/i);assert.match(page,/Secunderabad/i);assert.match(page,/97011 62302/);});
