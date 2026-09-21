@@ -11,6 +11,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { route: '/', changeFrequency: 'daily', priority: 1 },
     { route: '/diagnostic-tests-hyderabad', changeFrequency: 'weekly', priority: 0.85 },
     { route: '/home-blood-test-hyderabad', changeFrequency: 'weekly', priority: 0.82 },
+    { route: '/thyrocare-sithaphalmandi', changeFrequency: 'weekly', priority: 0.84 },
     { route: '/full-body-checkup-hyderabad', changeFrequency: 'weekly', priority: 0.8 },
     { route: '/thyroid-test-hyderabad', changeFrequency: 'weekly', priority: 0.78 },
     { route: '/tsh-test-hyderabad', changeFrequency: 'weekly', priority: 0.76 },
