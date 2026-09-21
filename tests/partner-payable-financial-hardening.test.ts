@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
+const create=fs.readFileSync('app/api/admin/accounts-logistics/payables/route.ts','utf8');
+const update=fs.readFileSync('app/api/admin/accounts-logistics/payables/[id]/route.ts','utf8');
+const audit=fs.readFileSync('lib/admin-audit.ts','utf8');
+const page=fs.readFileSync('app/admin/accounts-logistics/page.tsx','utf8');
+test('partner identity comes from booking snapshot, not request',()=>{assert.doesNotMatch(create,/partnerName:z\./);assert.match(create,/partnerName:partner\.partnerName/);assert.match(create,/Booking partner name is unavailable/);assert.doesNotMatch(page,/partnerName:string/);});
+test('financial mutation and audit share Prisma transaction',()=>{assert.match(create,/prisma\.\$transaction/);assert.match(update,/prisma\.\$transaction/);assert.match(create,/writeAdminAuditStrict\(request,tx/);assert.match(update,/writeAdminAuditStrict\(request,tx/);assert.match(audit,/writeAdminAuditStrict/);assert.doesNotMatch(audit,/writeAdminAuditStrict[\s\S]*Admin audit logging failed/);});
+test('payable lifecycle has terminal and payment guards',()=>{assert.match(update,/PAID:\[\],VOID:\[\]/);assert.match(update,/Invalid payable status transition/);assert.match(update,/APPROVED','PARTIALLY_PAID','PAID/);assert.match(update,/Invoice number is required before approval or payment/);assert.match(update,/PAID requires the full payable amount/);assert.match(update,/PARTIALLY_PAID requires an amount greater than zero/);});
+test('audit captures invoice and settlement evidence changes',()=>{assert.match(update,/fromInvoiceNumber/);assert.match(update,/toInvoiceNumber/);assert.match(update,/fromInvoiceDate/);assert.match(update,/toInvoiceDate/);assert.match(update,/fromSettledAt/);assert.match(update,/toSettledAt/);});
