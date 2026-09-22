@@ -2,14 +2,13 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { adminAuthError } from '@/lib/admin-auth';
-import { adminFromRequest, writeAdminAudit } from '@/lib/admin-audit';
+import { adminFromRequest } from '@/lib/admin-audit';
 
 export const dynamic='force-dynamic';
 
 const createSchema=z.object({
  bookingId:z.string().trim().min(1),
  partnerId:z.string().trim().min(1).max(160),
- partnerName:z.string().trim().min(1).max(160),
  amount:z.coerce.number().int().min(0).max(100000000),
  sourceReference:z.string().trim().max(240).optional().default(''),
  invoiceNumber:z.string().trim().max(160).optional().default(''),
@@ -19,14 +18,22 @@ const createSchema=z.object({
 
 export async function POST(request:Request){
  try{
-  await adminFromRequest(request);
+  const admin=await adminFromRequest(request);
+  const ipAddress=(request.headers.get('x-forwarded-for')||'').split(',')[0].trim()||null;
+  const userAgent=request.headers.get('user-agent')||null;
   const body=createSchema.parse(await request.json());
   const booking=await prisma.booking.findUnique({where:{id:body.bookingId},select:{id:true,items:{select:{partnerId:true,partnerName:true}},packages:{select:{partnerId:true,partnerName:true}}}});
   if(!booking)return NextResponse.json({error:'Booking not found.'},{status:404});
   const partners=[...booking.items,...booking.packages].filter(x=>x.partnerId);
-  if(!partners.some(x=>x.partnerId===body.partnerId))return NextResponse.json({error:'Partner is not recorded on this booking.'},{status:400});
-  const payable=await prisma.partnerPayable.create({data:{bookingId:body.bookingId,partnerId:body.partnerId,partnerName:body.partnerName,amount:body.amount,sourceReference:body.sourceReference||null,invoiceNumber:body.invoiceNumber||null,invoiceDate:body.invoiceDate?new Date(body.invoiceDate):null,notes:body.notes||null}});
-  await writeAdminAudit(request,{action:'PARTNER_PAYABLE_CREATED',entityType:'PartnerPayable',entityId:payable.id,summary:'Partner payable created from verified invoice/source data.',metadata:{bookingId:body.bookingId,partnerId:body.partnerId,amount:body.amount}});
+  const partner=partners.find(x=>x.partnerId===body.partnerId);
+  if(!partner)return NextResponse.json({error:'Partner is not recorded on this booking.'},{status:400});
+  if(!partner.partnerName)return NextResponse.json({error:'Booking partner name is unavailable; payable cannot be created safely.'},{status:400});
+  const partnerName=partner.partnerName;
+  const payable=await prisma.$transaction(async tx=>{
+   const created=await tx.partnerPayable.create({data:{bookingId:body.bookingId,partnerId:body.partnerId,partnerName,amount:body.amount,sourceReference:body.sourceReference||null,invoiceNumber:body.invoiceNumber||null,invoiceDate:body.invoiceDate?new Date(body.invoiceDate):null,notes:body.notes||null}});
+   await tx.adminAuditLog.create({data:{adminPhone:admin.phone,action:'PARTNER_PAYABLE_CREATE',entityType:'PartnerPayable',entityId:created.id,summary:`Partner payable created for ${partnerName}`,metadata:{bookingId:body.bookingId,partnerId:body.partnerId,partnerName,amount:body.amount,sourceReference:body.sourceReference||null,invoiceNumber:body.invoiceNumber||null,invoiceDate:body.invoiceDate||null,actorRole:'ADMIN',actorSource:'TG_LABS_ADMIN'},ipAddress,userAgent}});
+   return created;
+  });
   return NextResponse.json({payable},{status:201});
  }catch(error){
   if(error instanceof z.ZodError)return NextResponse.json({error:'Please check payable details.',fields:error.flatten().fieldErrors},{status:400});
