@@ -28,9 +28,10 @@ export async function POST(request:Request){
   const partner=partners.find(x=>x.partnerId===body.partnerId);
   if(!partner)return NextResponse.json({error:'Partner is not recorded on this booking.'},{status:400});
   if(!partner.partnerName)return NextResponse.json({error:'Booking partner name is unavailable; payable cannot be created safely.'},{status:400});
+  const partnerName=partner.partnerName;
   const payable=await prisma.$transaction(async tx=>{
-   const created=await tx.partnerPayable.create({data:{bookingId:body.bookingId,partnerId:body.partnerId,partnerName:partner.partnerName,amount:body.amount,sourceReference:body.sourceReference||null,invoiceNumber:body.invoiceNumber||null,invoiceDate:body.invoiceDate?new Date(body.invoiceDate):null,notes:body.notes||null}});
-   await tx.adminAuditLog.create({data:{adminPhone:admin.phone,action:'PARTNER_PAYABLE_CREATE',entityType:'PartnerPayable',entityId:created.id,summary:`Partner payable created for ${partner.partnerName}`,metadata:{bookingId:body.bookingId,partnerId:body.partnerId,partnerName:partner.partnerName,amount:body.amount,sourceReference:body.sourceReference||null,invoiceNumber:body.invoiceNumber||null,invoiceDate:body.invoiceDate||null,actorRole:'ADMIN',actorSource:'TG_LABS_ADMIN'},ipAddress,userAgent}});
+   const created=await tx.partnerPayable.create({data:{bookingId:body.bookingId,partnerId:body.partnerId,partnerName,amount:body.amount,sourceReference:body.sourceReference||null,invoiceNumber:body.invoiceNumber||null,invoiceDate:body.invoiceDate?new Date(body.invoiceDate):null,notes:body.notes||null}});
+   await tx.adminAuditLog.create({data:{adminPhone:admin.phone,action:'PARTNER_PAYABLE_CREATE',entityType:'PartnerPayable',entityId:created.id,summary:`Partner payable created for ${partnerName}`,metadata:{bookingId:body.bookingId,partnerId:body.partnerId,partnerName,amount:body.amount,sourceReference:body.sourceReference||null,invoiceNumber:body.invoiceNumber||null,invoiceDate:body.invoiceDate||null,actorRole:'ADMIN',actorSource:'TG_LABS_ADMIN'},ipAddress,userAgent}});
    return created;
   });
   return NextResponse.json({payable},{status:201});
