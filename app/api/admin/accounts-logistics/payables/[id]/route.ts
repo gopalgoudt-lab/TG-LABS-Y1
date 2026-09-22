@@ -15,7 +15,9 @@ const schema=z.object({
 
 export async function PATCH(request:Request,{params}:{params:Promise<{id:string}>}){
  try{
-  await adminFromRequest(request);
+  const admin=await adminFromRequest(request);
+  const ipAddress=(request.headers.get('x-forwarded-for')||'').split(',')[0].trim()||null;
+  const userAgent=request.headers.get('user-agent')||null;
   const {id}=await params; const body=schema.parse(await request.json());
   const current=await prisma.partnerPayable.findUnique({where:{id}}); if(!current)return NextResponse.json({error:'Partner payable not found.'},{status:404});
   if(body.paidAmount>current.amount)return NextResponse.json({error:'Paid amount cannot exceed payable amount.'},{status:400});
@@ -26,7 +28,7 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
   if(['APPROVED','PARTIALLY_PAID','PAID'].includes(body.status)&&!body.invoiceNumber)return NextResponse.json({error:'Invoice number is required before approval or payment.'},{status:400});
   const payable=await prisma.$transaction(async tx=>{
    const updated=await tx.partnerPayable.update({where:{id},data:{status:body.status,invoiceNumber:body.invoiceNumber||null,invoiceDate:body.invoiceDate?new Date(body.invoiceDate):null,paidAmount:body.paidAmount,settledAt:body.status==='PAID'?(body.settledAt?new Date(body.settledAt):new Date()):null,approvedAt:['APPROVED','PARTIALLY_PAID','PAID'].includes(body.status)&&!current.approvedAt?new Date():current.approvedAt,notes:body.notes||null}});
-   
+   await tx.adminAuditLog.create({data:{adminPhone:admin.phone,action:'PARTNER_PAYABLE_UPDATE',entityType:'PartnerPayable',entityId:updated.id,summary:`Partner payable updated from ${current.status} to ${updated.status}`,metadata:{fromStatus:current.status,toStatus:updated.status,fromPaidAmount:current.paidAmount,toPaidAmount:updated.paidAmount,fromInvoiceNumber:current.invoiceNumber,toInvoiceNumber:updated.invoiceNumber,fromInvoiceDate:current.invoiceDate?.toISOString()??null,toInvoiceDate:updated.invoiceDate?.toISOString()??null,fromSettledAt:current.settledAt?.toISOString()??null,toSettledAt:updated.settledAt?.toISOString()??null,fromApprovedAt:current.approvedAt?.toISOString()??null,toApprovedAt:updated.approvedAt?.toISOString()??null,actorRole:'ADMIN',actorSource:'TG_LABS_ADMIN'},ipAddress,userAgent}});
    return updated;
   });
   return NextResponse.json({payable});
