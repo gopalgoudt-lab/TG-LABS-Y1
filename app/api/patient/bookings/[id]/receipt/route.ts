@@ -27,7 +27,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const baseLines = [
       ...booking.items.map((item) => ({ name: item.test.name, amount: item.price })),
       ...booking.packages.map((item) => ({ name: item.package.name, amount: item.price })),
-      ...(booking.printedReportFee > 0 ? [{ name: 'Printed report service', amount: booking.printedReportFee }] : []),
+      ...(booking.homeCollectionCharge > 0 ? [{ name: 'Home Collection Charges', amount: booking.homeCollectionCharge }] : []),
+    ...(booking.printedReportFee > 0 ? [{ name: 'Printed report service', amount: booking.printedReportFee }] : []),
     ];
     const baseSubtotal = baseLines.reduce((sum, line) => sum + line.amount, 0);
     const positiveAdjustment = Math.max(0, booking.totalAmount - baseSubtotal);
