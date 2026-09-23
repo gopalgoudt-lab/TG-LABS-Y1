@@ -13,3 +13,8 @@ test('paid receipt includes home collection subtotal when legacy stored total om
 test('receipt never reduces a valid authoritative stored total',()=>{
  assert.deepEqual(reconcilePaidReceipt(350,300,350),{total:350,paidAmount:350,due:0});
 });
+
+test('receipt resolves partner id before stale snapshot when offer relation is unavailable',()=>{
+ const names=new Map([['thyrocare-id','Thyrocare']]);
+ assert.deepEqual(receiptPartners([{partnerId:'thyrocare-id',partnerName:'TG Labs',offer:null}],[],names),['Thyrocare']);
+});

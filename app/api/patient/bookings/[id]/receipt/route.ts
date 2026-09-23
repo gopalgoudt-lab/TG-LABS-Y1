@@ -39,7 +39,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const subtotal = lines.reduce((sum, line) => sum + line.amount, 0);
     const discount = Math.max(0, subtotal - booking.totalAmount);
 
-    const partners = receiptPartners(booking.items, booking.packages);
+    const partnerIds = [...new Set([...booking.items, ...booking.packages].map((item) => item.partnerId).filter((v): v is string => Boolean(v)))];
+  const partnerRows = partnerIds.length ? await prisma.diagnosticPartner.findMany({ where: { id: { in: partnerIds } }, select: { id: true, name: true } }) : [];
+  const partnerNamesById = new Map(partnerRows.map((partner) => [partner.id, partner.name]));
+  const partners = receiptPartners(booking.items, booking.packages, partnerNamesById);
     const paidPayment = booking.payments[0];
   const { total: receiptTotal, paidAmount, due } = reconcilePaidReceipt(booking.totalAmount, subtotal, paidPayment?.amount);
     const transactionReference = booking.razorpayPaymentId || paidPayment?.paymentId || null;
