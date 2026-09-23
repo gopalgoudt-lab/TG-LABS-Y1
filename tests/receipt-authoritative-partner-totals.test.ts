@@ -1,8 +1,11 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import { receiptPartners,reconcilePaidReceipt } from '../lib/receipt-reconciliation.ts';
 
-test('receipt resolves booked offer partner when snapshot name is absent',()=>{
- assert.deepEqual(receiptPartners([{partnerName:null,offer:{partner:{name:'Thyrocare'}}}],[]),['Thyrocare']);
+test('receipt uses authoritative booked offer partner over stale snapshot name',()=>{
+ assert.deepEqual(receiptPartners([{partnerName:'TG Labs',offer:{partner:{name:'Thyrocare'}}}],[]),['Thyrocare']);
+});
+test('receipt falls back to snapshot partner only when booked offer relation is unavailable',()=>{
+ assert.deepEqual(receiptPartners([{partnerName:'Thyrocare',offer:null}],[]),['Thyrocare']);
 });
 test('paid receipt includes home collection subtotal when legacy stored total omitted it',()=>{
  assert.deepEqual(reconcilePaidReceipt(200,300,200),{total:300,paidAmount:300,due:0});
