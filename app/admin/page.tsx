@@ -29,7 +29,7 @@ export default function AdminPage(){
  return <main className="adminPortalContent" style={{minHeight:'100vh',background:'#f4f8f6',padding:'28px',color:'#12352f',fontFamily:'Arial, sans-serif'}}><div style={{maxWidth:1400,margin:'0 auto'}}>
   <nav style={{display:'flex',gap:8,overflowX:'auto',marginBottom:20}}>{tabs.map(x=><button key={x} onClick={()=>{setTab(x);setMsg('')}} style={{...btn,background:tab===x?'#087f6f':'#e6f1ee',color:tab===x?'#fff':'#17463d',whiteSpace:'nowrap'}}>{x}</button>)}</nav>
   {msg&&<div style={{...box,marginBottom:16,borderColor:msg.toLowerCase().includes('unable')||msg.toLowerCase().includes('check')?'#f0b8b8':'#9ed6ca'}}>{msg}</div>}
-  {tab==='Overview'&&<section style={box}><h2>Latest bookings</h2><BookingTable rows={bookings.slice(0,10)}/></section>}
+  {tab==='Overview'&&<AdminOverview bookings={bookings} tests={tests} packages={packages}/>} 
   {tab==='Bookings'&&<section style={box}><h2>Booking management</h2><p style={{color:'#667a74'}}>Website and admin-created bookings are read directly from PostgreSQL.</p><BookingTable rows={bookings}/></section>}
   {tab==='Catalog'&&<Catalog tests={tests} packages={packages} busy={busy} onUpdate={async(type,id,data)=>send(`/api/admin/catalog/${type}/${id}`,'PATCH',data,`${type==='tests'?'Test':'Package'} updated successfully.`)} onDelete={async(type,id)=>send(`/api/admin/catalog/${type}/${id}`,'DELETE',null,`${type==='tests'?'Test':'Package'} deleted successfully.`)}/>} 
   {tab==='Add Test'&&<TestForm busy={busy} onSave={async d=>{if(await send('/api/admin/catalog/tests','POST',d,'Diagnostic test added successfully.'))setTab('Catalog')}}/>}
@@ -37,6 +37,41 @@ export default function AdminPage(){
   {tab==='Manual Booking'&&<ManualBooking tests={tests} packages={packages} busy={busy} onSave={async d=>{if(await send('/api/admin/bookings','POST',d,'Manual booking created successfully.'))setTab('Bookings')}}/>}
  </div></main>
 }
+function AdminOverview({bookings,tests,packages}:{bookings:Booking[];tests:Test[];packages:Pack[]}){
+ const completed=bookings.filter(b=>b.status==='COMPLETED'||b.status==='REPORT_READY').length;
+ const cancelled=bookings.filter(b=>b.status==='CANCELLED').length;
+ const inProgress=Math.max(0,bookings.length-completed-cancelled);
+ const paidRevenue=bookings.filter(b=>b.paymentStatus==='PAID').reduce((sum,b)=>sum+b.totalAmount,0);
+ const pendingRevenue=bookings.filter(b=>b.paymentStatus!=='PAID').reduce((sum,b)=>sum+b.totalAmount,0);
+ const partners=Array.from(new Set([...tests.map(t=>t.diagnosticPartner),...packages.map(p=>p.diagnosticPartner)].filter(Boolean))) as string[];
+ const testCounts=new Map<string,number>(); bookings.forEach(b=>b.items.forEach(i=>testCounts.set(i.test.name,(testCounts.get(i.test.name)||0)+1)));
+ const topTests=[...testCounts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5);
+ const statusCards=[
+  {label:'Total Bookings',value:bookings.length,icon:'▣',tone:'#eaf4ff',ink:'#1769c2'},
+  {label:'Completed',value:completed,icon:'✓',tone:'#eaf9f1',ink:'#118554'},
+  {label:'In Progress',value:inProgress,icon:'◷',tone:'#fff5e8',ink:'#c66a12'},
+  {label:'Cancelled',value:cancelled,icon:'×',tone:'#fff0f2',ink:'#c92d4b'},
+  {label:'Active Partners',value:partners.length,icon:'◆',tone:'#f4efff',ink:'#7145c6'},
+  {label:'Catalog Items',value:tests.length+packages.length,icon:'▦',tone:'#eaf9f7',ink:'#087f6f'}
+ ];
+ return <div style={{display:'grid',gap:16}}>
+  <section style={{...box,padding:24,background:'linear-gradient(105deg,#eef8ff 0%,#f8fffd 55%,#edf8f5 100%)',display:'flex',justifyContent:'space-between',gap:20,alignItems:'center',flexWrap:'wrap'}}>
+   <div><div style={{fontSize:12,fontWeight:900,color:'#087f6f',letterSpacing:1}}>TG LABS OPERATIONS</div><h1 style={{margin:'5px 0',fontSize:30,color:'#102d5c'}}>Welcome Admin!</h1><div style={{color:'#516a76'}}>Complete control. Better healthcare for everyone.</div></div>
+   <div style={{background:'#fff',border:'1px solid #dbe9e5',borderRadius:14,padding:'12px 16px',minWidth:190}}><b>{new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</b><div style={{fontSize:12,color:'#667a74',marginTop:4}}>Monitor • Manage • Grow</div></div>
+  </section>
+  <section style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12}}>{statusCards.map(c=><div key={c.label} style={{...box,padding:16,background:c.tone,borderColor:'transparent'}}><div style={{fontSize:22,color:c.ink,fontWeight:900}}>{c.icon} {c.value.toLocaleString('en-IN')}</div><div style={{fontSize:12,fontWeight:800,marginTop:5}}>{c.label}</div></div>)}</section>
+  <section style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(290px,1fr))',gap:14}}>
+   <div style={box}><h3 style={{marginTop:0}}>Bookings by Status</h3>{[['Completed',completed,'#118554'],['In Progress',inProgress,'#c66a12'],['Cancelled',cancelled,'#c92d4b']].map(([label,value,color])=>{const n=Number(value);const pct=bookings.length?Math.round(n/bookings.length*100):0;return <div key={String(label)} style={{margin:'14px 0'}}><div style={{display:'flex',justifyContent:'space-between',fontSize:13}}><b>{label}</b><span>{n} ({pct}%)</span></div><div style={{height:9,background:'#edf2f0',borderRadius:10,marginTop:6,overflow:'hidden'}}><div style={{height:'100%',width:pct+'%',background:String(color)}}/></div></div>})}</div>
+   <div style={box}><h3 style={{marginTop:0}}>Revenue Overview</h3><div style={{fontSize:30,fontWeight:900,color:'#102d5c'}}>₹{paidRevenue.toLocaleString('en-IN')}</div><div style={{color:'#118554',fontSize:12,fontWeight:800,margin:'5px 0 18px'}}>Collected payments</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}><div style={{padding:12,background:'#f4f8f6',borderRadius:10}}><small>Paid</small><br/><b>₹{paidRevenue.toLocaleString('en-IN')}</b></div><div style={{padding:12,background:'#fff7eb',borderRadius:10}}><small>Pending</small><br/><b>₹{pendingRevenue.toLocaleString('en-IN')}</b></div></div></div>
+   <div style={box}><h3 style={{marginTop:0}}>Top Tests (Bookings)</h3>{topTests.length?topTests.map(([name,count],i)=><div key={name} style={{display:'grid',gridTemplateColumns:'24px 1fr auto',gap:8,alignItems:'center',margin:'11px 0',fontSize:13}}><span style={{width:22,height:22,borderRadius:20,background:'#eef4ff',display:'grid',placeItems:'center',fontWeight:900}}>{i+1}</span><b style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</b><span>{count}</span></div>):<div style={{color:'#687c76'}}>No booking data yet.</div>}</div>
+  </section>
+  <section style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,320px),1fr))',gap:14}}>
+   <div style={box}><h3 style={{marginTop:0}}>Partner Network</h3><div style={{fontSize:30,fontWeight:900,color:'#7145c6'}}>{partners.length}</div><div style={{color:'#687c76',fontSize:12,marginBottom:12}}>Partners represented in the active catalog</div>{partners.slice(0,6).map(p=><div key={p} style={{padding:'8px 0',borderTop:'1px solid #edf2f0',fontWeight:700,fontSize:13}}>{p}</div>)}</div>
+   <div style={box}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><div><h3 style={{margin:'0 0 4px'}}>Recent Bookings</h3><div style={{fontSize:12,color:'#687c76'}}>Latest patient activity from the existing booking system</div></div><button style={lightBtn} onClick={()=>window.scrollTo({top:0,behavior:'smooth'})}>Overview</button></div><div style={{marginTop:10,maxWidth:'100%',overflowX:'auto'}}><BookingTable rows={bookings.slice(0,5)}/></div></div>
+  </section>
+ </div>
+}
+
 function BookingTable({rows}:{rows:Booking[]}){return <div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse',minWidth:900}}><thead><tr>{['Patient','Source','Tests / Sample','Collection','Payment','Status','Amount'].map(h=><th key={h} style={{textAlign:'left',padding:12,borderBottom:'1px solid #dce7e3',fontSize:12}}>{h}</th>)}</tr></thead><tbody>{rows.map(b=><tr key={b.id}><td style={{padding:12,borderBottom:'1px solid #edf2f0'}}><b>{b.patient.name}</b><br/><small>{b.patient.phone}</small></td><td>{b.source}</td><td>{b.items.map(i=><div key={i.test.id}><b>{i.test.name}</b><br/><small>{sampleText(i.test)}</small></div>)}</td><td>{new Date(b.collectionDate).toLocaleDateString('en-IN')}<br/><small>{b.mode} • {b.slot}</small></td><td><b>{b.paymentStatus}</b></td><td>{b.status}</td><td><b>₹{b.totalAmount}</b></td></tr>)}{!rows.length&&<tr><td colSpan={7} style={{padding:24,textAlign:'center'}}>No bookings yet.</td></tr>}</tbody></table></div>}
 
 function Catalog({tests,packages,busy,onUpdate,onDelete}:{tests:Test[];packages:Pack[];busy:boolean;onUpdate:(type:'tests'|'packages',id:string,data:any)=>Promise<boolean>;onDelete:(type:'tests'|'packages',id:string)=>Promise<boolean>}){
