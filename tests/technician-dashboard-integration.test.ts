@@ -41,3 +41,8 @@ test('technician page no longer duplicates dashboard shell header or KPI cards',
   assert.doesNotMatch(page, /My Collection Jobs/);
   assert.match(page, /className="technicianPortalContent"/);
 });
+
+
+test('technician assignment View anchor targets a real job card', () => {
+  assert.match(page, /<article key=\{job\.id\} id=\{job\.id\}/);
+});
