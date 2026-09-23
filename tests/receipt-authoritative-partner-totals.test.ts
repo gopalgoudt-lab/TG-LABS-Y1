@@ -18,3 +18,7 @@ test('receipt resolves partner id before stale snapshot when offer relation is u
  const names=new Map([['thyrocare-id','Thyrocare']]);
  assert.deepEqual(receiptPartners([{partnerId:'thyrocare-id',partnerName:'TG Labs',offer:null}],[],names),['Thyrocare']);
 });
+
+test('receipt accepts a uniquely resolved catalog partner as fallback over stale snapshot',()=>{
+ assert.deepEqual(receiptPartners([{partnerId:null,partnerName:'Thyrocare',offer:null}],[]),['Thyrocare']);
+});
