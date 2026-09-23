@@ -18,6 +18,15 @@ test('collection payment is recorded atomically with payment transaction and aud
   assert.ok(route.includes("if(existing.paymentStatus==='PAID')"));
 });
 
+test('collection payment claim is concurrency-safe before transaction and audit creation', () => {
+  const route=readFileSync(new URL('../app/api/admin/bookings/[id]/payment/route.ts',import.meta.url),'utf8');
+  assert.ok(route.includes('tx.booking.updateMany'));
+  assert.ok(route.includes('paymentStatus:existing.paymentStatus,paidAt:null'));
+  assert.ok(route.includes('if(claimed.count!==1)'));
+  assert.ok(route.indexOf('if(claimed.count!==1)') < route.indexOf('tx.paymentTransaction.create'));
+  assert.ok(route.indexOf('if(claimed.count!==1)') < route.indexOf('tx.adminAuditLog.create'));
+});
+
 test('admin UI cannot fake payment status through ordinary booking save', () => {
   const page=readFileSync(new URL('../app/admin/bookings/[id]/page.tsx',import.meta.url),'utf8');
   assert.ok(page.includes('Payment Status<input'));
