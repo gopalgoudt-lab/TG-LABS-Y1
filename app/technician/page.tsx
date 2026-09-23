@@ -17,6 +17,10 @@ export default function TechnicianDashboard(){
  async function load(){const r=await fetch('/api/technician/jobs',{cache:'no-store'});if(r.status===401){router.replace('/technician/login');return}const j=await r.json();setTech(j.technician);setJobs(j.bookings||[])}
  useEffect(()=>{load()},[]);
  useEffect(()=>{
+  function revealHashJob(){const id=decodeURIComponent(window.location.hash.slice(1));if(!id)return;const el=document.getElementById(id);if(el)requestAnimationFrame(()=>el.scrollIntoView({behavior:'smooth',block:'center'}))}
+  revealHashJob();window.addEventListener('hashchange',revealHashJob);return()=>window.removeEventListener('hashchange',revealHashJob)
+ },[jobs]);
+ useEffect(()=>{
   const tracked=jobs.find(j=>TRACKING_STATUSES.has(j.workflowStatus));
   if(!tracked){setGps('off');return}
   if(!('geolocation' in navigator)){setGps('error');setMsg('This device does not support GPS location tracking.');return}
