@@ -39,7 +39,18 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const partnerIds = [...new Set([...booking.items, ...booking.packages].map((item) => item.partnerId).filter((v): v is string => Boolean(v)))];
   const partnerRows = partnerIds.length ? await prisma.diagnosticPartner.findMany({ where: { id: { in: partnerIds } }, select: { id: true, name: true } }) : [];
   const partnerNamesById = new Map(partnerRows.map((partner) => [partner.id, partner.name]));
-  const partners = receiptPartners(booking.items, booking.packages, partnerNamesById);
+  const unresolvedItems = booking.items.filter((item) => !item.offer?.partner?.name && (!item.partnerId || !partnerNamesById.has(item.partnerId)));
+  const catalogFallbacks = new Map<string, string>();
+  for (const item of unresolvedItems) {
+    const matches = await prisma.testPartnerOffer.findMany({
+      where: { testId: item.testId, price: item.price, active: true, availability: 'AVAILABLE' },
+      select: { partner: { select: { name: true } } },
+    });
+    const names = [...new Set(matches.map((match) => match.partner.name))];
+    if (names.length === 1) catalogFallbacks.set(item.id, names[0]);
+  }
+  const receiptItems = booking.items.map((item) => catalogFallbacks.has(item.id) ? { ...item, partnerName: catalogFallbacks.get(item.id)! } : item);
+  const partners = receiptPartners(receiptItems, booking.packages, partnerNamesById);
   const paidPayment = booking.payments[0];
   const { total: receiptTotal, paidAmount, due } = reconcilePaidReceipt(booking.totalAmount, subtotal, paidPayment?.amount);
   const pdf = await createPaymentReceiptPdf({
