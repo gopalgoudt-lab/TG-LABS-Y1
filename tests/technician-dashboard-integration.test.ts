@@ -46,3 +46,11 @@ test('technician page no longer duplicates dashboard shell header or KPI cards',
 test('technician assignment View anchor targets a real job card', () => {
   assert.match(page, /<article key=\{job\.id\} id=\{job\.id\}/);
 });
+
+
+test('technician View reveals asynchronously loaded hash-target job', () => {
+  assert.match(page, /window\.addEventListener\('hashchange',revealHashJob\)/);
+  assert.match(page, /document\.getElementById\(id\)/);
+  assert.match(page, /scrollIntoView\(\{behavior:'smooth',block:'center'\}\)/);
+  assert.match(page, /\},\[jobs\]\);/);
+});
