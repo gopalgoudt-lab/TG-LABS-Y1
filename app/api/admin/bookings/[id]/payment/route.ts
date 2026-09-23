@@ -22,8 +22,15 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
   const now=new Date();
   const ipAddress=(request.headers.get('x-forwarded-for')||'').split(',')[0].trim()||null;
   const userAgent=request.headers.get('user-agent')||null;
-  const booking=await prisma.$transaction(async tx=>{
-   const updated=await tx.booking.update({where:{id},data:{paymentStatus:'PAID',paymentMode:body.mode,paidAt:now}});
+  const result=await prisma.$transaction(async tx=>{
+   const claimed=await tx.booking.updateMany({
+    where:{id,paymentStatus:existing.paymentStatus,paidAt:null},
+    data:{paymentStatus:'PAID',paymentMode:body.mode,paidAt:now}
+   });
+   if(claimed.count!==1){
+    const current=await tx.booking.findUnique({where:{id},select:{id:true,totalAmount:true,paymentStatus:true,paymentMode:true,paidAt:true}});
+    return {booking:current,alreadyPaid:current?.paymentStatus==='PAID'};
+   }
    await tx.paymentTransaction.create({data:{
     bookingId:id,provider:'COLLECTION',orderId:`collection:${id}:${now.getTime()}`,status:'PAID',amount:existing.totalAmount,
     currency:'INR',signatureVerified:false,source:'ADMIN_COLLECTION'
@@ -34,9 +41,12 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     metadata:{amount:existing.totalAmount,mode:body.mode,fromStatus:existing.paymentStatus,toStatus:'PAID',actorRole:'ADMIN',actorSource:'TG_LABS_ADMIN'},
     ipAddress,userAgent
    }});
-   return updated;
+   const booking=await tx.booking.findUnique({where:{id},select:{id:true,totalAmount:true,paymentStatus:true,paymentMode:true,paidAt:true}});
+   return {booking,alreadyPaid:false};
   });
-  return NextResponse.json({booking});
+  if(!result.booking)return NextResponse.json({error:'Booking not found.'},{status:404});
+  if(!result.alreadyPaid&&result.booking.paymentStatus!=='PAID')return NextResponse.json({error:'Payment state changed. Refresh and try again.'},{status:409});
+  return NextResponse.json(result);
  }catch(error){
   if(error instanceof z.ZodError)return NextResponse.json({error:'Choose a valid payment mode.'},{status:400});
   const auth=adminAuthError(error);if(auth.status!==401||error instanceof Error&&error.message.includes('ADMIN'))return NextResponse.json({error:auth.error},{status:auth.status});
