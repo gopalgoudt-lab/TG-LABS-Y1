@@ -10,8 +10,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     where: { id },
     include: {
       patient: true,
-      items: { include: { test: true } },
-      packages: { include: { package: true } },
+      items: { include: { test: true, offer: { include: { partner: true } } } },
+      packages: { include: { package: true, offer: { include: { partner: true } } } },
       payments: { where: { status: 'PAID' }, orderBy: { updatedAt: 'desc' }, take: 1 },
     },
   });
@@ -36,11 +36,12 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const discount = Math.max(0, subtotal - booking.totalAmount);
 
   const partners = [...new Set([
-    ...booking.items.map((item) => item.partnerName).filter((v): v is string => Boolean(v)),
-    ...booking.packages.map((item) => item.partnerName).filter((v): v is string => Boolean(v)),
+    ...booking.items.map((item) => item.partnerName || item.offer?.partner.name).filter((v): v is string => Boolean(v)),
+    ...booking.packages.map((item) => item.partnerName || item.offer?.partner.name).filter((v): v is string => Boolean(v)),
   ])];
   const paidPayment = booking.payments[0];
-  const paidAmount = paidPayment?.amount ?? booking.totalAmount;
+  const receiptTotal = Math.max(booking.totalAmount, subtotal);
+  const paidAmount = Math.max(paidPayment?.amount ?? booking.totalAmount, receiptTotal);
   const pdf = await createPaymentReceiptPdf({
     receiptNumber: receiptNumberForBooking(booking.id),
     bookingReference: `TG-${booking.id.slice(-8).toUpperCase()}`,
@@ -59,9 +60,9 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     subtotal,
     discount,
     showDiscount: false,
-    total: booking.totalAmount,
+    total: receiptTotal,
     paidAmount,
-    due: Math.max(0, booking.totalAmount - paidAmount),
+    due: Math.max(0, receiptTotal - paidAmount),
     partners,
   });
 
