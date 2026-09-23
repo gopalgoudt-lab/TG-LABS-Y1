@@ -7,7 +7,7 @@ export type PaymentReceiptData = {
   receiptNumber: string; bookingReference: string; receiptDate: Date; patientName: string;
   age?: number | null; gender?: string | null; doctorName?: string | null; email?: string | null; phone?: string | null;
   collectionMode: string; paymentMode?: string | null; paymentStatus: string; transactionReference?: string | null;
-  lines: PaymentReceiptLine[]; subtotal: number; discount: number; total: number; paidAmount: number; due: number; partners: string[];
+  lines: PaymentReceiptLine[]; subtotal: number; discount: number; showDiscount?: boolean; total: number; paidAmount: number; due: number; partners: string[];
 };
 
 const safe=(v?:string|null)=>v?.trim()||'-';
@@ -61,9 +61,9 @@ export async function createPaymentReceiptPdf(data:PaymentReceiptData):Promise<U
  }
 
  const baseY=Math.min(345,y-8);
- box(34,baseY-116,252,108,mint,mint);text('TG',49,baseY-78,20,bold,teal);text('Diagnostic Partner(s)',84,baseY-50,11.5,bold,navy);text((data.partners.length?data.partners.join(', '):'TG Labs').slice(0,38),84,baseY-76,10.5,regular,navy);
+ box(34,baseY-116,252,108,mint,mint);text('Diagnostic Partner(s)',49,baseY-50,11.5,bold,navy);text((data.partners.length?data.partners.join(', '):'TG Labs').slice(0,38),49,baseY-76,10.5,regular,navy);
  box(307,baseY-145,254,137,white,border);
- const totals:[string,number][]=[['Subtotal',data.subtotal],['Discount',data.discount],['Total',data.total],['Paid Amount',data.paidAmount],['Due',data.due]];
+ const totals:[string,number][]=[['Subtotal',data.subtotal],...(data.showDiscount&&data.discount>0?[['Discount',data.discount] as [string,number]]:[]),['Total',data.total],['Paid Amount',data.paidAmount],['Due',data.due]];
  totals.forEach(([k,v],i)=>{const yy=baseY-39-i*23;if(k==='Total')page.drawRectangle({x:313,y:yy-7,width:242,height:23,color:mint2});const strong=k==='Total'||k==='Paid Amount';text(k,327,yy,11,strong?bold:regular,navy);money(v,458,yy,11,strong?bold:regular,navy)});
 
  text('Thank you for trusting TG Labs!',40,baseY-164,16,italic,teal);text('For a healthier tomorrow.',40,baseY-188,11,regular,navy);
