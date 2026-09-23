@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
 import { createPaymentReceiptPdf, isReceiptAvailable, receiptNumberForBooking } from '@/lib/payment-receipt';
+import { receiptPartners, reconcilePaidReceipt } from '@/lib/receipt-reconciliation';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,13 +39,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const subtotal = lines.reduce((sum, line) => sum + line.amount, 0);
     const discount = Math.max(0, subtotal - booking.totalAmount);
 
-    const partners = [...new Set([
-      ...booking.items.map((item) => item.partnerName || item.offer?.partner.name).filter((v): v is string => Boolean(v)),
-      ...booking.packages.map((item) => item.partnerName || item.offer?.partner.name).filter((v): v is string => Boolean(v)),
-    ])];
+    const partners = receiptPartners(booking.items, booking.packages);
     const paidPayment = booking.payments[0];
-    const receiptTotal = Math.max(booking.totalAmount, subtotal);
-    const paidAmount = Math.max(paidPayment?.amount ?? booking.totalAmount, receiptTotal);
+  const { total: receiptTotal, paidAmount, due } = reconcilePaidReceipt(booking.totalAmount, subtotal, paidPayment?.amount);
     const transactionReference = booking.razorpayPaymentId || paidPayment?.paymentId || null;
     const pdf = await createPaymentReceiptPdf({
       receiptNumber: receiptNumberForBooking(booking.id),
@@ -65,7 +62,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       discount,
       total: receiptTotal,
       paidAmount,
-      due: Math.max(0, receiptTotal - paidAmount),
+      due,
       partners,
     });
 
