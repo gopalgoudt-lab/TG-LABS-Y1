@@ -24,6 +24,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const baseLines = [
     ...booking.items.map((item) => ({ name: item.test.name, amount: item.price })),
     ...booking.packages.map((item) => ({ name: item.package.name, amount: item.price })),
+    ...(booking.homeCollectionCharge > 0 ? [{ name: 'Home Collection Charges', amount: booking.homeCollectionCharge }] : []),
     ...(booking.printedReportFee > 0 ? [{ name: 'Printed report service', amount: booking.printedReportFee }] : []),
   ];
   const baseSubtotal = baseLines.reduce((sum, line) => sum + line.amount, 0);
@@ -57,6 +58,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     lines,
     subtotal,
     discount,
+    showDiscount: false,
     total: booking.totalAmount,
     paidAmount,
     due: Math.max(0, booking.totalAmount - paidAmount),
