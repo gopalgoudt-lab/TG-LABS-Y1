@@ -67,7 +67,7 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
   for(const t of tests)if(!covered.has(t.id))itemMap.set(t.id,{id:t.id,price:t.price});
   for(const p of packages)for(const item of p.tests)if(!itemMap.has(item.test.id))itemMap.set(item.test.id,{id:item.test.id,price:0});
   const diagnosticAmount=packages.reduce((sum,p)=>sum+p.price,0)+tests.filter(t=>!covered.has(t.id)).reduce((sum,t)=>sum+t.price,0);
-  const totalAmount=diagnosticAmount+(existing.printedReportFee||0);
+  const totalAmount=diagnosticAmount+(existing.homeCollectionCharge||0)+(existing.printedReportFee||0);
 
   const booking=await prisma.$transaction(async tx=>{
    let patientId=existing.patientId;const pdata={name:b.name,email:b.email,age:b.age??null,gender:normalizeGender(b.gender)};
