@@ -100,6 +100,8 @@ export default function EditBookingPage() {
   const [history, setHistory] = useState<History[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [recordingPayment, setRecordingPayment] = useState(false);
+  const [collectionPaymentMode, setCollectionPaymentMode] = useState<'CASH'|'UPI'|'CARD'>('CASH');
   const [publishingReport, setPublishingReport] = useState(false);
   const [reportPrepared, setReportPrepared] = useState(false);
   const [reportType, setReportType] = useState<ReportType>('FULL');
@@ -244,6 +246,26 @@ export default function EditBookingPage() {
     }
   }
 
+  async function recordCollectionPayment() {
+    if (f.paymentStatus === 'PAID') return;
+    if (!window.confirm(`Record full payment of ₹${Number(f.totalAmount).toLocaleString('en-IN')} by ${collectionPaymentMode}? This creates an audited payment record.`)) return;
+    setRecordingPayment(true); setMsg('');
+    try {
+      const r = await fetch(`/api/admin/bookings/${id}/payment`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: collectionPaymentMode })
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Unable to record payment');
+      set('paymentStatus', 'PAID');
+      setTimes((x: any) => ({ ...x, paymentStatus: 'PAID', paidAt: j.booking?.paidAt || x.paidAt }));
+      setHistory((rows) => rows.map((h) => h.id === id ? { ...h, paymentStatus: 'PAID' } : h));
+      setMsg(j.alreadyPaid ? 'Payment was already recorded as PAID.' : 'Payment recorded safely. Patient receipt is now available.');
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'Unable to record payment');
+    } finally { setRecordingPayment(false); }
+  }
+
   async function save() {
     setSaving(true); setMsg('');
     try {
@@ -310,7 +332,7 @@ export default function EditBookingPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
           <label>Final Price / Extra Discount<input type="number" min="0" style={input} value={f.totalAmount} onChange={e => set('totalAmount', e.target.value)} /></label>
           <label>Booking Status<select style={input} value={f.status} onChange={e => set('status', e.target.value)}><option>PENDING</option><option>CONFIRMED</option><option>CANCELLED</option><option>COMPLETED</option></select></label>
-          <label>Payment Status<select style={input} value={f.paymentStatus} onChange={e => set('paymentStatus', e.target.value)}><option>PENDING</option><option>PAID</option><option>FAILED</option><option>REFUNDED</option></select></label>
+          <div><label>Payment Status<input style={{ ...input, background: '#f8fafc' }} value={f.paymentStatus} readOnly /></label>{f.paymentStatus !== 'PAID' && <div style={{ display: 'flex', gap: 8, marginTop: 7 }}><select aria-label="Collection payment mode" style={{ ...input, width: 105 }} value={collectionPaymentMode} onChange={e => setCollectionPaymentMode(e.target.value as 'CASH'|'UPI'|'CARD')}><option value="CASH">Cash</option><option value="UPI">UPI</option><option value="CARD">Card</option></select><button type="button" disabled={recordingPayment} onClick={recordCollectionPayment} style={{ border: 0, borderRadius: 10, padding: '9px 12px', background: '#15803d', color: '#fff', fontWeight: 900, cursor: recordingPayment ? 'wait' : 'pointer' }}>{recordingPayment ? 'Recording…' : 'Record full payment'}</button></div>}</div>
           <label>Report type<select style={input} value={reportType} onChange={e => setReportType(e.target.value as ReportType)}><option value="PARTIAL">Partial Report</option><option value="FULL">Full Report</option></select><small style={{ display: 'block', marginTop: 6, color: '#687c76' }}>Partial keeps the booking in Processing. Full publishes the final report and moves it to Report Ready.</small></label>
           <label>Replace / Upload Report<input type="file" accept="application/pdf,.pdf" multiple style={input} onChange={e => { report(e.target.files); e.currentTarget.value = ''; }} /><small style={{ display: 'block', marginTop: 6, color: '#687c76' }}>Select one or multiple PDFs. Multiple files are merged in selection order into one final report.</small></label>
         </div>
