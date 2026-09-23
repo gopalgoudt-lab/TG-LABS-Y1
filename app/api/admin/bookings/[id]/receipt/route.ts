@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createPaymentReceiptPdf, isReceiptAvailable, receiptNumberForBooking } from '@/lib/payment-receipt';
+import { receiptPartners, reconcilePaidReceipt } from '@/lib/receipt-reconciliation';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +11,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     where: { id },
     include: {
       patient: true,
-      items: { include: { test: true } },
-      packages: { include: { package: true } },
+      items: { include: { test: true, offer: { include: { partner: true } } } },
+      packages: { include: { package: true, offer: { include: { partner: true } } } },
       payments: { where: { status: 'PAID' }, orderBy: { updatedAt: 'desc' }, take: 1 },
     },
   });
@@ -35,12 +36,9 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const subtotal = lines.reduce((sum, line) => sum + line.amount, 0);
   const discount = Math.max(0, subtotal - booking.totalAmount);
 
-  const partners = [...new Set([
-    ...booking.items.map((item) => item.partnerName).filter((v): v is string => Boolean(v)),
-    ...booking.packages.map((item) => item.partnerName).filter((v): v is string => Boolean(v)),
-  ])];
+  const partners = receiptPartners(booking.items, booking.packages);
   const paidPayment = booking.payments[0];
-  const paidAmount = paidPayment?.amount ?? booking.totalAmount;
+  const { total: receiptTotal, paidAmount, due } = reconcilePaidReceipt(booking.totalAmount, subtotal, paidPayment?.amount);
   const pdf = await createPaymentReceiptPdf({
     receiptNumber: receiptNumberForBooking(booking.id),
     bookingReference: `TG-${booking.id.slice(-8).toUpperCase()}`,
@@ -59,9 +57,9 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     subtotal,
     discount,
     showDiscount: false,
-    total: booking.totalAmount,
+    total: receiptTotal,
     paidAmount,
-    due: Math.max(0, booking.totalAmount - paidAmount),
+    due,
     partners,
   });
 
