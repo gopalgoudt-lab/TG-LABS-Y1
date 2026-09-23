@@ -116,7 +116,7 @@ export default function DashboardChrome({ role, children }: { role: Role; childr
         <div className="dashWelcome"><div><span className="dashEyebrow">TG LABS · {title.toUpperCase()} DASHBOARD</span><h1>{welcome}</h1><p>{subtitle}</p></div><div className="dashDate"><b>{today}</b><span>{role === 'admin' ? 'Monitor · Manage · Grow' : role === 'technician' ? 'Collect · Update · Complete' : 'Book · Track · Stay Healthy'}</span></div></div>
         <div className="dashQuickGrid">{QUICK[role].map((item)=><a href={item.href} key={item.label} className="dashQuick"><span>{item.icon}</span><div><b>{item.label}</b><small>{item.note}</small></div><i>→</i></a>)}</div>
       </section>
-      <RoleDashboardInsights role={role}/>
+      {role !== 'admin' && <RoleDashboardInsights role={role}/>}
     </>}
     {children}
   </DashboardShell>;
