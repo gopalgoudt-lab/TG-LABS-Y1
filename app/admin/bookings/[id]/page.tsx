@@ -159,7 +159,11 @@ export default function EditBookingPage() {
   }, [id]);
 
   const shownTests = useMemo(() => tests.filter(t => t.name.toLowerCase().includes(q.toLowerCase())), [tests, q]);
-  const shownPacks = useMemo(() => packages.filter(p => (p.name + ' ' + p.tests.map(x => x.test.name).join(' ')).toLowerCase().includes(pq.toLowerCase())), [packages, pq]);
+  const shownPacks = useMemo(() => {
+    const term = pq.trim().toLowerCase();
+    if (!term) return packages.filter(p => f.packageIds.includes(p.id));
+    return packages.filter(p => (p.name + ' ' + p.tests.map(x => x.test.name).join(' ')).toLowerCase().includes(term)).slice(0, 20);
+  }, [packages, pq, f.packageIds]);
   const selectedCatalogTotal = useMemo(() =>
     tests.filter(t => f.testIds.includes(t.id)).reduce((s, t) => s + t.price, 0) +
     packages.filter(p => f.packageIds.includes(p.id)).reduce((s, p) => s + p.price, 0),
@@ -323,7 +327,9 @@ export default function EditBookingPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 8, maxHeight: 300, overflowY: 'auto', marginTop: 12 }}>{shownTests.map(t => <label key={t.id} style={{ padding: 9, border: '1px solid #e1eae7', borderRadius: 9 }}><input type="checkbox" checked={f.testIds.includes(t.id)} onChange={e => set('testIds', e.target.checked ? [...f.testIds, t.id] : f.testIds.filter((x: string) => x !== t.id))} /> <b>{t.name}</b> • ₹{t.price}</label>)}</div>
         <h3>Add Package</h3>
         <input style={{ ...input, maxWidth: 500 }} placeholder="Search package..." value={pq} onChange={e => setPq(e.target.value)} />
-        <div>{shownPacks.map(p => <label key={p.id} style={{ display: 'block', padding: 8 }}><input type="checkbox" checked={f.packageIds.includes(p.id)} onChange={e => set('packageIds', e.target.checked ? [...f.packageIds, p.id] : f.packageIds.filter((x: string) => x !== p.id))} /> <b>{p.name}</b> • ₹{p.price}</label>)}</div>
+        <div style={{ maxWidth: 700, maxHeight: 220, overflowY: 'auto', marginTop: 10, border: shownPacks.length ? '1px solid #e1eae7' : 'none', borderRadius: 10 }}>{shownPacks.map(p => <label key={p.id} style={{ display: 'block', padding: '9px 10px', borderBottom: '1px solid #edf2f0' }}><input type="checkbox" checked={f.packageIds.includes(p.id)} onChange={e => set('packageIds', e.target.checked ? [...f.packageIds, p.id] : f.packageIds.filter((x: string) => x !== p.id))} /> <b>{p.name}</b> • ₹{p.price}</label>)}</div>
+        {!pq.trim() && !f.packageIds.length && <div style={{ marginTop: 8, fontSize: 12, color: '#687c76' }}>Search for a package to add. The full package catalog stays collapsed.</div>}
+        {pq.trim() && shownPacks.length === 20 && <div style={{ marginTop: 6, fontSize: 12, color: '#687c76' }}>Showing the first 20 matches. Type more to narrow the results.</div>}
         <div style={{ marginTop: 16, padding: 14, borderRadius: 12, background: '#eff9f6' }}><b>Catalog total: ₹{selectedCatalogTotal.toLocaleString('en-IN')}</b></div>
       </section>
 
