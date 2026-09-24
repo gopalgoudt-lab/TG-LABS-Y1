@@ -1,0 +1,4 @@
+import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import test from 'node:test';
+const reports=readFileSync(new URL('../app/api/patient/reports/route.ts',import.meta.url),'utf8');const file=readFileSync(new URL('../app/api/patient/reports/[id]/file/route.ts',import.meta.url),'utf8');const helper=readFileSync(new URL('../lib/manual-patient-metadata.ts',import.meta.url),'utf8');
+test('patient report listing exposes safe manual report metadata',()=>{assert.match(reports,/manualPatientReports/);assert.match(reports,/reportDocuments/);assert.match(helper,/\{fileData,\.\.\.doc\}/);assert.match(reports,/createdByAdmin/);assert.match(reports,/adminNotes/);});
+test('patient-owned file route supports manual document id',()=>{assert.match(file,/documentId/);assert.match(file,/manualPatientReport/);assert.match(file,/createdByAdmin/);assert.match(file,/adminNotes/);assert.match(file,/patient:\s*\{\s*phone\s*\}/);});
