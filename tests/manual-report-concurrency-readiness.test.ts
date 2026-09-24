@@ -1,0 +1,5 @@
+import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import test from 'node:test';
+const route=readFileSync(new URL('../app/api/admin/thyrocare/orders/[id]/report/route.ts',import.meta.url),'utf8');
+test('manual report upload protects reportDocuments read-modify-write with transaction',()=>{const post=route.slice(route.indexOf('export async function POST'),route.indexOf('export async function DELETE'));assert.match(post,/\$transaction/);assert.match(post,/tx\.booking\.findFirst/);assert.match(post,/tx\.booking\.update/);assert.match(post,/isolationLevel:'Serializable'/);});
+test('manual report delete protects reportDocuments read-modify-write with transaction',()=>{const d=route.slice(route.indexOf('export async function DELETE'));assert.match(d,/\$transaction/);assert.match(d,/tx\.booking\.findFirst/);assert.match(d,/tx\.booking\.update/);assert.match(d,/isolationLevel:'Serializable'/);});
+test('report operations remain scoped to Thyrocare manual bookings',()=>{assert.match(route,/createdByAdmin:'THYROCARE_MANUAL'/);});
