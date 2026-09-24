@@ -22,65 +22,33 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     const identity=await requireThyrocareRole(request,['ADMIN','STAFF']);
     const {id}=await params;
     const body=paymentSchema.parse(await request.json());
-    const booking=await prisma.booking.findFirst({where:{id,createdByAdmin:'THYROCARE_MANUAL'},include:{patient:true}});
-    if(!booking)return NextResponse.json({error:'Order not found.'},{status:404});
+    const result=await prisma.$transaction(async(tx)=>{
+      const booking=await tx.booking.findFirst({where:{id,createdByAdmin:'THYROCARE_MANUAL'},include:{patient:true}});
+      if(!booking)throw new Error('ORDER_NOT_FOUND');
 
-    const meta=parseMeta(booking.adminNotes);
-    const gross=Number(meta.grossAmount??booking.totalAmount??0);
-    const existingDiscount=Number(meta.discount??0);
-    const currentNet=Math.max(0,gross-existingDiscount);
-    const previousPaid=Number(meta.paidAmount??Math.max(0,currentNet-Number(meta.balance??0)));
-    const previousBalance=Math.max(0,currentNet-previousPaid);
-    if(previousBalance<=0)return NextResponse.json({error:'This order is already fully paid.'},{status:400});
+      const meta=parseMeta(booking.adminNotes);
+      const gross=Number(meta.grossAmount??booking.totalAmount??0);
+      const existingDiscount=Number(meta.discount??0);
+      const currentNet=Math.max(0,gross-existingDiscount);
+      const previousPaid=Number(meta.paidAmount??Math.max(0,currentNet-Number(meta.balance??0)));
+      const previousBalance=Math.max(0,currentNet-previousPaid);
+      if(previousBalance<=0)throw new Error('ALREADY_PAID');
 
-    const maxExtraDiscount=Math.max(0,previousBalance);
-    if(body.additionalDiscount>maxExtraDiscount){
-      return NextResponse.json({error:`Additional discount cannot exceed pending balance of ₹${maxExtraDiscount}.`},{status:400});
-    }
+      const maxExtraDiscount=Math.max(0,previousBalance);
+      if(body.additionalDiscount>maxExtraDiscount)throw new Error(`DISCOUNT_EXCEEDS:${maxExtraDiscount}`);
+      const totalDiscount=existingDiscount+body.additionalDiscount;
+      const net=Math.max(0,gross-totalDiscount);
+      const adjustedBalanceBeforePayment=Math.max(0,net-previousPaid);
+      if(body.amount>adjustedBalanceBeforePayment)throw new Error(`PAYMENT_EXCEEDS:${adjustedBalanceBeforePayment}`);
 
-    const totalDiscount=existingDiscount+body.additionalDiscount;
-    const net=Math.max(0,gross-totalDiscount);
-    const adjustedBalanceBeforePayment=Math.max(0,net-previousPaid);
-    if(body.amount>adjustedBalanceBeforePayment){
-      return NextResponse.json({error:`Payment cannot exceed adjusted pending balance of ₹${adjustedBalanceBeforePayment}.`},{status:400});
-    }
-
-    const now=new Date();
-    const newPaid=previousPaid+body.amount;
-    const balance=Math.max(0,net-newPaid);
-    const history=Array.isArray(meta.paymentHistory)?meta.paymentHistory:[];
-    const paymentEntry={
-      id:`PAY-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`,
-      amount:body.amount,
-      additionalDiscount:body.additionalDiscount,
-      mode:body.mode,
-      reference:body.reference||'',
-      receivedAt:now.toISOString(),
-      receivedByRole:identity.role,
-    };
-    const nextMeta={
-      ...meta,
-      discount:totalDiscount,
-      netAmount:net,
-      paidAmount:newPaid,
-      balance,
-      paymentMode:balance===0?body.mode:(meta.paymentMode||body.mode),
-      paymentModes:[...new Set([...(Array.isArray(meta.paymentModes)?meta.paymentModes:[]),body.mode])],
-      paymentHistory:[...history,paymentEntry],
-      lastPaymentAt:now.toISOString(),
-    };
-
-    await prisma.booking.update({
-      where:{id},
-      data:{
-        totalAmount:net,
-        paymentStatus:balance===0?'PAID':'PENDING',
-        paymentMode:body.mode,
-        paidAt:balance===0?(booking.paidAt||now):booking.paidAt,
-        status:balance===0?'CONFIRMED':booking.status,
-        adminNotes:JSON.stringify(nextMeta),
-      }
-    });
+      const now=new Date(),newPaid=previousPaid+body.amount,balance=Math.max(0,net-newPaid);
+      const history=Array.isArray(meta.paymentHistory)?meta.paymentHistory:[];
+      const paymentEntry={id:`PAY-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`,amount:body.amount,additionalDiscount:body.additionalDiscount,mode:body.mode,reference:body.reference||'',receivedAt:now.toISOString(),receivedByRole:identity.role};
+      const nextMeta={...meta,discount:totalDiscount,netAmount:net,paidAmount:newPaid,balance,paymentMode:balance===0?body.mode:(meta.paymentMode||body.mode),paymentModes:[...new Set([...(Array.isArray(meta.paymentModes)?meta.paymentModes:[]),body.mode])],paymentHistory:[...history,paymentEntry],lastPaymentAt:now.toISOString()};
+      await tx.booking.update({where:{id},data:{totalAmount:net,paymentStatus:balance===0?'PAID':'PENDING',paymentMode:body.mode,paidAt:balance===0?(booking.paidAt||now):booking.paidAt,status:balance===0?'CONFIRMED':booking.status,adminNotes:JSON.stringify(nextMeta)}});
+      return {now,previousPaid,newPaid,existingDiscount,totalDiscount,net,balance};
+    },{isolationLevel:'Serializable'});
+    const {now,previousPaid,newPaid,existingDiscount,totalDiscount,net,balance}=result;
 
     await writeAdminAudit(request,{
       action:'THYROCARE_MANUAL_PAYMENT_COLLECTED',
@@ -104,6 +72,10 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       receivedAt:now.toISOString()
     });
   }catch(error){
+    if(error instanceof Error&&error.message==='ORDER_NOT_FOUND')return NextResponse.json({error:'Order not found.'},{status:404});
+    if(error instanceof Error&&error.message==='ALREADY_PAID')return NextResponse.json({error:'This order is already fully paid.'},{status:400});
+    if(error instanceof Error&&error.message.startsWith('DISCOUNT_EXCEEDS:'))return NextResponse.json({error:`Additional discount cannot exceed pending balance of ₹${error.message.split(':')[1]}.`},{status:400});
+    if(error instanceof Error&&error.message.startsWith('PAYMENT_EXCEEDS:'))return NextResponse.json({error:`Payment cannot exceed adjusted pending balance of ₹${error.message.split(':')[1]}.`},{status:400});
     if(error instanceof z.ZodError)return NextResponse.json({error:error.issues[0]?.message||'Please check payment details.'},{status:400});
     if(error instanceof Error&&['FORBIDDEN','UNAUTHENTICATED','THYROCARE_AUTH_NOT_CONFIGURED'].includes(error.message)){
       const e=thyrocareAuthError(error);return NextResponse.json({error:e.error},{status:e.status});
