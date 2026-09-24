@@ -50,7 +50,7 @@ export default function PartnerBrandingStrip() {
               <span className="refPartnerWordmark" aria-label={`${label} logo`}>{label}</span>
             )}
             <span className="refPartnerDetails">
-              <span>{label}</span>
+              {!logoSrc && <span>{label}</span>}
               <small>{subtitle}</small>
               <a className="refPartnerBook" href={`/?partner=${encodeURIComponent(slug)}#catalog`} aria-label={`Book tests from ${label}`}>Book Tests</a>
             </span>
