@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
+import { manualPatientReport } from '@/lib/manual-patient-metadata';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,21 +41,26 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const booking = await prisma.booking.findFirst({
       where: { id, patient: { phone } },
-      select: { reportName: true, reportData: true },
+      select: { reportName: true, reportData: true, createdByAdmin: true, adminNotes: true },
     });
 
-    if (!booking?.reportData) return NextResponse.json({ error: 'Report not found.' }, { status: 404 });
-    const fileName = safePdfName(booking.reportName);
+    if (!booking) return NextResponse.json({ error: 'Report not found.' }, { status: 404 });
+    const documentId = new URL(request.url).searchParams.get('documentId');
+    const document = documentId ? manualPatientReport(booking.createdByAdmin, booking.adminNotes, documentId) : null;
+    if (documentId && !document) return NextResponse.json({ error: 'Report not found.' }, { status: 404 });
+    const reportData = document?.fileData || booking.reportData;
+    const fileName = safePdfName(document?.fileName || booking.reportName);
+    if (!reportData) return NextResponse.json({ error: 'Report not found.' }, { status: 404 });
 
-    if (booking.reportData.startsWith('data:application/pdf;base64,')) {
-      const base64 = booking.reportData.slice('data:application/pdf;base64,'.length);
+    if (reportData.startsWith('data:application/pdf;base64,')) {
+      const base64 = reportData.slice('data:application/pdf;base64,'.length);
       const bytes = Buffer.from(base64, 'base64');
       if (!hasPdfSignature(bytes)) return NextResponse.json({ error: 'Stored report is invalid.' }, { status: 415 });
       return pdfResponse(bytes, fileName);
     }
 
-    if (/^https:\/\//i.test(booking.reportData)) {
-      const upstream = await fetch(booking.reportData, { cache: 'no-store', redirect: 'error' });
+    if (/^https:\/\//i.test(reportData)) {
+      const upstream = await fetch(reportData, { cache: 'no-store', redirect: 'error' });
       if (!upstream.ok) return NextResponse.json({ error: 'Unable to load report.' }, { status: 502 });
       const bytes = new Uint8Array(await upstream.arrayBuffer());
       if (!hasPdfSignature(bytes)) return NextResponse.json({ error: 'Stored report is invalid.' }, { status: 415 });
