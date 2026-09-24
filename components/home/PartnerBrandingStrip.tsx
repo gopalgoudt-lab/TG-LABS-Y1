@@ -14,13 +14,13 @@ type PreferredPartner = {
   label: string;
   subtitle: string;
   className: string;
-  fallbackLogo?: string;
+  fallbackLogo: string;
 };
 
 const preferredPartners: PreferredPartner[] = [
   { slug: 'thyrocare', label: 'Thyrocare', subtitle: 'Franchisee (HYD73)', className: 'thyrocarePartner', fallbackLogo: '/partners/thyrocare.svg' },
   { slug: 'sagepath-labs', label: 'Sagepath Diagnostics', subtitle: 'Partner Lab', className: '', fallbackLogo: '/partners/sagepath-labs.svg' },
-  { slug: 'tg-labs-partner', label: 'Metropolis', subtitle: 'Partner Lab', className: 'metropolisPartner' },
+  { slug: 'tg-labs-partner', label: 'Metropolis', subtitle: 'Partner Lab', className: 'metropolisPartner', fallbackLogo: '/partners/metropolis.svg' },
 ];
 
 export default function PartnerBrandingStrip() {
@@ -40,7 +40,8 @@ export default function PartnerBrandingStrip() {
     <>
       {preferredPartners.map(({ slug, label, subtitle, className, fallbackLogo }) => {
         const partner = bySlug.get(slug);
-        const logoSrc = partner?.logoData || fallbackLogo;
+        const uploadedLogo = partner?.logoData?.trim();
+        const logoSrc = uploadedLogo && uploadedLogo.startsWith('data:image/') ? uploadedLogo : fallbackLogo;
         return (
           <div className={`refPartnerItem partnerNamed ${className}`.trim()} key={slug}>
             {logoSrc ? (
