@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
+import { manualPatientTests } from '@/lib/manual-patient-metadata';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 180;
@@ -69,7 +70,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     let requestedLanguage: Language = 'en';
     try { const body = await request.json(); if (body?.language === 'te' || body?.language === 'hi' || body?.language === 'en') requestedLanguage = body.language; } catch {}
     const language = LANGUAGES[requestedLanguage];
-    const booking = await prisma.booking.findFirst({ where: { id, patient: { phone } }, select: { id: true, reportName: true, reportData: true, aiReportEn: true, aiReportTe: true, aiReportHi: true, aiReportEnAt: true, aiReportTeAt: true, aiReportHiAt: true, patient: { select: { age: true, gender: true } }, items: { select: { test: { select: { name: true } } } }, packages: { select: { package: { select: { name: true } } } } } });
+    const booking = await prisma.booking.findFirst({ where: { id, patient: { phone } }, select: { id: true, createdByAdmin: true, adminNotes: true, reportName: true, reportData: true, aiReportEn: true, aiReportTe: true, aiReportHi: true, aiReportEnAt: true, aiReportTeAt: true, aiReportHiAt: true, patient: { select: { age: true, gender: true } }, items: { select: { test: { select: { name: true } } } }, packages: { select: { package: { select: { name: true } } } } } });
     if (!booking) return NextResponse.json({ error: 'Report not found.' }, { status: 404 });
     if (!booking.reportData) return NextResponse.json({ error: 'The diagnostic report is not available for AI explanation yet.' }, { status: 409 });
     const canonicalNextTests = requestedLanguage === 'en' ? [] : suggestedTestNames(booking.aiReportEn, 'en');
@@ -79,7 +80,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if(await aiGenerationLimited(phone)) return NextResponse.json({error:'AI Report generation limit reached for this account. Saved reports remain available; please try generating a new language later.'},{status:429,headers:{'Retry-After':'3600'}});
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return NextResponse.json({ error: 'AI Report is not configured yet.' }, { status: 503 });
-    const tests = booking.items.map((x) => x.test.name), packages = booking.packages.map((x) => x.package.name);
+    const tests = booking.createdByAdmin === 'THYROCARE_MANUAL' ? manualPatientTests(booking.createdByAdmin, booking.adminNotes) : booking.items.map((x) => x.test.name), packages = booking.packages.map((x) => x.package.name);
     const context = [booking.patient.age != null ? `Age: ${booking.patient.age}` : '', booking.patient.gender ? `Gender: ${booking.patient.gender}` : '', tests.length ? `Tests: ${tests.join(', ')}` : '', packages.length ? `Packages: ${packages.join(', ')}` : ''].filter(Boolean).join('\n');
     const compactLanguageNote = requestedLanguage === 'en' ? '' : '\nKeep the answer concise enough to finish completely. For KEY RESULTS include clinically important and out-of-range values first. Diet and exercise tables should contain 4–6 practical rows each. Do not omit any numbered section, especially section 6.';
     const section6Title = requestedLanguage === 'te' ? 'మీ వైద్యుడితో చర్చించదగిన తదుపరి పరీక్షలు' : requestedLanguage === 'hi' ? 'अपने डॉक्टर से चर्चा करने के लिए सुझाए गए अगले टेस्ट' : 'SUGGESTED NEXT TESTS TO DISCUSS WITH YOUR DOCTOR';
