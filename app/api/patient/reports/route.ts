@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
+import { manualPatientTests } from '@/lib/manual-patient-metadata';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,7 @@ export async function GET(request: Request) {
             reportDeliveredAt: true,
             workflowStatus: true,
             collectionDate: true,
+            createdByAdmin: true, adminNotes: true,
             items: { select: { test: { select: { name: true } } } },
             packages: { select: { package: { select: { name: true } } } },
           },
@@ -47,7 +49,7 @@ export async function GET(request: Request) {
         deliveredAt: booking.reportDeliveredAt?.toISOString() ?? null,
         collectionDate: booking.collectionDate.toISOString(),
         workflowStatus: booking.workflowStatus,
-        tests: booking.items.map((item) => item.test.name),
+        tests: booking.createdByAdmin === 'THYROCARE_MANUAL' ? manualPatientTests(booking.createdByAdmin, booking.adminNotes) : booking.items.map((item) => item.test.name),
         packages: booking.packages.map((item) => item.package.name),
         downloadUrl: booking.reportData ? `/api/patient/reports/${booking.id}/file` : null,
       })),
