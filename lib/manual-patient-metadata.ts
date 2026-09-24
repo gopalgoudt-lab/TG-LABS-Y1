@@ -1,4 +1,5 @@
-type ManualPatientMeta={brand?:string;tests?:string[];grossAmount?:number;testAmount?:number;homeCollectionCharge?:number;discount?:number;paidAmount?:number;balance?:number;paymentMode?:string;paymentModes?:string[]};
+type ManualPatientReport={id:string;fileName:string;fileData:string;reportType:'FULL'|'PARTIAL';uploadedAt:string;pageNumbersReplaced?:boolean};
+type ManualPatientMeta={brand?:string;tests?:string[];grossAmount?:number;testAmount?:number;homeCollectionCharge?:number;discount?:number;paidAmount?:number;balance?:number;paymentMode?:string;paymentModes?:string[];reportDocuments?:ManualPatientReport[]};
 function parseManual(createdByAdmin:string|null,adminNotes:string|null):ManualPatientMeta|null{
  if(createdByAdmin!=='THYROCARE_MANUAL'||!adminNotes)return null;
  try{const meta=JSON.parse(adminNotes) as ManualPatientMeta;return meta.brand==='THYROCARE'?meta:null}catch{return null}
@@ -12,7 +13,14 @@ export function manualPatientReceipt(createdByAdmin:string|null,adminNotes:strin
  const nonNegative=(v:unknown)=>typeof v==='number'&&Number.isFinite(v)&&v>=0?v:null;
  const gross=nonNegative(meta.grossAmount),charge=nonNegative(meta.homeCollectionCharge)??0,discount=nonNegative(meta.discount)??0,paid=nonNegative(meta.paidAmount),balance=nonNegative(meta.balance);
  if(gross===null||discount>gross)return null;
- const testAmount=nonNegative(meta.testAmount)??Math.max(0,gross-charge);
- const total=Math.max(0,gross-discount);
+ const testAmount=nonNegative(meta.testAmount)??Math.max(0,gross-charge);const total=Math.max(0,gross-discount);
  return {tests:manualPatientTests(createdByAdmin,adminNotes),testAmount,homeCollectionCharge:charge,discount,total,paidAmount:paid??Math.max(0,total-(balance??0)),balance:balance??Math.max(0,total-(paid??0)),paymentMode:meta.paymentMode||null,paymentModes:Array.isArray(meta.paymentModes)?meta.paymentModes.filter((x):x is string=>typeof x==='string'):[]};
+}
+export function manualPatientReports(createdByAdmin:string|null,adminNotes:string|null){
+ const meta=parseManual(createdByAdmin,adminNotes);if(!meta||!Array.isArray(meta.reportDocuments))return [];
+ return meta.reportDocuments.slice(-30).map(({fileData,...doc})=>doc);
+}
+export function manualPatientReport(createdByAdmin:string|null,adminNotes:string|null,documentId:string){
+ const meta=parseManual(createdByAdmin,adminNotes);if(!meta||!Array.isArray(meta.reportDocuments))return null;
+ return meta.reportDocuments.find((doc)=>doc.id===documentId)||null;
 }
