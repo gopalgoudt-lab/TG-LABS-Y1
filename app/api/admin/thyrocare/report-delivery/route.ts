@@ -47,21 +47,25 @@ export async function PATCH(request:Request){
   try{
     const identity=await requireThyrocareRole(request,['ADMIN','STAFF']);
     const body=patchSchema.parse(await request.json());
-    const booking=await prisma.booking.findFirst({where:{id:body.id,createdByAdmin:'THYROCARE_MANUAL'}});
-    if(!booking)return NextResponse.json({error:'Order not found.'},{status:404});
-    const meta=parseMeta(booking.adminNotes);
-    const now=new Date().toISOString();
-    const printed=typeof body.printed==='boolean'?body.printed:booking.printedReport;
-    const delivered=typeof body.delivered==='boolean'?body.delivered:meta.reportDelivered===true;
-    const updated={
-      ...meta,
-      reportPrintedAt:typeof body.printed==='boolean'?(body.printed?now:null):(meta.reportPrintedAt||null),
-      reportPrintedByRole:typeof body.printed==='boolean'?(body.printed?identity.role:null):(meta.reportPrintedByRole||null),
-      reportDelivered:delivered,
-      reportDeliveredAt:typeof body.delivered==='boolean'?(body.delivered?now:null):(meta.reportDeliveredAt||null),
-      reportDeliveredByRole:typeof body.delivered==='boolean'?(body.delivered?identity.role:null):(meta.reportDeliveredByRole||null),
-    };
-    await prisma.booking.update({where:{id:booking.id},data:{printedReport:printed,adminNotes:JSON.stringify(updated)}});
+    const result=await prisma.$transaction(async(tx)=>{
+      const booking=await tx.booking.findFirst({where:{id:body.id,createdByAdmin:'THYROCARE_MANUAL'}});
+      if(!booking)throw new Error('MANUAL_ORDER_NOT_FOUND');
+      const meta=parseMeta(booking.adminNotes);
+      const now=new Date().toISOString();
+      const printed=typeof body.printed==='boolean'?body.printed:booking.printedReport;
+      const delivered=typeof body.delivered==='boolean'?body.delivered:meta.reportDelivered===true;
+      const updated={
+        ...meta,
+        reportPrintedAt:typeof body.printed==='boolean'?(body.printed?now:null):(meta.reportPrintedAt||null),
+        reportPrintedByRole:typeof body.printed==='boolean'?(body.printed?identity.role:null):(meta.reportPrintedByRole||null),
+        reportDelivered:delivered,
+        reportDeliveredAt:typeof body.delivered==='boolean'?(body.delivered?now:null):(meta.reportDeliveredAt||null),
+        reportDeliveredByRole:typeof body.delivered==='boolean'?(body.delivered?identity.role:null):(meta.reportDeliveredByRole||null),
+      };
+      await tx.booking.update({where:{id:booking.id},data:{printedReport:printed,adminNotes:JSON.stringify(updated)}});
+      return {booking,printed,delivered,updated};
+    },{isolationLevel:'Serializable'});
+    const {booking,printed,delivered,updated}=result;
     await writeAdminAudit(request,{
       action:'THYROCARE_REPORT_STATUS_UPDATED',
       entityType:'Booking',
@@ -71,6 +75,7 @@ export async function PATCH(request:Request){
     });
     return NextResponse.json({ok:true,id:booking.id,printed,printedAt:updated.reportPrintedAt,delivered,deliveredAt:updated.reportDeliveredAt});
   }catch(error){
+    if(error instanceof Error&&error.message==='MANUAL_ORDER_NOT_FOUND')return NextResponse.json({error:'Order not found.'},{status:404});
     if(error instanceof z.ZodError)return NextResponse.json({error:error.issues[0]?.message||'Invalid report status value.'},{status:400});
     const e=thyrocareAuthError(error);
     if(error instanceof Error&&['FORBIDDEN','UNAUTHENTICATED','THYROCARE_AUTH_NOT_CONFIGURED'].includes(error.message))return NextResponse.json({error:e.error},{status:e.status});
