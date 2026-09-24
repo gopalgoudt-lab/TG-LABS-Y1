@@ -3,6 +3,7 @@ import { issueThyrocareSession, THYROCARE_SESSION_COOKIE, thyrocareAuthError, th
 import { verifyThyrocarePassword } from '@/lib/thyrocare-password';
 import { prisma } from '@/lib/prisma';
 import { normalizeIndianDatabasePhone } from '@/lib/firebase-server';
+import { checkThyrocareLoginRateLimit, clientIpFromRequest, recordThyrocareLoginFailure, resetThyrocareLoginFailures } from '@/lib/thyrocare-login-rate-limit';
 
 export const dynamic='force-dynamic';
 function ip(request:Request){return (request.headers.get('x-forwarded-for')||'').split(',')[0].trim()||null}
@@ -10,8 +11,10 @@ async function logSession(request:Request,phone:string,role:ThyrocareRole,action
 
 export async function POST(request:Request){
  try{
-  const body=await request.json();const phone=normalizeIndianDatabasePhone(String(body.phone||''));const role=String(body.role||'').toUpperCase() as ThyrocareRole;const password=String(body.password||'');
-  if(phone!==thyrocareLoginPhone()||!['ADMIN','STAFF'].includes(role)||!(await verifyThyrocarePassword(phone,role,password)))return NextResponse.json({error:'Invalid login ID, role or password.'},{status:401});
+  const body=await request.json();const phone=normalizeIndianDatabasePhone(String(body.phone||''));const role=String(body.role||'').toUpperCase() as ThyrocareRole;const password=String(body.password||'');const clientIp=clientIpFromRequest(request);const identity=`${phone}:${role}`;
+  const limit=await checkThyrocareLoginRateLimit(identity,clientIp);if(!limit.allowed)return NextResponse.json({error:'Too many login attempts. Please try again later.'},{status:429,headers:{'Retry-After':String(Math.max(1,limit.retryAfterSeconds))}});
+  if(phone!==thyrocareLoginPhone()||!['ADMIN','STAFF'].includes(role)||!(await verifyThyrocarePassword(phone,role,password))){const failure=await recordThyrocareLoginFailure(identity,clientIp);if(failure.locked)return NextResponse.json({error:'Too many login attempts. Please try again later.'},{status:429,headers:{'Retry-After':String(Math.max(1,failure.retryAfterSeconds))}});return NextResponse.json({error:'Invalid login ID, role or password.'},{status:401})}
+  await resetThyrocareLoginFailures(identity);
   const token=await issueThyrocareSession(phone,role);const response=NextResponse.json({ok:true,phone,role});response.cookies.set(THYROCARE_SESSION_COOKIE,token,{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/',maxAge:60*60*10});await logSession(request,phone,role,'THYROCARE_LOGIN',`${role} signed in to the Thyrocare dashboard.`);return response;
  }catch(error){const e=thyrocareAuthError(error);return NextResponse.json({error:e.error},{status:e.status})}
 }
