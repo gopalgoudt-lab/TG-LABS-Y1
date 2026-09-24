@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
-import { manualPatientTests } from '@/lib/manual-patient-metadata';
+import { manualPatientReports, manualPatientTests } from '@/lib/manual-patient-metadata';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,6 +52,7 @@ export async function GET(request: Request) {
         tests: booking.createdByAdmin === 'THYROCARE_MANUAL' ? manualPatientTests(booking.createdByAdmin, booking.adminNotes) : booking.items.map((item) => item.test.name),
         packages: booking.packages.map((item) => item.package.name),
         downloadUrl: booking.reportData ? `/api/patient/reports/${booking.id}/file` : null,
+        reportDocuments: booking.createdByAdmin === 'THYROCARE_MANUAL' ? manualPatientReports(booking.createdByAdmin, booking.adminNotes).map((doc) => ({ ...doc, downloadUrl: `/api/patient/reports/${booking.id}/file?documentId=${encodeURIComponent(doc.id)}` })) : [],
       })),
     });
   } catch (error) {
