@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
+import { manualPatientTests } from '@/lib/manual-patient-metadata';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,7 @@ export async function GET(request: Request) {
             id: true,status: true,paymentStatus: true,workflowStatus: true,totalAmount: true,mode: true,collectionDate: true,slot: true,address: true,pincode: true,createdAt: true,
             doctorName: true,printedReport: true,printedReportFee: true,technician: true,
             bookingConfirmedAt: true,technicianAssignedAt: true,technicianAcceptedAt: true,technicianOnTheWayAt: true,technicianReachedAt: true,sampleCollectedAt: true,sampleReceivedAt: true,processingStartedAt: true,reportReadyAt: true,reportDeliveredAt: true,
+            createdByAdmin: true, adminNotes: true,
             items: { select: { test: { select: { name: true } } } },
             packages: { select: { package: { select: { name: true } } } },
           },
@@ -60,7 +62,7 @@ export async function GET(request: Request) {
           REPORT_READY: booking.reportReadyAt?.toISOString() ?? null,
           REPORT_DELIVERED: booking.reportDeliveredAt?.toISOString() ?? null,
         },
-        tests: booking.items.map((item) => item.test.name),
+        tests: booking.createdByAdmin === 'THYROCARE_MANUAL' ? manualPatientTests(booking.createdByAdmin, booking.adminNotes) : booking.items.map((item) => item.test.name),
         packages: booking.packages.map((item) => item.package.name),
       })),
     });
