@@ -56,7 +56,7 @@ function AdminOverview({bookings,tests,packages}:{bookings:Booking[];tests:Test[
  ];
  return <div style={{display:'grid',gap:16}}>
   <section style={{...box,padding:24,background:'linear-gradient(105deg,#eef8ff 0%,#f8fffd 55%,#edf8f5 100%)',display:'flex',justifyContent:'space-between',gap:20,alignItems:'center',flexWrap:'wrap'}}>
-   <div><div style={{fontSize:12,fontWeight:900,color:'#087f6f',letterSpacing:1}}>TG LABS OPERATIONS</div><h1 style={{margin:'5px 0',fontSize:'clamp(26px, 7vw, 30px)',color:'#102d5c'}}>Welcome Admin!</h1><div style={{color:'#516a76',overflowWrap:'anywhere'}}>Complete control. Better healthcare for everyone.</div></div>
+   <div><div style={{fontSize:12,fontWeight:900,color:'#087f6f',letterSpacing:1}}>TG LABS OPERATIONS</div><h2 style={{margin:'5px 0',fontSize:'clamp(22px, 6vw, 26px)',color:'#102d5c'}}>Operations Overview</h2><div style={{color:'#516a76',overflowWrap:'anywhere'}}>Complete control. Better healthcare for everyone.</div></div>
    <div style={{background:'#fff',border:'1px solid #dbe9e5',borderRadius:14,padding:'12px 16px',minWidth:190}}><b>{new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</b><div style={{fontSize:12,color:'#667a74',marginTop:4}}>Monitor • Manage • Grow</div></div>
   </section>
   <section style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12}}>{statusCards.map(c=><div key={c.label} style={{...box,padding:16,background:c.tone,borderColor:'transparent'}}><div style={{fontSize:22,color:c.ink,fontWeight:900}}>{c.icon} {c.value.toLocaleString('en-IN')}</div><div style={{fontSize:12,fontWeight:800,marginTop:5}}>{c.label}</div></div>)}</section>
