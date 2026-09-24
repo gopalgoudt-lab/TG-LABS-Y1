@@ -54,6 +54,7 @@ const NAV: Record<Role, Item[]> = {
     {label:'Users & Roles',href:'/admin#users',icon:'♟'},
     {label:'Settings',href:'/admin#settings',icon:'⚙'},
     {label:'Audit Logs',href:'/admin/audit',icon:'◉'},
+    {label:'Thyrocare Manual',href:'/manual/login',icon:'▣'},
     {label:'Support',href:'/contact-us',icon:'◌'},
   ],
 };
@@ -76,6 +77,7 @@ const QUICK: Record<Role, Quick[]> = {
     {label:'Catalog & Tests',href:'/admin/partner-catalog',icon:'▤',note:'Maintain tests, packages and partner offers'},
     {label:'Technicians',href:'/admin/technicians',icon:'♟',note:'Manage field collection operations'},
     {label:'Reports & Audit',href:'/admin/audit',icon:'▥',note:'Review activity and operational history'},
+    {label:'Thyrocare Manual Login',href:'/manual/login',icon:'↗',note:'Open Thyrocare manual billing and reports'},
   ],
 };
 
