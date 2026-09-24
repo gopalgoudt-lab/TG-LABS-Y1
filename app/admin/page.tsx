@@ -26,7 +26,7 @@ export default function AdminPage(){
  useEffect(()=>{load()},[]);
 
  async function send(url:string,method:string,data:any,success:string){setBusy(true);setMsg('');try{const r=await fetch(url,{method,headers:data?{'Content-Type':'application/json'}:undefined,body:data?JSON.stringify(data):undefined});const j=await r.json();if(!r.ok)throw new Error(j.error||'Unable to save');setMsg(success);await load();return true}catch(e:any){setMsg(e.message);return false}finally{setBusy(false)}}
- return <main className="adminPortalContent" style={{minHeight:'100vh',background:'#f4f8f6',padding:'clamp(12px, 3vw, 28px)',color:'#12352f',fontFamily:'Arial, sans-serif'}}><div style={{maxWidth:1400,margin:'0 auto'}}>
+ return <main className="adminPortalContent" style={{minHeight:'100vh',width:'100%',maxWidth:'100%',minWidth:0,overflowX:'hidden',background:'#f4f8f6',padding:'clamp(12px, 3vw, 28px)',boxSizing:'border-box',color:'#12352f',fontFamily:'Arial, sans-serif'}}><div style={{width:'100%',maxWidth:1400,minWidth:0,margin:'0 auto'}}>
   <nav style={{display:'flex',gap:8,overflowX:'auto',marginBottom:20}}>{tabs.map(x=><button key={x} onClick={()=>{setTab(x);setMsg('')}} style={{...btn,background:tab===x?'#087f6f':'#e6f1ee',color:tab===x?'#fff':'#17463d',whiteSpace:'nowrap'}}>{x}</button>)}</nav>
   {msg&&<div style={{...box,marginBottom:16,borderColor:msg.toLowerCase().includes('unable')||msg.toLowerCase().includes('check')?'#f0b8b8':'#9ed6ca'}}>{msg}</div>}
   {tab==='Overview'&&<AdminOverview bookings={bookings} tests={tests} packages={packages}/>} 
@@ -55,8 +55,8 @@ function AdminOverview({bookings,tests,packages}:{bookings:Booking[];tests:Test[
   {label:'Catalog Items',value:tests.length+packages.length,icon:'▦',tone:'#eaf9f7',ink:'#087f6f'}
  ];
  return <div style={{display:'grid',gap:16}}>
-  <section style={{...box,padding:24,background:'linear-gradient(105deg,#eef8ff 0%,#f8fffd 55%,#edf8f5 100%)',display:'flex',justifyContent:'space-between',gap:20,alignItems:'center',flexWrap:'wrap'}}>
-   <div><div style={{fontSize:12,fontWeight:900,color:'#087f6f',letterSpacing:1}}>TG LABS OPERATIONS</div><h2 style={{margin:'5px 0',fontSize:'clamp(22px, 6vw, 26px)',color:'#102d5c'}}>Operations Overview</h2><div style={{color:'#516a76',overflowWrap:'anywhere'}}>Complete control. Better healthcare for everyone.</div></div>
+  <section style={{...box,minWidth:0,maxWidth:'100%',boxSizing:'border-box',padding:'clamp(16px, 4vw, 24px)',background:'linear-gradient(105deg,#eef8ff 0%,#f8fffd 55%,#edf8f5 100%)',display:'flex',justifyContent:'space-between',gap:20,alignItems:'center',flexWrap:'wrap',overflow:'hidden'}}>
+   <div style={{minWidth:0,maxWidth:'100%'}}><div style={{fontSize:12,fontWeight:900,color:'#087f6f',letterSpacing:1}}>TG LABS OPERATIONS</div><h2 style={{margin:'5px 0',fontSize:'clamp(22px, 6vw, 26px)',color:'#102d5c'}}>Operations Overview</h2><div style={{color:'#516a76',maxWidth:'100%',whiteSpace:'normal',overflowWrap:'anywhere',wordBreak:'break-word'}}>Complete control. Better healthcare for everyone.</div></div>
    <div style={{background:'#fff',border:'1px solid #dbe9e5',borderRadius:14,padding:'12px 16px',minWidth:190}}><b>{new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</b><div style={{fontSize:12,color:'#667a74',marginTop:4}}>Monitor • Manage • Grow</div></div>
   </section>
   <section style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12}}>{statusCards.map(c=><div key={c.label} style={{...box,padding:16,background:c.tone,borderColor:'transparent'}}><div style={{fontSize:22,color:c.ink,fontWeight:900}}>{c.icon} {c.value.toLocaleString('en-IN')}</div><div style={{fontSize:12,fontWeight:800,marginTop:5}}>{c.label}</div></div>)}</section>
