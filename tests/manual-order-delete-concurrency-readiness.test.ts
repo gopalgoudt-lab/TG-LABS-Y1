@@ -1,0 +1,4 @@
+import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import test from 'node:test';
+const route=readFileSync(new URL('../app/api/admin/thyrocare/orders/manage/route.ts',import.meta.url),'utf8');
+test('manual order delete protects scoped lookup and delete transactionally',()=>{const d=route.slice(route.indexOf('export async function DELETE'));assert.match(d,/\$transaction/);assert.match(d,/tx\.booking\.findFirst/);assert.match(d,/tx\.booking\.delete/);assert.match(d,/isolationLevel:'Serializable'/);});
+test('manual order delete remains admin-only, Thyrocare scoped and audited',()=>{const d=route.slice(route.indexOf('export async function DELETE'));assert.match(d,/requireThyrocareRole\(request,\['ADMIN'\]\)/);assert.match(d,/createdByAdmin:'THYROCARE_MANUAL'/);assert.match(d,/THYROCARE_MANUAL_ORDER_DELETED/);});
