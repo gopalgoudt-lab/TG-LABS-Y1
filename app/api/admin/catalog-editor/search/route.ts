@@ -126,6 +126,30 @@ export async function GET(request: Request) {
         });
         typeMismatch = orphanPackages.length > 0;
       }
+      if (orphanPackages.length === 0) {
+        const matchingTests = await prisma.diagnosticTest.findMany({
+          where: { name: { contains: q, mode: 'insensitive' } },
+          select: { id: true, name: true, catalogCode: true, active: true },
+          orderBy: { name: 'asc' },
+          take: 25,
+        });
+        if (matchingTests.length > 0) {
+          return NextResponse.json({
+            items: matchingTests.map(test => ({
+              id: test.id,
+              partnerName: diagnosticPartner.name,
+              partnerSlug: diagnosticPartner.slug,
+              name: test.name,
+              packageType: 'PROFILE',
+              active: test.active,
+              offerEligibility: { bookable: false, reasons: ['STORED_AS_TEST'], displayEnabled: diagnosticPartner.displayEnabled, displayable: false },
+              actualCatalogKind: 'TEST',
+              catalogCode: test.catalogCode,
+            })),
+          });
+        }
+      }
+
       return NextResponse.json({
         items: orphanPackages.map(catalogPackage => ({
           id: catalogPackage.id,
