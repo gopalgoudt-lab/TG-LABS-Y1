@@ -99,6 +99,47 @@ export async function GET(request: Request) {
       orderBy: { package: { name: 'asc' } },
       take: 25,
     });
+    if (offers.length === 0) {
+      const orphanPackages = await prisma.diagnosticPackage.findMany({
+        where: { name: { contains: q, mode: 'insensitive' }, ...(packageType ? { packageType } : {}) },
+        include: {
+          tests: { include: { test: { select: { id: true, name: true } } } },
+          includedProfiles: { include: { profile: { include: { tests: { include: { test: { select: { id: true, name: true } } } } } } } },
+          partnerOffers: { include: { partner: { select: { name: true, slug: true } } } },
+        },
+        orderBy: { name: 'asc' },
+        take: 25,
+      });
+      return NextResponse.json({
+        items: orphanPackages.map(catalogPackage => ({
+          id: catalogPackage.id,
+          partnerName: diagnosticPartner.name,
+          partnerSlug: diagnosticPartner.slug,
+          name: catalogPackage.name,
+          mrp: catalogPackage.mrp,
+          price: catalogPackage.price,
+          description: catalogPackage.description,
+          sampleTypes: catalogPackage.sampleTypes,
+          sampleTypeOther: catalogPackage.sampleTypeOther,
+          preparation: catalogPackage.preparation,
+          fastingNeeded: catalogPackage.fastingNeeded,
+          tatHours: catalogPackage.tat,
+          imageData: catalogPackage.imageData,
+          packageType: catalogPackage.packageType,
+          active: catalogPackage.active,
+          homeCollectionCharge: catalogPackage.homeCollectionCharge,
+          includedTestIds: catalogPackage.tests.map(item => item.testId),
+          includedTests: catalogPackage.tests.map(item => ({ id: item.test.id, name: item.test.name })),
+          offerEligibility: { bookable: false, reasons: ['MISSING_PARTNER_OFFER'], displayEnabled: diagnosticPartner.displayEnabled, displayable: false },
+          existingPartnerOffers: catalogPackage.partnerOffers.map(offer => ({ partnerName: offer.partner.name, partnerSlug: offer.partner.slug })),
+          includedProfiles: catalogPackage.includedProfiles.map(item => ({
+            id: item.profile.id, name: item.profile.name,
+            tests: item.profile.tests.map(profileTest => ({ id: profileTest.test.id, name: profileTest.test.name })),
+          })),
+        })),
+      });
+    }
+
     return NextResponse.json({
       items: offers.map(({ package: catalogPackage, price, mrp, tat, active, availability, sourceReference, lastVerifiedAt, effectiveFrom, effectiveTo }) => ({
         id: catalogPackage.id,
