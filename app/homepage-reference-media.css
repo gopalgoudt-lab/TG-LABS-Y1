@@ -77,4 +77,4 @@
 .refHomeExact .refOfferDots{position:absolute;z-index:4;left:50%;bottom:9px;display:flex;gap:6px;transform:translateX(-50%)}
 .refHomeExact .refOfferDots button{width:7px;height:7px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.58);cursor:pointer}
 .refHomeExact .refOfferDots button.isActive{width:19px;border-radius:999px;background:#fff}
-@media(max-width:760px){.refHomeExact .refOfferContent{left:18px;bottom:24px;max-width:74%}.refHomeExact .refOfferContent h2{font-size:20px}.refHomeExact .refOfferContent p{font-size:9px}.refHomeExact .refOfferArrow{width:28px;height:38px}.refHomeExact .refOfferPrev{left:7px}.refHomeExact .refOfferNext{right:7px}}
+@media(max-width:760px){.refHomeExact .refOfferContent{left:18px;bottom:24px;max-width:74%}.refHomeExact .refOfferContent h2{font-size:20px}.refHomeExact .refOfferContent p{font-size:9px}.refHomeExact .refOfferArrow{width:28px;height:38px}.refHomeExact .refOfferPrev{left:12px}.refHomeExact .refOfferNext{right:42px}}
