@@ -118,7 +118,7 @@ export async function GET(request: Request) {
           where: { name: { contains: q, mode: 'insensitive' } },
           include: {
             tests: { include: { test: { select: { id: true, name: true } } } },
-            includedProfiles: { include: { profile: { include: { tests: { include: { test: { select: { id: true, name: true } } } } } } },
+            includedProfiles: { include: { profile: { include: { tests: { include: { test: { select: { id: true, name: true } } } } } } } },
             partnerOffers: { include: { partner: { select: { name: true, slug: true } } } },
           },
           orderBy: { name: 'asc' },
