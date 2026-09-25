@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { adminAuthError } from '@/lib/admin-auth';
 import { adminFromRequest } from '@/lib/admin-audit';
+import { evaluateCatalogOfferEligibility } from '@/lib/catalog-eligibility';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
           { slug: { equals: partner, mode: 'insensitive' } },
         ],
       },
-      select: { id: true, name: true, slug: true },
+      select: { id: true, name: true, slug: true, active: true, bookingEnabled: true, operationalEnabled: true, displayEnabled: true },
     });
 
     if (!diagnosticPartner) return NextResponse.json({ items: [] });
@@ -61,7 +62,7 @@ export async function GET(request: Request) {
         take: 25,
       });
       return NextResponse.json({
-        items: offers.map(({ test, price, mrp, tat }) => ({
+        items: offers.map(({ test, price, mrp, tat, active, availability, sourceReference, lastVerifiedAt, effectiveFrom, effectiveTo }) => ({
           id: test.id,
           partnerName: diagnosticPartner.name,
           partnerSlug: diagnosticPartner.slug,
@@ -77,6 +78,11 @@ export async function GET(request: Request) {
           imageData: test.imageData,
           active: test.active,
           homeCollectionCharge: test.homeCollectionCharge,
+          offerEligibility: {
+            ...evaluateCatalogOfferEligibility(test, { active, availability, price, tat, sourceReference, lastVerifiedAt, effectiveFrom, effectiveTo }, diagnosticPartner),
+            displayEnabled: diagnosticPartner.displayEnabled,
+            displayable: diagnosticPartner.displayEnabled && evaluateCatalogOfferEligibility(test, { active, availability, price, tat, sourceReference, lastVerifiedAt, effectiveFrom, effectiveTo }, { ...diagnosticPartner, bookingEnabled: true, operationalEnabled: true }).bookable,
+          },
         })),
       });
     }
@@ -94,7 +100,7 @@ export async function GET(request: Request) {
       take: 25,
     });
     return NextResponse.json({
-      items: offers.map(({ package: catalogPackage, price, mrp, tat }) => ({
+      items: offers.map(({ package: catalogPackage, price, mrp, tat, active, availability, sourceReference, lastVerifiedAt, effectiveFrom, effectiveTo }) => ({
         id: catalogPackage.id,
         partnerName: diagnosticPartner.name,
         partnerSlug: diagnosticPartner.slug,
@@ -113,6 +119,11 @@ export async function GET(request: Request) {
         homeCollectionCharge: catalogPackage.homeCollectionCharge,
         includedTestIds: catalogPackage.tests.map(item => item.testId),
         includedTests: catalogPackage.tests.map(item => ({ id: item.test.id, name: item.test.name })),
+        offerEligibility: {
+          ...evaluateCatalogOfferEligibility(catalogPackage, { active, availability, price, tat, sourceReference, lastVerifiedAt, effectiveFrom, effectiveTo }, diagnosticPartner),
+          displayEnabled: diagnosticPartner.displayEnabled,
+          displayable: diagnosticPartner.displayEnabled && evaluateCatalogOfferEligibility(catalogPackage, { active, availability, price, tat, sourceReference, lastVerifiedAt, effectiveFrom, effectiveTo }, { ...diagnosticPartner, bookingEnabled: true, operationalEnabled: true }).bookable,
+        },
         includedProfiles: catalogPackage.includedProfiles.map(item => ({
           id: item.profile.id,
           name: item.profile.name,
