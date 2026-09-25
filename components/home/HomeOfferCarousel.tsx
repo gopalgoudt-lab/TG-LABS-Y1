@@ -15,7 +15,7 @@ const offers = [
     subtitle: 'T3, T4 and UTSH testing with convenient home sample collection.',
     image: 'https://images.pexels.com/photos/6749781/pexels-photo-6749781.jpeg?auto=compress&cs=tinysrgb&w=900',
     alt: 'Healthcare professional representing thyroid testing',
-    query: 'THYROID PROFILE (T3-T4-USTSH)',
+    query: 'Thyroid',
   },
   {
     title: 'Diabetes Screening',
