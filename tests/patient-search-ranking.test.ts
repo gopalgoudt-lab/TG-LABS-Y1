@@ -14,6 +14,8 @@ test('patient autocomplete ranks strong name matches and prefers profiles on equ
   assert.match(source, /words\.includes\(q\)/);
   assert.match(source, /item\.type === 'PROFILE' \? 0/);
   assert.match(source, /rankSuggestions\(combined, value\)\.slice\(0, 8\)/);
+  assert.match(source, /a\.offers\?\.\[0\]\?\.price/);
+  assert.match(source, /b\.offers\?\.\[0\]\?\.price/);
 });
 
 test('patient autocomplete de-duplicates combined catalog results', () => {
