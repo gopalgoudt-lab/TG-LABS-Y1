@@ -81,6 +81,21 @@ export function evaluateCatalogOfferEligibility(
   return reasons.length ? { bookable: false, reasons } : { bookable: true, reasons: [] };
 }
 
+
+export function isCatalogOfferDiscoverable(
+  product: CatalogProductEligibilityInput,
+  offer: CatalogOfferEligibilityInput,
+  partner: CatalogPartnerEligibilityInput,
+  now = new Date(),
+) {
+  if (!partner.displayEnabled || !product.active || !offer.active || offer.availability !== 'AVAILABLE') return false;
+  if (!Number.isSafeInteger(offer.price) || offer.price <= 0 || !offer.tat?.trim() || !partner.active) return false;
+  if (!isValidDate(now)) return false;
+  if (offer.effectiveFrom && (!isValidDate(offer.effectiveFrom) || offer.effectiveFrom.getTime() > now.getTime())) return false;
+  if (offer.effectiveTo && (!isValidDate(offer.effectiveTo) || offer.effectiveTo.getTime() < now.getTime())) return false;
+  return true;
+}
+
 export function isCatalogOfferDisplayable(product: CatalogProductEligibilityInput, offer: CatalogOfferEligibilityInput, partner: CatalogPartnerEligibilityInput, now = new Date()) {
   if (!partner.displayEnabled) return false;
   const result = evaluateCatalogOfferEligibility(product, offer, { ...partner, bookingEnabled: true, operationalEnabled: true }, now);

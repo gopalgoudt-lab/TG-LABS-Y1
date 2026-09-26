@@ -55,3 +55,21 @@
 
 /* Mobile autocomplete rows must size to content and scroll instead of overlapping. */
 @media(max-width:767px){.patientSearchSuggestions{max-height:min(52vh,360px);overflow-y:auto;overscroll-behavior:contain}.patientSearchSuggestions button{height:auto!important;min-height:64px!important;white-space:normal;line-height:1.25;overflow:visible}.patientSuggestionName,.patientSuggestionMeta{position:static;height:auto;white-space:normal;overflow-wrap:anywhere}.patientSuggestionName{line-height:1.25}.patientSuggestionMeta{line-height:1.35}}
+
+
+/* Keep patient autocomplete above the hero and partner-brand strip on all viewports. */
+.refHomeExact .refHero,
+.refHomeExact .refHeroGrid,
+.refHomeExact .refHeroCopy{overflow:visible}
+.refHomeExact .refHero{position:relative;z-index:20}
+.refHomeExact .refHeroCopy{z-index:60}
+.refHomeExact .refSearch.patientCatalogSearch{position:relative;z-index:70}
+.refHomeExact .patientSearchField{z-index:71}
+.refHomeExact .patientSearchSuggestions{z-index:120;max-height:min(52vh,420px)}
+.refHomeExact .refPartnerStrip{position:relative;z-index:5}
+
+/* Compact autocomplete rows: keep long catalog names readable without overlap. */
+.refHomeExact .patientSearchSuggestions button{min-height:58px;padding:9px 12px;overflow:hidden}
+.refHomeExact .patientSuggestionName{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.25;max-height:2.5em;overflow-wrap:anywhere}
+.refHomeExact .patientSuggestionMeta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
+@media(max-width:767px){.refHomeExact .patientSearchSuggestions button{min-height:58px!important;padding:9px 11px}.refHomeExact .patientSuggestionName{font-size:.88rem}.refHomeExact .patientSuggestionMeta{font-size:.72rem}}
