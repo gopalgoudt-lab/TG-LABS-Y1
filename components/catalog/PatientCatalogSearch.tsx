@@ -13,7 +13,7 @@ type Suggestion = {
 function suggestionRank(item: Suggestion, query: string) {
   const name = item.name.toLocaleLowerCase();
   const q = query.trim().toLocaleLowerCase();
-  const typeRank = item.type === 'TEST' ? 0 : item.type === 'PROFILE' ? 1 : 2;
+  const typeRank = item.type === 'PROFILE' ? 0 : item.type === 'TEST' ? 1 : 2;
   if (name === q) return typeRank;
   if (name.startsWith(q)) return 10 + typeRank;
   const words = name.split(/[^a-z0-9]+/).filter(Boolean);
