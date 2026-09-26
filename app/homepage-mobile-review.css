@@ -73,3 +73,23 @@
 .refHomeExact .patientSuggestionName{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.25;max-height:2.5em;overflow-wrap:anywhere}
 .refHomeExact .patientSuggestionMeta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
 @media(max-width:767px){.refHomeExact .patientSearchSuggestions button{min-height:58px!important;padding:9px 11px}.refHomeExact .patientSuggestionName{font-size:.88rem}.refHomeExact .patientSuggestionMeta{font-size:.72rem}}
+
+
+/* Homepage latest-offer carousel */
+.refHomeExact .refOfferCarousel,.refHomeExact .refOfferViewport{position:absolute;inset:0}
+.refHomeExact .refOfferCarousel{overflow:hidden;background:#dff2fb}
+.refHomeExact .refOfferSlide{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .45s ease;pointer-events:none}
+.refHomeExact .refOfferSlide.isActive{opacity:1;visibility:visible;pointer-events:auto}
+.refHomeExact .refOfferSlide img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 20%;filter:saturate(.96) contrast(1.02)}
+.refHomeExact .refOfferShade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(3,37,73,.76) 0%,rgba(3,37,73,.48) 45%,rgba(3,37,73,.06) 76%)}
+.refHomeExact .refOfferContent{position:absolute;z-index:2;left:26px;bottom:28px;max-width:66%;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.22)}
+.refHomeExact .refOfferContent>span{display:inline-block;margin-bottom:7px;padding:5px 8px;border-radius:999px;background:#ff7617;text-transform:uppercase;font-size:8px;font-weight:900;letter-spacing:.08em}
+.refHomeExact .refOfferContent h2{margin:0 0 5px;color:#fff;font-size:24px;line-height:1.05}
+.refHomeExact .refOfferContent p{margin:0 0 12px;color:#f3f8fd;font-size:10px;line-height:1.4}
+.refHomeExact .refOfferBook{display:inline-flex;align-items:center;justify-content:center;padding:9px 17px;border-radius:6px;background:#0b67c2;color:#fff!important;text-decoration:none;font-size:11px;font-weight:900;box-shadow:0 3px 10px rgba(0,0,0,.18)}
+.refHomeExact .refOfferArrow{position:absolute;z-index:4;top:50%;width:32px;height:42px;transform:translateY(-50%);border:0;border-radius:6px;background:rgba(255,255,255,.9);color:#0b5ea9;font-size:25px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.16)}
+.refHomeExact .refOfferPrev{left:10px}.refHomeExact .refOfferNext{right:10px}
+.refHomeExact .refOfferDots{position:absolute;z-index:4;left:50%;bottom:9px;display:flex;gap:6px;transform:translateX(-50%)}
+.refHomeExact .refOfferDots button{width:7px;height:7px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.58);cursor:pointer}
+.refHomeExact .refOfferDots button.isActive{width:19px;border-radius:999px;background:#fff}
+@media(max-width:760px){.refHomeExact .refOfferContent{left:18px;bottom:24px;max-width:74%}.refHomeExact .refOfferContent h2{font-size:20px}.refHomeExact .refOfferContent p{font-size:9px}.refHomeExact .refOfferArrow{width:28px;height:38px}.refHomeExact .refOfferPrev{left:12px}.refHomeExact .refOfferNext{right:42px}}
