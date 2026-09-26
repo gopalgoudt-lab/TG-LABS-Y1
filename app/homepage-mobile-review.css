@@ -67,3 +67,9 @@
 .refHomeExact .patientSearchField{z-index:71}
 .refHomeExact .patientSearchSuggestions{z-index:120;max-height:min(52vh,420px)}
 .refHomeExact .refPartnerStrip{position:relative;z-index:5}
+
+/* Compact autocomplete rows: keep long catalog names readable without overlap. */
+.refHomeExact .patientSearchSuggestions button{min-height:58px;padding:9px 12px;overflow:hidden}
+.refHomeExact .patientSuggestionName{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.25;max-height:2.5em;overflow-wrap:anywhere}
+.refHomeExact .patientSuggestionMeta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
+@media(max-width:767px){.refHomeExact .patientSearchSuggestions button{min-height:58px!important;padding:9px 11px}.refHomeExact .patientSuggestionName{font-size:.88rem}.refHomeExact .patientSuggestionMeta{font-size:.72rem}}
