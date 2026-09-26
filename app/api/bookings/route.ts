@@ -212,11 +212,7 @@ export async function POST(request: Request) {
     const homeCollectionCharge = body.mode === 'home' ? Math.max(0, ...directOffers.map((offer:any) => offer.test.homeCollectionCharge ?? 0), ...packages.map((offer:any) => offer.package.homeCollectionCharge ?? 0)) : 0;
     const totalAmount = pricing.totalAmount + homeCollectionCharge;
 
-    const patient = await prisma.patient.upsert({
-      where: { phone: body.phone },
-      update: { name: body.name, email: body.email, age: body.age, gender: body.gender },
-      create: { name: body.name, phone: body.phone, email: body.email, age: body.age, gender: body.gender },
-    });
+
 
     const payAtCollection = body.paymentOption === 'COLLECTION';
     const paymentMode: PaymentMode = payAtCollection
@@ -227,7 +223,14 @@ export async function POST(request: Request) {
     const now = new Date();
 
     try {
-      const booking = await prisma.booking.create({
+      const booking = await prisma.$transaction(async (tx) => {
+        const patient = await tx.patient.upsert({
+      where: { phone: body.phone },
+      update: { name: body.name, email: body.email, age: body.age, gender: body.gender },
+      create: { name: body.name, phone: body.phone, email: body.email, age: body.age, gender: body.gender },
+    });
+
+        return tx.booking.create({
         data: {
           idempotencyKey: body.idempotencyKey,
           patientId: patient.id,
@@ -261,7 +264,8 @@ export async function POST(request: Request) {
             create: pricedPackages.map((pkg:any) => ({ packageId: pkg.id, offerId:pkg.offer.id,partnerId:pkg.offer.partner.id,partnerName:pkg.offer.partner.name,partnerTat:pkg.offer.tat,partnerAvailability:pkg.offer.availability,price: pkg.price })),
           },
         },
-      });
+        });
+      }, { isolationLevel: 'Serializable' });
 
       return NextResponse.json({ booking: bookingPayload(booking, diagnosticAmount) }, { status: 201 });
     } catch (error) {
