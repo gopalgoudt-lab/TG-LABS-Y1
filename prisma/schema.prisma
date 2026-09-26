@@ -479,6 +479,22 @@ model BookingPackage {
   @@index([partnerId])
 }
 
+
+model HomepageOffer {
+  id          String   @id @default(cuid())
+  title       String
+  subtitle    String
+  imageUrl    String
+  imageAlt    String
+  searchQuery String
+  active      Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active, sortOrder])
+}
+
 model AdminAuditLog {
   id         String   @id @default(cuid())
   adminPhone String
