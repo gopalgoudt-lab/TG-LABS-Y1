@@ -7,7 +7,7 @@ type Suggestion = {
   slug: string;
   name: string;
   type: 'TEST' | 'PROFILE' | 'PACKAGE';
-  offers?: Array<{ price: number; partner: { name: string } }>;
+  offers?: Array<{ price: number; partner: { slug?: string; name: string } }>;
 };
 
 function suggestionRank(item: Suggestion, query: string) {
@@ -19,6 +19,14 @@ function suggestionRank(item: Suggestion, query: string) {
   const words = name.split(/[^a-z0-9]+/).filter(Boolean);
   if (words.includes(q)) return 20 + typeRank;
   return 30 + typeRank;
+}
+
+function expandPartnerChoices(items: Suggestion[]) {
+  return items.flatMap((item) =>
+    item.offers?.length
+      ? item.offers.map((offer) => ({ ...item, offers: [offer] }))
+      : [item]
+  );
 }
 
 function rankSuggestions(items: Suggestion[], query: string) {
@@ -70,7 +78,7 @@ export default function PatientCatalogSearch() {
           ...(Array.isArray(testData.products) ? testData.products : []),
           ...(Array.isArray(catalogData.products) ? catalogData.products : []),
         ].filter((item, index, all) => all.findIndex((candidate) => candidate.type === item.type && candidate.slug === item.slug) === index);
-        setItems(rankSuggestions(combined, value).slice(0, 8));
+        setItems(rankSuggestions(expandPartnerChoices(combined), value).slice(0, 8));
         setOpen(true);
       } catch (error) {
         if ((error as Error).name !== 'AbortError') {
@@ -115,7 +123,7 @@ export default function PatientCatalogSearch() {
             {items.length ? items.map((item) => {
               const offer = item.offers?.[0];
               return (
-                <button key={`${item.type}-${item.slug}`} type="button" role="option" onClick={() => router.push(detailsHref(item))}>
+                <button key={`${item.type}-${item.slug}-${offer?.partner.slug ?? offer?.partner.name ?? 'no-offer'}`} type="button" role="option" onClick={() => router.push(detailsHref(item))}>
                   <span className="patientSuggestionName">{item.name}</span>
                   <span className="patientSuggestionMeta">
                     {item.type === 'TEST' ? 'Test' : item.type === 'PROFILE' ? 'Profile' : 'Package'}
