@@ -21,3 +21,11 @@ test('patient autocomplete ranks strong name matches and prefers profiles on equ
 test('patient autocomplete de-duplicates combined catalog results', () => {
   assert.match(source, /candidate\.type === item\.type && candidate\.slug === item\.slug/);
 });
+
+
+test('patient autocomplete exposes every eligible partner offer for tests profiles and packages', () => {
+  assert.match(source, /function expandPartnerChoices/);
+  assert.match(source, /item\.offers\.map\(\(offer\)/);
+  assert.match(source, /expandPartnerChoices\(combined\)/);
+  assert.match(source, /offer\?\.partner\.slug/);
+});
