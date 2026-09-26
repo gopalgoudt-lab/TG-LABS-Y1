@@ -9,10 +9,10 @@ test('patient autocomplete fetches a dedicated test result set', () => {
   assert.match(source, /Promise\.all\(\[/);
 });
 
-test('patient autocomplete ranks strong name matches and prefers tests on equal relevance', () => {
+test('patient autocomplete ranks strong name matches and prefers profiles on equal relevance', () => {
   assert.match(source, /name\.startsWith\(q\)/);
   assert.match(source, /words\.includes\(q\)/);
-  assert.match(source, /item\.type === 'TEST' \? 0/);
+  assert.match(source, /item\.type === 'PROFILE' \? 0/);
   assert.match(source, /rankSuggestions\(combined, value\)\.slice\(0, 8\)/);
 });
 
