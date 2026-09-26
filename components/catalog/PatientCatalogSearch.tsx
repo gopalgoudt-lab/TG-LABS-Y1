@@ -15,9 +15,15 @@ function suggestionRank(item: Suggestion, query: string) {
   const q = query.trim().toLocaleLowerCase();
   const typeRank = item.type === 'PROFILE' ? 0 : item.type === 'TEST' ? 1 : 2;
   if (name === q) return typeRank;
-  if (name.startsWith(q)) return 10 + typeRank;
-  const words = name.split(/[^a-z0-9]+/).filter(Boolean);
-  if (words.includes(q)) return 20 + typeRank;
+  const standardProfileName = item.type === 'PROFILE' && /^(thyroid|lipid|liver|kidney|cbc|hemogram)\b/.test(name);
+  const qWords = q.split(/[^a-z0-9]+/).filter(Boolean);
+  const nameWords = name.split(/[^a-z0-9]+/).filter(Boolean);
+  const startsWithQueryWords = qWords.length > 0 && qWords.every((word, index) => nameWords[index] === word);
+  if (startsWithQueryWords) return (standardProfileName ? 5 : 10) + typeRank;
+  if (name.startsWith(q)) return (standardProfileName ? 6 : 11) + typeRank;
+  const containsAllQueryWords = qWords.length > 0 && qWords.every((word) => nameWords.includes(word));
+  if (containsAllQueryWords) return 20 + typeRank;
+  if (nameWords.includes(q)) return 21 + typeRank;
   return 30 + typeRank;
 }
 
