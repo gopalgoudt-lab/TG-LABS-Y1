@@ -24,6 +24,8 @@ function suggestionRank(item: Suggestion, query: string) {
 function rankSuggestions(items: Suggestion[], query: string) {
   return [...items].sort((a, b) =>
     suggestionRank(a, query) - suggestionRank(b, query) ||
+    (a.offers?.[0]?.price ?? Number.POSITIVE_INFINITY) - (b.offers?.[0]?.price ?? Number.POSITIVE_INFINITY) ||
+    (a.offers?.[0]?.partner.name ?? '').localeCompare(b.offers?.[0]?.partner.name ?? '') ||
     a.name.localeCompare(b.name)
   );
 }
