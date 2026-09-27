@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-const allowedSampleTypes = ['Serum', 'EDTA', 'Fluoride', 'Urine', 'Other'] as const;
+const allowedSampleTypes = ['SERUM', 'EDTA', 'FLUORIDE', 'URINE', 'SODIUM CITRATE', 'SODIUM HEPARIN', 'LITHIUM HEPARIN', 'Other'] as const;
 const schema = z.object({
   name: z.string().trim().min(2).max(160),
   mrp: z.coerce.number().int().min(0),
@@ -16,8 +16,9 @@ const schema = z.object({
   sampleTypeOther: z.string().trim().max(120).optional().default(''),
   description: z.string().trim().max(3000).optional().default(''),
   imageData: z.string().max(2200000).optional().default(''),
-  testIds: z.array(z.string().min(1)).min(1),
-}).refine((value) => !value.sampleTypes.includes('Other') || Boolean(value.sampleTypeOther), {
+  testIds: z.array(z.string().min(1)).default([]),
+  profileIds: z.array(z.string().min(1)).default([]),
+}).refine((value) => value.testIds.length > 0 || value.profileIds.length > 0, { message: 'Select at least one test or profile.', path: ['testIds'] }).refine((value) => !value.sampleTypes.includes('Other') || Boolean(value.sampleTypeOther), {
   message: 'Specify the other sample type.',
   path: ['sampleTypeOther'],
 });
@@ -27,10 +28,11 @@ const slugify = (v: string) => v.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-'
 export async function GET() {
   const packages = await prisma.diagnosticPackage.findMany({
     where: { active: true },
-    include: { tests: { include: { test: true } } },
+    include: { tests: { include: { test: true } }, includedProfiles: { include: { profile: true } } },
     orderBy: { createdAt: 'desc' },
   });
-  return NextResponse.json({ packages });
+  const profiles = await prisma.diagnosticPackage.findMany({ where: { active: true, packageType: 'PROFILE' }, orderBy: { name: 'asc' } });
+  return NextResponse.json({ packages, profiles });
 }
 
 export async function POST(request: Request) {
@@ -41,8 +43,9 @@ export async function POST(request: Request) {
     }
 
     const tests = await prisma.diagnosticTest.findMany({ where: { id: { in: b.testIds }, active: true }, select: { id: true } });
-    if (tests.length !== b.testIds.length) {
-      return NextResponse.json({ error: 'One or more selected tests are unavailable.' }, { status: 400 });
+    const profiles = await prisma.diagnosticPackage.findMany({ where: { id: { in: b.profileIds }, active: true, packageType: 'PROFILE' }, select: { id: true } });
+    if (tests.length !== b.testIds.length || profiles.length !== b.profileIds.length) {
+      return NextResponse.json({ error: 'One or more selected tests or profiles are unavailable.' }, { status: 400 });
     }
 
     let slug = slugify(b.name) || 'package';
@@ -64,8 +67,9 @@ export async function POST(request: Request) {
         description: b.description || null,
         imageData: b.imageData || null,
         tests: { create: b.testIds.map((testId) => ({ testId })) },
+        includedProfiles: { create: b.profileIds.map((profileId) => ({ profileId })) },
       },
-      include: { tests: { include: { test: true } } },
+      include: { tests: { include: { test: true } }, includedProfiles: { include: { profile: true } } },
     });
     return NextResponse.json({ package: pack }, { status: 201 });
   } catch (error) {
