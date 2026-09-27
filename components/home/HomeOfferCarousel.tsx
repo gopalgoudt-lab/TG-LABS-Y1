@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-const offers = [
+const fallbackOffers = [
   {
     title: 'Full Body Health Checkup',
     subtitle: 'Compare available partner packages and book home collection.',
@@ -27,14 +27,25 @@ const offers = [
 ];
 
 export default function HomeOfferCarousel() {
+  const [offers, setOffers] = useState(fallbackOffers);
   const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    let live = true;
+    fetch('/api/homepage-offers', { cache: 'no-store' }).then(r => r.ok ? r.json() : { offers: [] }).then(data => {
+      if (!live || !Array.isArray(data.offers) || !data.offers.length) return;
+      setOffers(data.offers.map((x:any) => ({ title:x.title, subtitle:x.subtitle, image:x.imageUrl, alt:x.imageAlt, query:x.searchQuery })));
+      setActive(0);
+    }).catch(() => {});
+    return () => { live = false; };
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
       setActive((current) => (current + 1) % offers.length);
     }, 5000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [offers.length]);
 
   const goTo = (index: number) => setActive((index + offers.length) % offers.length);
 
