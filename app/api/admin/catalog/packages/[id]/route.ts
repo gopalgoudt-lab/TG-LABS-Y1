@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-const allowedSampleTypes = ['Serum', 'EDTA', 'Fluoride', 'Urine', 'Other'] as const;
+const allowedSampleTypes = ['SERUM', 'EDTA', 'FLUORIDE', 'URINE', 'SODIUM CITRATE', 'SODIUM HEPARIN', 'LITHIUM HEPARIN', 'Other'] as const;
 const schema = z.object({
   name: z.string().trim().min(2).max(160),
   mrp: z.coerce.number().int().min(0),
@@ -16,8 +16,9 @@ const schema = z.object({
   sampleTypeOther: z.string().trim().max(120).optional().default(''),
   description: z.string().trim().max(3000).optional().default(''),
   imageData: z.string().max(2200000).optional().default(''),
-  testIds: z.array(z.string().min(1)).min(1),
-}).refine(v => !v.sampleTypes.includes('Other') || Boolean(v.sampleTypeOther), {
+  testIds: z.array(z.string().min(1)).default([]),
+  profileIds: z.array(z.string().min(1)).default([]),
+}).refine(v => v.testIds.length > 0 || v.profileIds.length > 0, { message: 'Select at least one test or profile.', path: ['testIds'] }).refine(v => !v.sampleTypes.includes('Other') || Boolean(v.sampleTypeOther), {
   message: 'Specify the other sample type.', path: ['sampleTypeOther'],
 });
 
@@ -27,10 +28,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const body = schema.parse(await request.json());
     if (body.price > body.mrp && body.mrp > 0) return NextResponse.json({ error: 'After Discount price cannot be higher than MRP.' }, { status: 400 });
     const tests = await prisma.diagnosticTest.findMany({ where: { id: { in: body.testIds }, active: true }, select: { id: true } });
-    if (tests.length !== body.testIds.length) return NextResponse.json({ error: 'One or more selected tests are unavailable.' }, { status: 400 });
+    const profiles = await prisma.diagnosticPackage.findMany({ where: { id: { in: body.profileIds }, active: true, packageType: 'PROFILE' }, select: { id: true } });
+    if (tests.length !== body.testIds.length || profiles.length !== body.profileIds.length) return NextResponse.json({ error: 'One or more selected tests or profiles are unavailable.' }, { status: 400 });
 
     const pack = await prisma.$transaction(async tx => {
       await tx.packageItem.deleteMany({ where: { packageId: id } });
+      await tx.packageProfileItem.deleteMany({ where: { packageId: id } });
       return tx.diagnosticPackage.update({
         where: { id },
         data: {
@@ -45,8 +48,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
           description: body.description || null,
           imageData: body.imageData || null,
           tests: { create: body.testIds.map(testId => ({ testId })) },
+          includedProfiles: { create: body.profileIds.map(profileId => ({ profileId })) },
         },
-        include: { tests: { include: { test: true } } },
+        include: { tests: { include: { test: true } }, includedProfiles: { include: { profile: true } } },
       });
     });
     return NextResponse.json({ package: pack });
