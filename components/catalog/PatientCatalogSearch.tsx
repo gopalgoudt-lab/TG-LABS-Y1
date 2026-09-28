@@ -7,23 +7,39 @@ type Suggestion = {
   slug: string;
   name: string;
   type: 'TEST' | 'PROFILE' | 'PACKAGE';
-  offers?: Array<{ price: number; partner: { name: string } }>;
+  offers?: Array<{ price: number; partner: { slug?: string; name: string } }>;
 };
 
 function suggestionRank(item: Suggestion, query: string) {
   const name = item.name.toLocaleLowerCase();
   const q = query.trim().toLocaleLowerCase();
-  const typeRank = item.type === 'TEST' ? 0 : item.type === 'PROFILE' ? 1 : 2;
+  const typeRank = item.type === 'PROFILE' ? 0 : item.type === 'TEST' ? 1 : 2;
   if (name === q) return typeRank;
-  if (name.startsWith(q)) return 10 + typeRank;
-  const words = name.split(/[^a-z0-9]+/).filter(Boolean);
-  if (words.includes(q)) return 20 + typeRank;
+  const standardProfileName = item.type === 'PROFILE' && /^(thyroid|lipid|liver|kidney|cbc|hemogram)\b/.test(name);
+  const qWords = q.split(/[^a-z0-9]+/).filter(Boolean);
+  const nameWords = name.split(/[^a-z0-9]+/).filter(Boolean);
+  const startsWithQueryWords = qWords.length > 0 && qWords.every((word, index) => nameWords[index] === word);
+  if (startsWithQueryWords) return (standardProfileName ? 5 : 10) + typeRank;
+  if (name.startsWith(q)) return (standardProfileName ? 6 : 11) + typeRank;
+  const containsAllQueryWords = qWords.length > 0 && qWords.every((word) => nameWords.includes(word));
+  if (containsAllQueryWords) return 20 + typeRank;
+  if (nameWords.includes(q)) return 21 + typeRank;
   return 30 + typeRank;
+}
+
+function expandPartnerChoices(items: Suggestion[]) {
+  return items.flatMap((item) =>
+    item.offers?.length
+      ? item.offers.map((offer) => ({ ...item, offers: [offer] }))
+      : [item]
+  );
 }
 
 function rankSuggestions(items: Suggestion[], query: string) {
   return [...items].sort((a, b) =>
     suggestionRank(a, query) - suggestionRank(b, query) ||
+    (a.offers?.[0]?.price ?? Number.POSITIVE_INFINITY) - (b.offers?.[0]?.price ?? Number.POSITIVE_INFINITY) ||
+    (a.offers?.[0]?.partner.name ?? '').localeCompare(b.offers?.[0]?.partner.name ?? '') ||
     a.name.localeCompare(b.name)
   );
 }
@@ -68,7 +84,7 @@ export default function PatientCatalogSearch() {
           ...(Array.isArray(testData.products) ? testData.products : []),
           ...(Array.isArray(catalogData.products) ? catalogData.products : []),
         ].filter((item, index, all) => all.findIndex((candidate) => candidate.type === item.type && candidate.slug === item.slug) === index);
-        setItems(rankSuggestions(combined, value).slice(0, 8));
+        setItems(rankSuggestions(expandPartnerChoices(combined), value).slice(0, 8));
         setOpen(true);
       } catch (error) {
         if ((error as Error).name !== 'AbortError') {
@@ -113,7 +129,7 @@ export default function PatientCatalogSearch() {
             {items.length ? items.map((item) => {
               const offer = item.offers?.[0];
               return (
-                <button key={`${item.type}-${item.slug}`} type="button" role="option" onClick={() => router.push(detailsHref(item))}>
+                <button key={`${item.type}-${item.slug}-${offer?.partner.slug ?? offer?.partner.name ?? 'no-offer'}`} type="button" role="option" onClick={() => router.push(detailsHref(item))}>
                   <span className="patientSuggestionName">{item.name}</span>
                   <span className="patientSuggestionMeta">
                     {item.type === 'TEST' ? 'Test' : item.type === 'PROFILE' ? 'Profile' : 'Package'}

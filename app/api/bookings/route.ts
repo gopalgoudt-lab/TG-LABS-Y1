@@ -6,6 +6,7 @@ import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
 import { assertBookingOwner, validateAndPriceBooking } from '@/lib/booking-integrity';
 import { evaluatePackageOfferEligibility, evaluateTestOfferEligibility } from '@/lib/catalog-eligibility';
 import { evaluateHomeCollectionServiceability } from '@/lib/serviceability';
+import { retrySerializableBooking } from '@/lib/booking-transaction-retry';
 
 export const dynamic = 'force-dynamic';
 
@@ -212,8 +213,6 @@ export async function POST(request: Request) {
     const homeCollectionCharge = body.mode === 'home' ? Math.max(0, ...directOffers.map((offer:any) => offer.test.homeCollectionCharge ?? 0), ...packages.map((offer:any) => offer.package.homeCollectionCharge ?? 0)) : 0;
     const totalAmount = pricing.totalAmount + homeCollectionCharge;
 
-
-
     const payAtCollection = body.paymentOption === 'COLLECTION';
     const paymentMode: PaymentMode = payAtCollection
       ? body.collectionPaymentMethod === 'UPI' ? PaymentMode.UPI : PaymentMode.CASH
@@ -223,49 +222,49 @@ export async function POST(request: Request) {
     const now = new Date();
 
     try {
-      const booking = await prisma.$transaction(async (tx) => {
+      const booking = await retrySerializableBooking(() => prisma.$transaction(async (tx) => {
         const patient = await tx.patient.upsert({
-      where: { phone: body.phone },
-      update: { name: body.name, email: body.email, age: body.age, gender: body.gender },
-      create: { name: body.name, phone: body.phone, email: body.email, age: body.age, gender: body.gender },
-    });
+          where: { phone: body.phone },
+          update: { name: body.name, email: body.email, age: body.age, gender: body.gender },
+          create: { name: body.name, phone: body.phone, email: body.email, age: body.age, gender: body.gender },
+        });
 
         return tx.booking.create({
-        data: {
-          idempotencyKey: body.idempotencyKey,
-          patientId: patient.id,
-          mode: body.mode === 'home' ? 'HOME' : 'CENTRE',
-          address: body.mode === 'home' ? body.address : null,
-          pincode: body.mode === 'home' ? body.pincode : null,
-          doctorName: body.doctorName || null,
-          printedReport: body.printedReport,
-          printedReportFee,
-          homeCollectionCharge,
-          paymentMode,
-          status: payAtCollection ? 'CONFIRMED' : 'PENDING',
-          paymentStatus: 'PENDING',
-          workflowStatus: payAtCollection ? 'BOOKING_CONFIRMED' : 'BOOKING_CREATED',
-          bookingConfirmedAt: payAtCollection ? now : null,
-          collectionDate,
-          slot: body.slot,
-          totalAmount,
-          items: {
-            create: Array.from(uniqueTests.values()).map((test) => ({
-              testId: test.id,
-              price: test.price,
-              offerId: test.offerId,
-              partnerId: test.partnerId,
-              partnerName: test.partnerName,
-              partnerTat: test.partnerTat,
-              partnerAvailability: test.partnerAvailability,
-            })),
+          data: {
+            idempotencyKey: body.idempotencyKey,
+            patientId: patient.id,
+            mode: body.mode === 'home' ? 'HOME' : 'CENTRE',
+            address: body.mode === 'home' ? body.address : null,
+            pincode: body.mode === 'home' ? body.pincode : null,
+            doctorName: body.doctorName || null,
+            printedReport: body.printedReport,
+            printedReportFee,
+            homeCollectionCharge,
+            paymentMode,
+            status: payAtCollection ? 'CONFIRMED' : 'PENDING',
+            paymentStatus: 'PENDING',
+            workflowStatus: payAtCollection ? 'BOOKING_CONFIRMED' : 'BOOKING_CREATED',
+            bookingConfirmedAt: payAtCollection ? now : null,
+            collectionDate,
+            slot: body.slot,
+            totalAmount,
+            items: {
+              create: Array.from(uniqueTests.values()).map((test) => ({
+                testId: test.id,
+                price: test.price,
+                offerId: test.offerId,
+                partnerId: test.partnerId,
+                partnerName: test.partnerName,
+                partnerTat: test.partnerTat,
+                partnerAvailability: test.partnerAvailability,
+              })),
+            },
+            packages: {
+              create: pricedPackages.map((pkg:any) => ({ packageId: pkg.id, offerId:pkg.offer.id,partnerId:pkg.offer.partner.id,partnerName:pkg.offer.partner.name,partnerTat:pkg.offer.tat,partnerAvailability:pkg.offer.availability,price: pkg.price })),
+            },
           },
-          packages: {
-            create: pricedPackages.map((pkg:any) => ({ packageId: pkg.id, offerId:pkg.offer.id,partnerId:pkg.offer.partner.id,partnerName:pkg.offer.partner.name,partnerTat:pkg.offer.tat,partnerAvailability:pkg.offer.availability,price: pkg.price })),
-          },
-        },
         });
-      }, { isolationLevel: 'Serializable' });
+      }, { isolationLevel: 'Serializable' }));
 
       return NextResponse.json({ booking: bookingPayload(booking, diagnosticAmount) }, { status: 201 });
     } catch (error) {

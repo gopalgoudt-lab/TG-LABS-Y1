@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   evaluatePackageOfferEligibility,
   evaluateTestOfferEligibility,
+  isCatalogOfferDiscoverable,
   type CatalogOfferEligibilityInput,
   type CatalogPartnerEligibilityInput,
 } from '../lib/catalog-eligibility';
@@ -124,4 +125,21 @@ test('valid serviceability is accepted', () => {
 test('PackagePartnerOffer follows equivalent fail-closed rules', () => {
   assert.equal(evaluatePackageOfferEligibility(product, { ...offer, sourceReference: null }, partner, now).bookable, false);
   assert.deepEqual(evaluatePackageOfferEligibility(product, offer, partner, now), { bookable: true, reasons: [] });
+});
+
+
+test('legacy offer may be discoverable while booking remains fail-closed without provenance', () => {
+  const legacyOffer = { ...offer, sourceReference: null, lastVerifiedAt: null };
+  assert.equal(isCatalogOfferDiscoverable(product, legacyOffer, { ...partner, displayEnabled: true }, now), true);
+  assert.equal(evaluateTestOfferEligibility(product, legacyOffer, { ...partner, displayEnabled: true }, now).bookable, false);
+});
+
+test('discovery still rejects inactive, unavailable, invalid-price, hidden-partner and expired offers', () => {
+  const visiblePartner = { ...partner, displayEnabled: true };
+  assert.equal(isCatalogOfferDiscoverable({ active: false }, offer, visiblePartner, now), false);
+  assert.equal(isCatalogOfferDiscoverable(product, { ...offer, active: false }, visiblePartner, now), false);
+  assert.equal(isCatalogOfferDiscoverable(product, { ...offer, availability: 'UNAVAILABLE' }, visiblePartner, now), false);
+  assert.equal(isCatalogOfferDiscoverable(product, { ...offer, price: 0 }, visiblePartner, now), false);
+  assert.equal(isCatalogOfferDiscoverable(product, offer, { ...visiblePartner, displayEnabled: false }, now), false);
+  assert.equal(isCatalogOfferDiscoverable(product, { ...offer, effectiveTo: new Date('2026-08-28T23:59:59.999Z') }, visiblePartner, now), false);
 });

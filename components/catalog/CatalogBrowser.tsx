@@ -87,7 +87,8 @@ export default function CatalogBrowser({ compact = false, compactCount = 3 }: Ca
     setPincodeStatus(`Pincode ${pincodeInput} selected. Test availability will be confirmed when you add each test.`);
   }
 
-  const visibleItems = compact && !showAll ? items.slice(0, compactCount) : items;
+  const hasSearchQuery = Boolean(params.get('q')?.trim());
+  const visibleItems = compact && !showAll && !hasSearchQuery ? items.slice(0, compactCount) : items;
 
   return (
     <>
@@ -104,7 +105,7 @@ export default function CatalogBrowser({ compact = false, compactCount = 3 }: Ca
       <div className="productGrid">
         {visibleItems.map((product) => <ProductCard key={`${product.type}-${product.slug}`} product={product} pincode={checkedPincode} />)}
       </div>
-      {compact && !showAll && items.length > compactCount && <div className="catalogViewAll"><button type="button" className="btn" onClick={() => setShowAll(true)}>View all tests</button></div>}
+      {compact && !showAll && !hasSearchQuery && items.length > compactCount && <div className="catalogViewAll"><button type="button" className="btn" onClick={() => setShowAll(true)}>View all tests</button></div>}
       <style>{`.catalogPincode{margin:18px 0 22px;padding:16px;border:1px solid #cfe6e1;border-radius:14px;background:#f5faf9;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.catalogPincodeControls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.catalogPincode input{min-width:240px;padding:11px 12px;border:1px solid #bfd8d2;border-radius:10px}.catalogPincode small,.catalogPincodeStatus{width:100%;color:#667a75}.catalogPincodeStatus{font-weight:700;color:#087f78}.catalogViewAll{display:flex;justify-content:center;margin-top:20px}.refHomeExact .refCartTop{position:relative}.refHomeExact .refCartCount{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#e51b23;color:#fff;font-size:10px;font-weight:900;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.22)}`}</style>
     </>
   );
