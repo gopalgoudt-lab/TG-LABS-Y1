@@ -12,6 +12,13 @@ test('public IP identity uses Vercel forwarding metadata instead of caller suppl
   assert.doesNotMatch(limiter, /x-forwarded-for/);
 });
 
+test('Vercel Marketplace Upstash REST environment names are supported', () => {
+  assert.match(limiter, /UPSTASH_REDIS_REST_KV_REST_API_URL/);
+  assert.match(limiter, /UPSTASH_REDIS_REST_KV_REST_API_TOKEN/);
+  assert.match(limiter, /UPSTASH_REDIS_REST_URL/);
+  assert.match(limiter, /UPSTASH_REDIS_REST_TOKEN/);
+});
+
 test('configured distributed limiter fails closed if backend is unavailable', () => {
   assert.match(limiter, /backendUnavailable: true/);
   assert.match(limiter, /status: unavailable \? 503 : 429/);
