@@ -7,6 +7,7 @@ import { assertBookingOwner, validateAndPriceBooking } from '@/lib/booking-integ
 import { evaluatePackageOfferEligibility, evaluateTestOfferEligibility } from '@/lib/catalog-eligibility';
 import { evaluateHomeCollectionServiceability } from '@/lib/serviceability';
 import { retrySerializableBooking } from '@/lib/booking-transaction-retry';
+import { enforceApiRateLimit, rateLimitResponse } from '@/lib/public-api-rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -99,6 +100,8 @@ function bookingPayload(booking: {
 export async function POST(request: Request) {
   try {
     const identity = await verifyFirebasePatientRequest(request);
+    const limit = await enforceApiRateLimit(request, 'booking', identity.uid, { limit: 10, windowSeconds: 60 });
+    if (!limit.allowed) return rateLimitResponse(limit.retryAfterSeconds);
     const body = bookingSchema.parse(await request.json());
     assertBookingOwner(body.phone, identity.databasePhone);
 
