@@ -1,12 +1,14 @@
 import crypto from 'crypto';
 
 type Rule = { limit: number; windowSeconds: number };
-type LimitResult = { allowed: boolean; retryAfterSeconds: number; backendUnavailable?: boolean };
+export type LimitResult = { allowed: boolean; retryAfterSeconds: number; backendUnavailable?: boolean };
+type RedisConfig = { url: string; token: string };
+type RateLimitDeps = { fetchFn?: typeof fetch; redis?: RedisConfig | null };
 
 const PREFIX = 'tg:public-api:v2';
 const memory = new Map<string, { count: number; resetAt: number }>();
 
-function redisConfig() {
+function redisConfig(): RedisConfig | null {
   const url = process.env.UPSTASH_REDIS_REST_URL?.trim().replace(/\/$/, '');
   const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
   return url && token ? { url, token } : null;
@@ -24,8 +26,8 @@ export function requestIp(request: Request) {
   return 'unknown';
 }
 
-async function redisLimit(key: string, rule: Rule, config: { url: string; token: string }): Promise<LimitResult> {
-  const response = await fetch(`${config.url}/pipeline`, {
+async function redisLimit(key: string, rule: Rule, config: RedisConfig, fetchFn: typeof fetch): Promise<LimitResult> {
+  const response = await fetchFn(`${config.url}/pipeline`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${config.token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify([['INCR', key], ['EXPIRE', key, rule.windowSeconds, 'NX'], ['TTL', key]]),
@@ -57,12 +59,12 @@ function localLimit(key: string, rule: Rule): LimitResult {
   };
 }
 
-export async function enforceApiRateLimit(request: Request, scope: string, identity: string, rule: Rule): Promise<LimitResult> {
+export async function enforceApiRateLimit(request: Request, scope: string, identity: string, rule: Rule, deps: RateLimitDeps = {}): Promise<LimitResult> {
   const key = `${PREFIX}:${scope}:${hash(identity)}`;
-  const config = redisConfig();
+  const config = deps.redis === undefined ? redisConfig() : deps.redis;
   if (!config) return localLimit(key, rule);
   try {
-    return await redisLimit(key, rule, config);
+    return await redisLimit(key, rule, config, deps.fetchFn ?? fetch);
   } catch {
     return { allowed: false, retryAfterSeconds: 5, backendUnavailable: true };
   }
