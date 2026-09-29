@@ -4,24 +4,10 @@ import { prisma } from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  let database: 'ok' | 'unavailable' = 'ok';
-
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await prisma.$queryRaw\`SELECT 1\`;
+    return NextResponse.json({ status: 'ok' }, { status: 200, headers: { 'Cache-Control': 'no-store' } });
   } catch {
-    database = 'unavailable';
+    return NextResponse.json({ status: 'degraded' }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
   }
-
-  const healthy = database === 'ok';
-
-  return NextResponse.json(
-    {
-      status: healthy ? 'ok' : 'degraded',
-      service: 'tg-labs-web',
-      version: '6.3',
-      database,
-      timestamp: new Date().toISOString(),
-    },
-    { status: healthy ? 200 : 503 },
-  );
 }
