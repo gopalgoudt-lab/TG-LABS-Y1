@@ -32,7 +32,7 @@ export default function AdminPage(){
   {msg&&<div style={{...box,marginBottom:16,borderColor:msg.toLowerCase().includes('unable')||msg.toLowerCase().includes('check')?'#f0b8b8':'#9ed6ca'}}>{msg}</div>}
   {tab==='Overview'&&<AdminOverview bookings={bookings} tests={tests} packages={packages}/>} 
   {tab==='Bookings'&&<section style={box}><h2>Booking management</h2><p style={{color:'#667a74'}}>Website and admin-created bookings are read directly from PostgreSQL.</p><BookingTable rows={bookings}/></section>}
-  {tab==='Homepage Offers'&&<HomepageOffers offers={homepageOffers} tests={tests} packages={packages} busy={busy} onSend={send}/>}
+  {tab==='Homepage Offers'&&<HomepageOffers offers={homepageOffers} tests={tests} packages={packages} busy={busy} onSend={send}/>} 
   {tab==='Catalog'&&<Catalog tests={tests} packages={packages} busy={busy} onUpdate={async(type,id,data)=>send(`/api/admin/catalog/${type}/${id}`,'PATCH',data,`${type==='tests'?'Test':'Package'} updated successfully.`)} onDelete={async(type,id)=>send(`/api/admin/catalog/${type}/${id}`,'DELETE',null,`${type==='tests'?'Test':'Package'} deleted successfully.`)}/>} 
   {tab==='Add Test'&&<TestForm busy={busy} onSave={async d=>{if(await send('/api/admin/catalog/tests','POST',d,'Diagnostic test added successfully.'))setTab('Catalog')}}/>}
   {tab==='Add Package'&&<PackageForm tests={tests} busy={busy} onSave={async d=>{if(await send('/api/admin/catalog/packages','POST',d,'Health package added successfully.'))setTab('Catalog')}}/>}
