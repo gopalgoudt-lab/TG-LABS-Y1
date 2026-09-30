@@ -50,7 +50,7 @@ export async function createPaymentReceiptPdf(data:PaymentReceiptData):Promise<U
 
  box(34,505,527,165,pale,border);rule(297,522,297,653,border,.9);
  const left:[string,string][]=[['Patient Name',data.patientName],['Age / Gender',`${data.age??'-'} / ${safe(data.gender)}`],['Doctor',safe(data.doctorName)==='-'?'Self':safe(data.doctorName)],['Email',safe(data.email)],['Phone',safe(data.phone)]];
- const right:[string,string][]=[['Receipt No.',data.receiptNumber],['Booking Ref.',data.bookingReference],['Receipt Date',data.receiptDate.toLocaleString('en-IN')],['Collection',data.collectionMode==='HOME'?'Home Collection':'Centre Visit'],['Payment Mode',safe(data.paymentMode)],['Payment Status',data.paymentStatus]];
+ const right:[string,string][]=[['Receipt No.',data.receiptNumber],['Booking Ref.',data.bookingReference],['Receipt Date',data.receiptDate.toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})],['Collection',data.collectionMode==='HOME'?'Home Collection':'Centre Visit'],['Payment Mode',safe(data.paymentMode)],['Payment Status',data.paymentStatus]];
  left.forEach(([k,v],i)=>{const yy=636-i*25;text(k,48,yy,10,bold,navy);text(':',136,yy,10,bold,navy);text(v.slice(0,30),150,yy,10,regular,dark)});
  right.forEach(([k,v],i)=>{const yy=636-i*21;text(k,314,yy,10,bold,navy);text(':',397,yy,10,bold,navy);if(k==='Payment Status'&&v==='PAID'){page.drawRectangle({x:410,y:yy-6,width:51,height:21,color:green});text('PAID',421,yy,10,bold,white)}else text(v.slice(0,27),410,yy,10,regular,dark)});
 
