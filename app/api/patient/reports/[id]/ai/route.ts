@@ -80,6 +80,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if(await aiGenerationLimited(phone)) return NextResponse.json({error:'AI Report generation limit reached for this account. Saved reports remain available; please try generating a new language later.'},{status:429,headers:{'Retry-After':'3600'}});
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return NextResponse.json({ error: 'AI Report is not configured yet.' }, { status: 503 });
+    // Privacy launch gate: never send the original diagnostic PDF to an external AI provider.
+    // Re-enable generation only after a dedicated de-identified report representation is implemented.
+    if (process.env.AI_REPORT_DEIDENTIFIED_INPUT !== 'enabled') {
+      return NextResponse.json(
+        { error: 'AI Report is temporarily unavailable while TG Labs applies patient-privacy protection to diagnostic reports.' },
+        { status: 503, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
     const tests = booking.createdByAdmin === 'THYROCARE_MANUAL' ? manualPatientTests(booking.createdByAdmin, booking.adminNotes) : booking.items.map((x) => x.test.name), packages = booking.packages.map((x) => x.package.name);
     const context = [booking.patient.age != null ? `Age: ${booking.patient.age}` : '', booking.patient.gender ? `Gender: ${booking.patient.gender}` : '', tests.length ? `Tests: ${tests.join(', ')}` : '', packages.length ? `Packages: ${packages.join(', ')}` : ''].filter(Boolean).join('\n');
     const compactLanguageNote = requestedLanguage === 'en' ? '' : '\nKeep the answer concise enough to finish completely. For KEY RESULTS include clinically important and out-of-range values first. Diet and exercise tables should contain 4–6 practical rows each. Do not omit any numbered section, especially section 6.';
