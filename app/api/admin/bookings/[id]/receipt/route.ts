@@ -22,8 +22,9 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     return NextResponse.json({ error: 'Payment receipt is available after payment is marked PAID.' }, { status: 409 });
   }
 
+  const receiptBookingItems = booking.packages.length > 0 ? booking.items.filter((item) => item.price > 0) : booking.items;
   const baseLines = [
-    ...booking.items.map((item) => ({ name: item.test.name, amount: item.price })),
+    ...receiptBookingItems.map((item) => ({ name: item.test.name, amount: item.price })),
     ...booking.packages.map((item) => ({ name: item.package.name, amount: item.price })),
     ...(booking.homeCollectionCharge > 0 ? [{ name: 'Home Collection Charges', amount: booking.homeCollectionCharge }] : []),
     ...(booking.printedReportFee > 0 ? [{ name: 'Printed report service', amount: booking.printedReportFee }] : []),
@@ -39,7 +40,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const partnerIds = [...new Set([...booking.items, ...booking.packages].map((item) => item.partnerId).filter((v): v is string => Boolean(v)))];
   const partnerRows = partnerIds.length ? await prisma.diagnosticPartner.findMany({ where: { id: { in: partnerIds } }, select: { id: true, name: true } }) : [];
   const partnerNamesById = new Map(partnerRows.map((partner) => [partner.id, partner.name]));
-  const unresolvedItems = booking.items.filter((item) => !item.offer?.partner?.name && (!item.partnerId || !partnerNamesById.has(item.partnerId)));
+  const unresolvedItems = receiptBookingItems.filter((item) => !item.offer?.partner?.name && (!item.partnerId || !partnerNamesById.has(item.partnerId)));
   const catalogFallbacks = new Map<string, string>();
   for (const item of unresolvedItems) {
     const matches = await prisma.testPartnerOffer.findMany({
@@ -49,7 +50,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     const names = [...new Set(matches.map((match) => match.partner.name))];
     if (names.length === 1) catalogFallbacks.set(item.id, names[0]);
   }
-  const receiptItems = booking.items.map((item) => catalogFallbacks.has(item.id) ? { ...item, partnerName: catalogFallbacks.get(item.id)! } : item);
+  const receiptItems = receiptBookingItems.map((item) => catalogFallbacks.has(item.id) ? { ...item, partnerName: catalogFallbacks.get(item.id)! } : item);
   const partners = receiptPartners(receiptItems, booking.packages, partnerNamesById);
   const paidPayment = booking.payments[0];
   const { total: receiptTotal, paidAmount, due } = reconcilePaidReceipt(booking.totalAmount, subtotal, paidPayment?.amount);
