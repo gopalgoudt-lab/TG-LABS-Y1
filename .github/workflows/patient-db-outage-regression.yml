@@ -1,0 +1,45 @@
+name: Patient DB Outage Regression
+
+on:
+  pull_request:
+    paths:
+      - 'app/api/patient/bookings/route.ts'
+      - 'app/api/patient/reports/route.ts'
+      - 'app/patient/page.tsx'
+      - 'tests/patient-db-outage-status.test.ts'
+      - '.github/workflows/patient-db-outage-regression.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: patient-db-outage-regression-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out PR head
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run patient DB outage regression
+        run: node --import tsx --test tests/patient-db-outage-status.test.ts
+
+      - name: Run Firebase authentication regression
+        run: npm run test:auth
+
+      - name: Run typecheck
+        run: npm run typecheck
