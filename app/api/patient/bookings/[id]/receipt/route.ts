@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
 import { createPaymentReceiptPdf, isReceiptAvailable, receiptNumberForBooking } from '@/lib/payment-receipt';
 import { receiptPartners, reconcilePaidReceipt } from '@/lib/receipt-reconciliation';
+import { parsePaymentReceiptSnapshot } from '@/lib/payment-receipt-snapshot';
 import { manualPatientReceipt } from '@/lib/manual-patient-metadata';
 
 export const dynamic = 'force-dynamic';
@@ -26,6 +27,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Payment receipt is available after payment is marked PAID.' }, { status: 409 });
     }
 
+    const snapshot = parsePaymentReceiptSnapshot(booking.paymentReceiptSnapshot);
     const manual = manualPatientReceipt(booking.createdByAdmin, booking.adminNotes);
     const baseLines = manual ? [
       { name: manual.tests.length ? `Thyrocare investigations (${manual.tests.length})` : 'Thyrocare investigations', amount: manual.testAmount },
@@ -77,14 +79,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       paymentMode: manual?.paymentMode || booking.paymentMode,
       paymentStatus: booking.paymentStatus,
       transactionReference,
-      lines,
-      subtotal,
-      discount,
-      showDiscount: discount > 0,
-      total: receiptTotal,
+      lines: snapshot?.lines ?? lines,
+      subtotal: snapshot?.subtotal ?? subtotal,
+      discount: snapshot?.discount ?? discount,
+      showDiscount: snapshot ? snapshot.discount > 0 : discount > 0,
+      total: snapshot?.total ?? receiptTotal,
       paidAmount,
       due,
-      partners,
+      partners: snapshot?.partners ?? partners,
     });
 
     return new NextResponse(Buffer.from(pdf), {
