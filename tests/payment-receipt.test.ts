@@ -61,3 +61,11 @@ test('admin manual package booking preserves package as the commercial receipt i
   assert.ok(route.includes('standaloneItems'));
   assert.ok(route.includes('!packageTestIds.has(t.id)||b.testIds.includes(t.id)'));
 });
+
+
+test('admin package receipt hides zero-price operational package contents', () => {
+  const route = readFileSync(new URL('../app/api/admin/bookings/[id]/receipt/route.ts', import.meta.url), 'utf8');
+  assert.ok(route.includes('booking.packages.length > 0 ? booking.items.filter((item) => item.price > 0) : booking.items'));
+  assert.ok(route.includes('...receiptBookingItems.map'));
+  assert.ok(route.includes('const unresolvedItems = receiptBookingItems.filter'));
+});
