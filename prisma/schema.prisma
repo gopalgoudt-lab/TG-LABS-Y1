@@ -368,6 +368,7 @@ model Booking {
   packages             BookingPackage[]
   payments             PaymentTransaction[]
   partnerPayables      PartnerPayable[]
+  reportObservations   ReportObservation[]
 
   @@index([patientId])
   @@index([technicianId])
@@ -376,6 +377,24 @@ model Booking {
   @@index([paymentStatus])
   @@index([source])
   @@index([workflowStatus])
+}
+
+
+model ReportObservation {
+  id             String   @id @default(cuid())
+  bookingId      String
+  parameterName  String
+  value          String
+  unit           String?
+  referenceRange String?
+  flag           String?
+  source          String   @default("ADMIN_VERIFIED")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  booking         Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([bookingId, parameterName])
 }
 
 model PartnerPayable {
