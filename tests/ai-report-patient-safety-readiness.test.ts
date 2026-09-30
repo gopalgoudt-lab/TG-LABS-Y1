@@ -62,3 +62,13 @@ test('patient UI always displays the returned AI disclaimer', () => {
   assert.ok(patient.includes('<b>Important:</b> {aiReports[r.id].disclaimer}'));
   assert.ok(ai.includes('AI-generated educational explanation only.'));
 });
+
+
+test('AI generation fails closed before identifiable report PDF upload', () => {
+  const privacyGate = ai.indexOf("AI_REPORT_DEIDENTIFIED_INPUT !== 'enabled'");
+  const upload = ai.indexOf('openAIFileId = await uploadPdfToOpenAI');
+  assert.ok(privacyGate >= 0, 'privacy gate must exist');
+  assert.ok(upload > privacyGate, 'privacy gate must run before any external PDF upload');
+  assert.ok(ai.includes('patient-privacy protection'));
+  assert.ok(ai.includes("'Cache-Control': 'no-store'"));
+});
