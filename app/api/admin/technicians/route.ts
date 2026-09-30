@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { adminFromRequest } from '@/lib/admin-audit';
+import { adminAuthError } from '@/lib/admin-auth';
 import { hashPin } from '@/lib/technician-auth';
 
 export const dynamic = 'force-dynamic';
@@ -16,7 +18,8 @@ const schema = z.object({
   loginPin: z.string().regex(/^[0-9]{4,6}$/),
 });
 
-export async function GET() {
+export async function GET(request: Request) {
+  try { await adminFromRequest(request); } catch (error) { const auth = adminAuthError(error); return NextResponse.json({ error: auth.error }, { status: auth.status }); }
   const technicians = await prisma.technician.findMany({
     orderBy: [{ active: 'desc' }, { name: 'asc' }],
     include: {
@@ -32,6 +35,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    await adminFromRequest(request);
     const b = schema.parse(await request.json());
     const technician = await prisma.technician.create({
       data: {
@@ -47,6 +51,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ technician }, { status: 201 });
   } catch (error) {
+    const auth = adminAuthError(error); if (auth.status !== 401 || error instanceof Error && error.message.startsWith('ADMIN_')) return NextResponse.json({ error: auth.error }, { status: auth.status });
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Please check technician details.', fields: error.flatten().fieldErrors }, { status: 400 });
     console.error(error);
     return NextResponse.json({ error: 'Unable to create technician.' }, { status: 500 });
