@@ -4,6 +4,7 @@ import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
 import { createPaymentReceiptPdf, isReceiptAvailable, receiptNumberForBooking } from '@/lib/payment-receipt';
 import { receiptPartners, reconcilePaidReceipt } from '@/lib/receipt-reconciliation';
 import { parsePaymentReceiptSnapshot } from '@/lib/payment-receipt-snapshot';
+import { parsePaymentReceiptSnapshot } from '@/lib/payment-receipt-snapshot';
 import { manualPatientReceipt } from '@/lib/manual-patient-metadata';
 
 export const dynamic = 'force-dynamic';
@@ -27,6 +28,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Payment receipt is available after payment is marked PAID.' }, { status: 409 });
     }
 
+    const snapshot = parsePaymentReceiptSnapshot(booking.paymentReceiptSnapshot);
     const snapshot = parsePaymentReceiptSnapshot(booking.paymentReceiptSnapshot);
     const manual = manualPatientReceipt(booking.createdByAdmin, booking.adminNotes);
     const baseLines = manual ? [
@@ -65,6 +67,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const paidPayment = booking.payments[0];
   const { total: receiptTotal, paidAmount, due } = manual ? { total: manual.total, paidAmount: manual.paidAmount, due: manual.balance } : reconcilePaidReceipt(booking.totalAmount, subtotal, paidPayment?.amount);
     const transactionReference = booking.razorpayPaymentId || paidPayment?.paymentId || null;
+    const useSnapshot = !manual && snapshot;
+    const finalLines = useSnapshot ? snapshot.lines : lines;
+    const finalSubtotal = useSnapshot ? snapshot.subtotal : subtotal;
+    const finalDiscount = useSnapshot ? snapshot.discount : discount;
+    const finalPartners = useSnapshot && snapshot.partners.length ? snapshot.partners : partners;
+    const finalTotal = useSnapshot ? snapshot.total : receiptTotal;
+    const finalPaidAmount = useSnapshot ? Math.min(paidAmount, finalTotal) : paidAmount;
+    const finalDue = Math.max(0, finalTotal - finalPaidAmount);
     const pdf = await createPaymentReceiptPdf({
       receiptNumber: receiptNumberForBooking(booking.id),
       bookingReference: `TG-${booking.id.slice(-8).toUpperCase()}`,
