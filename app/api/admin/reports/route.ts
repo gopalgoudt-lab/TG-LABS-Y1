@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { prisma } from '@/lib/prisma';
 import { sendWorkflowStatusWhatsApp } from '@/lib/whatsapp';
-import { writeAdminAudit } from '@/lib/admin-audit';
+import { adminFromRequest, writeAdminAudit } from '@/lib/admin-audit';
+import { adminAuthError } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -90,6 +91,7 @@ function requestsCorrectedPageNumbers(fileName: string) {
 
 export async function POST(request: Request) {
   try {
+    try { await adminFromRequest(request); } catch (error) { const auth = adminAuthError(error); return NextResponse.json({ error: auth.error }, { status: auth.status }); }
     const body = uploadSchema.parse(await request.json());
     const baseFileName = safePdfName(body.fileName);
     const fileName = `${body.reportType === 'PARTIAL' ? 'PARTIAL' : 'FULL'} - ${baseFileName}`;
