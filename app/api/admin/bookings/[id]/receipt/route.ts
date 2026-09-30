@@ -5,7 +5,6 @@ import { adminAuthError } from '@/lib/admin-auth';
 import { createPaymentReceiptPdf, isReceiptAvailable, receiptNumberForBooking } from '@/lib/payment-receipt';
 import { receiptPartners, reconcilePaidReceipt } from '@/lib/receipt-reconciliation';
 import { parsePaymentReceiptSnapshot } from '@/lib/payment-receipt-snapshot';
-import { parsePaymentReceiptSnapshot } from '@/lib/payment-receipt-snapshot';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +26,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: 'Payment receipt is available after payment is marked PAID.' }, { status: 409 });
   }
 
-  const snapshot = parsePaymentReceiptSnapshot(booking.paymentReceiptSnapshot);
   const snapshot = parsePaymentReceiptSnapshot(booking.paymentReceiptSnapshot);
   const receiptBookingItems = booking.packages.length > 0 ? booking.items.filter((item) => item.price > 0) : booking.items;
   const baseLines = [
@@ -82,14 +80,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     paymentMode: booking.paymentMode,
     paymentStatus: booking.paymentStatus,
     transactionReference: booking.razorpayPaymentId || paidPayment?.paymentId || null,
-    lines: snapshot?.lines ?? lines,
-    subtotal: snapshot?.subtotal ?? subtotal,
-    discount: snapshot?.discount ?? discount,
-    showDiscount: Boolean(snapshot && snapshot.discount > 0),
-    total: snapshot?.total ?? receiptTotal,
-    paidAmount,
-    due,
-    partners: snapshot?.partners ?? partners,
+    lines: finalLines,
+    subtotal: finalSubtotal,
+    discount: finalDiscount,
+    showDiscount: finalDiscount > 0,
+    total: finalTotal,
+    paidAmount: finalPaidAmount,
+    due: finalDue,
+    partners: finalPartners,
   });
 
   return new NextResponse(Buffer.from(pdf), {
