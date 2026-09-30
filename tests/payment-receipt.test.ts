@@ -51,3 +51,13 @@ test('patient and admin interfaces expose receipt actions only for paid bookings
   assert.ok(admin.includes("b.paymentStatus==='PAID'"));
   assert.ok(admin.includes('Receipt PDF'));
 });
+
+
+test('admin manual package booking preserves package as the commercial receipt item', () => {
+  const route = readFileSync(new URL('../app/api/admin/bookings/route.ts', import.meta.url), 'utf8');
+  assert.ok(route.includes('packages:{create:packageRows}'));
+  assert.ok(route.includes('packageId:p.id,price:p.price'));
+  assert.ok(route.includes('packageTestIds'));
+  assert.ok(route.includes('standaloneItems'));
+  assert.ok(route.includes('!packageTestIds.has(t.id)||b.testIds.includes(t.id)'));
+});
