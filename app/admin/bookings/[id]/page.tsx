@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import ReportObservationsEditor from '@/components/admin/ReportObservationsEditor';
 
 type Test = { id: string; name: string; price: number };
 type Pack = { id: string; name: string; price: number; tests: { test: Test }[] };
@@ -346,6 +347,11 @@ export default function EditBookingPage() {
         {f.reportName && <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><b>{reportPrepared ? 'Prepared report:' : 'Current report:'}</b> {f.reportName} {f.reportData && <button type="button" onClick={openReport} style={{ border: 0, background: 'transparent', padding: 0, color: '#087f6f', fontWeight: 800, textDecoration: 'underline', cursor: 'pointer' }}>Open report</button>}</div>}
         {reportPrepared && <button type="button" disabled={publishingReport} onClick={publishPreparedReport} style={{ marginTop: 12, padding: '11px 16px', border: 0, borderRadius: 10, background: reportType === 'PARTIAL' ? '#9b6b16' : '#087f6f', color: '#fff', fontWeight: 900, cursor: publishingReport ? 'wait' : 'pointer' }}>{publishingReport ? 'Publishing…' : `Publish ${reportType === 'PARTIAL' ? 'Partial' : 'Full'} Report`}</button>}
         <label style={{ display: 'block', marginTop: 14 }}>Admin Notes<textarea style={{ ...input, minHeight: 100 }} value={f.adminNotes} onChange={e => set('adminNotes', e.target.value)} /></label>
+      </section>
+
+      <section style={{ ...box, marginTop: 18 }}>
+        <h2>Verified Structured Report Results</h2>
+        <ReportObservationsEditor bookingId={id} />
       </section>
 
       <section style={{ ...box, marginTop: 18 }}>
