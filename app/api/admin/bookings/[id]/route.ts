@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { adminAuthError } from '@/lib/admin-auth';
+import { adminFromRequest } from '@/lib/admin-audit';
 
 export const dynamic='force-dynamic';
 
@@ -40,7 +42,8 @@ function workflowUpdate(existing:any,target:WorkflowStage|undefined,technician:s
  return data;
 }
 
-export async function GET(_:Request,{params}:{params:Promise<{id:string}>}){
+export async function GET(request:Request,{params}:{params:Promise<{id:string}>}){
+ try{await adminFromRequest(request)}catch(error){const auth=adminAuthError(error);return NextResponse.json({error:auth.error},{status:auth.status})}
  const{id}=await params;
  const booking=await prisma.booking.findUnique({where:{id},include:{patient:{include:{bookings:{orderBy:{createdAt:'desc'},take:20,include:{items:{include:{test:true}}}}}},items:{include:{test:true}}}});
  if(!booking)return NextResponse.json({error:'Booking not found.'},{status:404});
@@ -49,6 +52,7 @@ export async function GET(_:Request,{params}:{params:Promise<{id:string}>}){
 
 export async function PATCH(request:Request,{params}:{params:Promise<{id:string}>}){
  try{
+  await adminFromRequest(request);
   const{id}=await params,b=schema.parse(await request.json()),existing=await prisma.booking.findUnique({where:{id},include:{patient:true}});
   if(!existing)return NextResponse.json({error:'Booking not found.'},{status:404});
   if(existing.status==='CANCELLED'||existing.status==='COMPLETED')return NextResponse.json({error:'Cancelled or completed bookings cannot be edited here.'},{status:409});
@@ -76,5 +80,5 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
    return tx.booking.update({where:{id},data:{patientId,mode:b.mode,address:b.mode==='HOME'?b.address:null,pincode:b.mode==='HOME'?b.pincode:null,collectionDate:new Date(`${b.date}T00:00:00.000Z`),slot:b.slot,totalAmount,adminNotes:b.adminNotes||null,...workflowData,items:{create:[...itemMap.values()].map(t=>({testId:t.id,price:t.price}))}},include:{patient:true,items:{include:{test:true}}}})
   });
   return NextResponse.json({booking,diagnosticAmount,totalAmount});
- }catch(error){if(error instanceof z.ZodError)return NextResponse.json({error:'Please check the booking details.',fields:error.flatten().fieldErrors},{status:400});console.error(error);return NextResponse.json({error:'Unable to update booking.'},{status:500})}
+ }catch(error){const auth=adminAuthError(error);if(auth.status!==401||error instanceof Error&&error.message.includes('ADMIN'))return NextResponse.json({error:auth.error},{status:auth.status});if(error instanceof z.ZodError)return NextResponse.json({error:'Please check the booking details.',fields:error.flatten().fieldErrors},{status:400});console.error(error);return NextResponse.json({error:'Unable to update booking.'},{status:500})}
 }
