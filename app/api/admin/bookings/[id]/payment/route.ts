@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { adminAuthError } from '@/lib/admin-auth';
 import { adminFromRequest } from '@/lib/admin-audit';
+import { buildPaymentReceiptSnapshot } from '@/lib/payment-receipt-snapshot';
 
 export const dynamic='force-dynamic';
 
@@ -13,7 +14,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
   const admin=await adminFromRequest(request);
   const {id}=await params;
   const body=schema.parse(await request.json().catch(()=>({})));
-  const existing=await prisma.booking.findUnique({where:{id},select:{id:true,totalAmount:true,paymentStatus:true,paymentMode:true,paidAt:true}});
+  const existing=await prisma.booking.findUnique({where:{id},include:{items:{include:{test:{select:{name:true}},offer:{include:{partner:{select:{name:true}}}}}},packages:{include:{package:{select:{name:true}},offer:{include:{partner:{select:{name:true}}}}}}}});
   if(!existing)return NextResponse.json({error:'Booking not found.'},{status:404});
   if(existing.paymentStatus==='PAID')return NextResponse.json({booking:existing,alreadyPaid:true});
   if(existing.paymentStatus==='REFUNDED')return NextResponse.json({error:'Refunded bookings cannot be marked paid from this screen.'},{status:409});
@@ -25,7 +26,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
   const result=await prisma.$transaction(async tx=>{
    const claimed=await tx.booking.updateMany({
     where:{id,paymentStatus:existing.paymentStatus,paidAt:null},
-    data:{paymentStatus:'PAID',paymentMode:body.mode,paidAt:now}
+    data:{paymentStatus:'PAID',paymentMode:body.mode,paidAt:now,paymentReceiptSnapshot:buildPaymentReceiptSnapshot(existing,now)}
    });
    if(claimed.count!==1){
     const current=await tx.booking.findUnique({where:{id},select:{id:true,totalAmount:true,paymentStatus:true,paymentMode:true,paidAt:true}});
