@@ -69,3 +69,9 @@ test('admin package receipt hides zero-price operational package contents', () =
   assert.ok(route.includes('...receiptBookingItems.map'));
   assert.ok(route.includes('const unresolvedItems = receiptBookingItems.filter'));
 });
+
+
+test('payment receipt formats receipt date in India timezone', () => {
+  const source = readFileSync(new URL('../lib/payment-receipt.ts', import.meta.url), 'utf8');
+  assert.ok(source.includes("timeZone:'Asia/Kolkata'"));
+});
