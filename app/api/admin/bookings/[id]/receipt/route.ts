@@ -4,6 +4,7 @@ import { adminFromRequest } from '@/lib/admin-audit';
 import { adminAuthError } from '@/lib/admin-auth';
 import { createPaymentReceiptPdf, isReceiptAvailable, receiptNumberForBooking } from '@/lib/payment-receipt';
 import { receiptPartners, reconcilePaidReceipt } from '@/lib/receipt-reconciliation';
+import { parsePaymentReceiptSnapshot } from '@/lib/payment-receipt-snapshot';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: 'Payment receipt is available after payment is marked PAID.' }, { status: 409 });
   }
 
+  const snapshot = parsePaymentReceiptSnapshot(booking.paymentReceiptSnapshot);
   const receiptBookingItems = booking.packages.length > 0 ? booking.items.filter((item) => item.price > 0) : booking.items;
   const baseLines = [
     ...receiptBookingItems.map((item) => ({ name: item.test.name, amount: item.price })),
@@ -57,6 +59,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const partners = receiptPartners(receiptItems, booking.packages, partnerNamesById);
   const paidPayment = booking.payments[0];
   const { total: receiptTotal, paidAmount, due } = reconcilePaidReceipt(booking.totalAmount, subtotal, paidPayment?.amount);
+  const finalLines = snapshot?.lines ?? lines;
+  const finalSubtotal = snapshot?.subtotal ?? subtotal;
+  const finalDiscount = snapshot?.discount ?? discount;
+  const finalPartners = snapshot?.partners?.length ? snapshot.partners : partners;
+  const finalTotal = snapshot?.total ?? receiptTotal;
+  const finalPaidAmount = snapshot ? Math.min(paidAmount, finalTotal) : paidAmount;
+  const finalDue = Math.max(0, finalTotal - finalPaidAmount);
   const pdf = await createPaymentReceiptPdf({
     receiptNumber: receiptNumberForBooking(booking.id),
     bookingReference: `TG-${booking.id.slice(-8).toUpperCase()}`,
@@ -71,14 +80,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     paymentMode: booking.paymentMode,
     paymentStatus: booking.paymentStatus,
     transactionReference: booking.razorpayPaymentId || paidPayment?.paymentId || null,
-    lines,
-    subtotal,
-    discount,
-    showDiscount: false,
-    total: receiptTotal,
-    paidAmount,
-    due,
-    partners,
+    lines: finalLines,
+    subtotal: finalSubtotal,
+    discount: finalDiscount,
+    showDiscount: finalDiscount > 0,
+    total: finalTotal,
+    paidAmount: finalPaidAmount,
+    due: finalDue,
+    partners: finalPartners,
   });
 
   return new NextResponse(Buffer.from(pdf), {

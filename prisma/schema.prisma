@@ -361,6 +361,7 @@ model Booking {
   razorpayOrderId      String?              @unique
   razorpayPaymentId    String?              @unique
   paidAt               DateTime?
+  paymentReceiptSnapshot Json?
   whatsappNotifiedAt   DateTime?
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt

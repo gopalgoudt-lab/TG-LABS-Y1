@@ -5,6 +5,7 @@ import { sendBookingConfirmationWhatsApp } from '@/lib/whatsapp';
 import { verifyFirebasePatientRequest } from '@/lib/firebase-server';
 import { assertBookingOwner, assertOnlinePaymentEligible } from '@/lib/booking-integrity';
 import { assertCapturedPayment, verifyRazorpayPaymentSignature } from '@/lib/payment-integrity';
+import { buildPaymentReceiptSnapshot } from '@/lib/payment-receipt-snapshot';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
 
     const booking = await prisma.booking.findUnique({
       where: { id: body.bookingId },
-      include: { patient: { select: { phone: true } } },
+      include: { patient: { select: { phone: true } }, items:{include:{test:{select:{name:true}},offer:{include:{partner:{select:{name:true}}}}}}, packages:{include:{package:{select:{name:true}},offer:{include:{partner:{select:{name:true}}}}}} },
     });
     if (!booking) return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
     assertBookingOwner(booking.patient.phone, identity.databasePhone);
@@ -124,6 +125,7 @@ export async function POST(request: Request) {
           workflowStatus: booking.workflowStatus === 'BOOKING_CREATED' ? 'BOOKING_CONFIRMED' : booking.workflowStatus,
           bookingConfirmedAt: booking.bookingConfirmedAt ?? now,
           paidAt: booking.paidAt ?? now,
+          paymentReceiptSnapshot: buildPaymentReceiptSnapshot(booking, now),
         },
         include: {
           patient: { select: { name: true, phone: true } },
