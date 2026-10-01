@@ -57,9 +57,19 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'UNAUTHENTICATED';
-    const status = message === 'FIREBASE_PROJECT_NOT_CONFIGURED' ? 503 : 401;
+    const authenticationErrors = new Set([
+      'UNAUTHENTICATED',
+      'INVALID_FIREBASE_TOKEN',
+      'FIREBASE_TOKEN_EXPIRED',
+      'INVALID_FIREBASE_ISSUER',
+      'INVALID_FIREBASE_AUDIENCE',
+      'INVALID_FIREBASE_SUBJECT',
+      'PHONE_IDENTITY_REQUIRED',
+      'INDIAN_PHONE_IDENTITY_REQUIRED',
+    ]);
+    const status = message === 'FIREBASE_PROJECT_NOT_CONFIGURED' ? 503 : authenticationErrors.has(message) ? 401 : 503;
     return NextResponse.json(
-      { error: status === 503 ? 'Authentication service is not configured.' : 'Please sign in again.' },
+      { error: status === 503 ? (message === 'FIREBASE_PROJECT_NOT_CONFIGURED' ? 'Authentication service is not configured.' : 'Patient services are temporarily unavailable. Please try again shortly.') : 'Please sign in again.' },
       { status },
     );
   }
