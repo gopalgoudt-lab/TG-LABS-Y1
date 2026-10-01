@@ -47,6 +47,13 @@ const stampKeys: Record<string, string> = {
   REPORT_DELIVERED: 'reportDeliveredAt',
 };
 function when(v?: string | null) { return v ? new Date(v).toLocaleString('en-IN') : 'Pending'; }
+function displayGender(value?: string | null) {
+  if (!value) return 'Male';
+  if (value === 'MALE') return 'Male';
+  if (value === 'FEMALE') return 'Female';
+  if (value === 'OTHERS') return 'Others';
+  return value;
+}
 function fileAsDataUrl(file: Blob) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -138,7 +145,7 @@ export default function EditBookingPage() {
         phone: x.patient.phone,
         email: x.patient.email || '',
         age: x.patient.age ?? '',
-        gender: x.patient.gender || 'Male',
+        gender: displayGender(x.patient.gender),
         mode: x.mode,
         address: x.address || '',
         pincode: x.pincode || '',
