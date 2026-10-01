@@ -120,6 +120,7 @@ export default function EditBookingPage() {
   const [recordingPayment, setRecordingPayment] = useState(false);
   const [collectionPaymentMode, setCollectionPaymentMode] = useState<'CASH'|'UPI'|'CARD'>('CASH');
   const [publishingReport, setPublishingReport] = useState(false);
+  const [quarantiningReport, setQuarantiningReport] = useState(false);
   const [reportPrepared, setReportPrepared] = useState(false);
   const [reportType, setReportType] = useState<ReportType>('FULL');
   const [msg, setMsg] = useState('');
@@ -244,6 +245,24 @@ export default function EditBookingPage() {
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Unable to open report');
     }
+  }
+
+  async function quarantineCurrentReport() {
+    if (!f.reportName || reportPrepared) return;
+    const reason = window.prompt('Why is this report being quarantined? Enter at least 10 characters. The action is audited.');
+    if (!reason || reason.trim().length < 10) { setMsg('Report quarantine cancelled. A clear reason of at least 10 characters is required.'); return; }
+    if (!window.confirm('Quarantine the current report? It will no longer be available to the patient and the booking will return to Processing.')) return;
+    setQuarantiningReport(true); setMsg('');
+    try {
+      const r = await fetch(`/api/admin/bookings/${id}/report-quarantine`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: reason.trim(), confirm: 'QUARANTINE_REPORT' }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Unable to quarantine report');
+      setF((x: any) => ({ ...x, reportName: '', reportData: '', workflowStatus: j.booking.workflowStatus }));
+      setTimes((x: any) => ({ ...x, reportReadyAt: null, processingStartedAt: x.processingStartedAt || new Date().toISOString() }));
+      setReportPrepared(false);
+      setMsg('Report quarantined with an audit record. The booking is back in Processing.');
+    } catch (e) { setMsg(e instanceof Error ? e.message : 'Unable to quarantine report'); }
+    finally { setQuarantiningReport(false); }
   }
 
   async function publishPreparedReport() {
@@ -375,7 +394,7 @@ export default function EditBookingPage() {
           <label>Replace / Upload Report<input type="file" accept="application/pdf,.pdf" multiple style={input} onChange={e => { report(e.target.files); e.currentTarget.value = ''; }} /><small style={{ display: 'block', marginTop: 6, color: '#687c76' }}>Select one or multiple PDFs. Multiple files are merged in selection order into one final report.</small></label>
         </div>
         <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 12, padding: '10px 12px', border: '1px solid #d7e5e0', borderRadius: 10, background: '#f8fcfa', maxWidth: 620 }}><input type="checkbox" checked={renumberPages} onChange={e => setRenumberPages(e.target.checked)} style={{ marginTop: 2 }} /><span><b>Replace / correct final page numbers</b><small style={{ display: 'block', marginTop: 3, color: '#687c76' }}>When selected, TG Labs masks the inherited right-edge page-number area across a larger vertical band plus the final footer, then writes one clean Page 1 of N, Page 2 of N… sequence after merge.</small></span></label>
-        {f.reportName && <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><b>{reportPrepared ? 'Prepared report:' : 'Current report:'}</b> {f.reportName} {f.reportData && <button type="button" onClick={openReport} style={{ border: 0, background: 'transparent', padding: 0, color: '#087f6f', fontWeight: 800, textDecoration: 'underline', cursor: 'pointer' }}>Open report</button>}</div>}
+        {f.reportName && <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><b>{reportPrepared ? 'Prepared report:' : 'Current report:'}</b> {f.reportName} {f.reportData && <button type="button" onClick={openReport} style={{ border: 0, background: 'transparent', padding: 0, color: '#087f6f', fontWeight: 800, textDecoration: 'underline', cursor: 'pointer' }}>Open report</button>} {!reportPrepared && f.workflowStatus !== 'REPORT_DELIVERED' && <button type="button" disabled={quarantiningReport} onClick={quarantineCurrentReport} style={{ border: '1px solid #b45309', borderRadius: 9, padding: '7px 10px', background: '#fff7ed', color: '#9a3412', fontWeight: 800, cursor: quarantiningReport ? 'wait' : 'pointer' }}>{quarantiningReport ? 'Quarantining…' : 'Quarantine incorrect report'}</button>}</div>}
         {reportPrepared && <button type="button" disabled={publishingReport} onClick={publishPreparedReport} style={{ marginTop: 12, padding: '11px 16px', border: 0, borderRadius: 10, background: reportType === 'PARTIAL' ? '#9b6b16' : '#087f6f', color: '#fff', fontWeight: 900, cursor: publishingReport ? 'wait' : 'pointer' }}>{publishingReport ? 'Publishing…' : `Publish ${reportType === 'PARTIAL' ? 'Partial' : 'Full'} Report`}</button>}
         <label style={{ display: 'block', marginTop: 14 }}>Admin Notes<textarea style={{ ...input, minHeight: 100 }} value={f.adminNotes} onChange={e => set('adminNotes', e.target.value)} /></label>
       </section>
