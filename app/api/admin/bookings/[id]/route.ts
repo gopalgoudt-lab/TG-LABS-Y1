@@ -95,16 +95,35 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
 
   // A paid booking is a financial record. Its charged amount and diagnostic
   // composition must not be rewritten by the general Admin edit form.
+  // For a workflow-only transition, validate the immutable paid evidence and
+  // preserve the existing commercial rows instead of reconstructing them from
+  // the edit form (which can omit package selections).
+  let paidWorkflowOnly=false;
   if(existing.paymentStatus==='PAID'){
-   const existingItems=await prisma.bookingItem.findMany({where:{bookingId:id},select:{testId:true,price:true}});
+   const [existingItems,existingPackages]=await Promise.all([
+    prisma.bookingItem.findMany({where:{bookingId:id},select:{testId:true,price:true}}),
+    prisma.bookingPackage.findMany({where:{bookingId:id},select:{packageId:true,price:true}})
+   ]);
    const requestedItems=[...itemMap.values()];
    const normalize=(items:{id?:string;testId?:string;price:number}[])=>items.map(item=>({id:item.id??item.testId!,price:Number(item.price)})).sort((a,b)=>a.id.localeCompare(b.id)||a.price-b.price);
-   if(JSON.stringify(normalize(existingItems))!==JSON.stringify(normalize(requestedItems))||Number(totalAmount)!==Number(existing.totalAmount)){
+   const requestedPackages=packages.map(p=>({packageId:p.id,price:Number(p.price)})).sort((a,b)=>a.packageId.localeCompare(b.packageId)||a.price-b.price);
+   const currentPackages=existingPackages.map(p=>({packageId:p.packageId,price:Number(p.price)})).sort((a,b)=>a.packageId.localeCompare(b.packageId)||a.price-b.price);
+   const itemsMatch=JSON.stringify(normalize(existingItems))===JSON.stringify(normalize(requestedItems));
+   const packagesMatch=JSON.stringify(currentPackages)===JSON.stringify(requestedPackages);
+   const commercialMatch=itemsMatch&&packagesMatch&&Number(totalAmount)===Number(existing.totalAmount);
+   const snapshot=existing.paymentReceiptSnapshot;
+   const snapshotTotal=snapshot&&typeof snapshot==='object'&&!Array.isArray(snapshot)?Number((snapshot as Record<string,unknown>).total):NaN;
+   const frozenTotalMatches=Number.isFinite(snapshotTotal)&&Number(existing.totalAmount)===snapshotTotal;
+   paidWorkflowOnly=Boolean(b.workflowStatus&&b.workflowStatus!==existing.workflowStatus&&frozenTotalMatches);
+   if(!commercialMatch&&!paidWorkflowOnly){
     return NextResponse.json({error:'Paid booking tests, packages and amount are locked. Create an approved adjustment instead of editing the paid booking.'},{status:409});
    }
   }
 
   const booking=await prisma.$transaction(async tx=>{
+   if(paidWorkflowOnly){
+    return tx.booking.update({where:{id},data:{adminNotes:b.adminNotes||null,...workflowData},include:{patient:true,items:{include:{test:true}}}})
+   }
    let patientId=existing.patientId;const pdata={name:b.name,email:b.email,age:b.age??null,gender:normalizeGender(b.gender)};
    if(existing.patient.phone!==b.phone){const target=await tx.patient.findUnique({where:{phone:b.phone}});if(target){patientId=target.id;await tx.patient.update({where:{id:target.id},data:pdata})}else await tx.patient.update({where:{id:existing.patientId},data:{phone:b.phone,...pdata}})}else await tx.patient.update({where:{id:existing.patientId},data:pdata});
    await tx.bookingItem.deleteMany({where:{bookingId:id}});
