@@ -18,6 +18,7 @@ type History = {
   items: { test: { name: string } }[];
 };
 type ReportType = 'PARTIAL' | 'FULL';
+type TechnicianOption = { id: string; name: string; active: boolean; pincodes?: string[] };
 
 const FLOW = [
   ['BOOKING_CREATED', 'Booking Created'],
@@ -106,6 +107,7 @@ export default function EditBookingPage() {
   const [tests, setTests] = useState<Test[]>([]);
   const [packages, setPackages] = useState<Pack[]>([]);
   const [history, setHistory] = useState<History[]>([]);
+  const [technicians, setTechnicians] = useState<TechnicianOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [recordingPayment, setRecordingPayment] = useState(false);
@@ -127,16 +129,18 @@ export default function EditBookingPage() {
 
   useEffect(() => {
     (async () => {
-      const [b, t, p] = await Promise.all([
+      const [b, t, p, tech] = await Promise.all([
         fetch(`/api/admin/bookings/${id}`),
         fetch('/api/admin/catalog/tests'),
         fetch('/api/admin/catalog/packages'),
+        fetch('/api/admin/technicians'),
       ]);
-      const bj = await b.json(), tj = await t.json(), pj = await p.json();
+      const bj = await b.json(), tj = await t.json(), pj = await p.json(), techj = await tech.json();
       if (!b.ok) { setMsg(bj.error || 'Unable to load booking'); setLoading(false); return; }
       const x = bj.booking;
       setTests(tj.tests || []);
       setPackages(pj.packages || []);
+      setTechnicians((techj.technicians || []).filter((x: TechnicianOption) => x.active));
       setHistory(x.patient.bookings || []);
       setTimes(x);
       setReportType(String(x.reportName || '').startsWith('PARTIAL -') ? 'PARTIAL' : 'FULL');
@@ -324,7 +328,7 @@ export default function EditBookingPage() {
           <label>Collection Type<select style={input} value={f.mode} onChange={e => set('mode', e.target.value)}><option value="HOME">Home Collection</option><option value="CENTRE">Lab Centre</option></select></label>
           <label>Date<input type="date" style={input} value={f.date} onChange={e => set('date', e.target.value)} /></label>
           <label>Time Slot<select style={input} value={f.slot} onChange={e => set('slot', e.target.value)}>{SLOTS.map(s => <option key={s}>{s}</option>)}</select></label>
-          <label>Technician<input style={input} value={f.technician} onChange={e => set('technician', e.target.value)} placeholder="Assign technician" /></label>
+          <label>Technician<select style={input} value={f.technician} onChange={e => set('technician', e.target.value)}><option value="">Assign technician</option>{technicians.map(t => <option key={t.id} value={t.name}>{t.name}{f.pincode && t.pincodes?.length && !t.pincodes.includes(f.pincode) ? ' — outside configured pincode' : ''}</option>)}</select></label>
         </div>
         {f.mode === 'HOME' && <><label style={{ display: 'block', marginTop: 14 }}>Address<textarea style={{ ...input, minHeight: 80 }} value={f.address} onChange={e => set('address', e.target.value)} /></label><label style={{ display: 'block', marginTop: 14 }}>Pincode<input style={{ ...input, maxWidth: 300 }} maxLength={6} value={f.pincode} onChange={e => set('pincode', e.target.value.replace(/\D/g, '').slice(0, 6))} /></label></>}
       </section>
