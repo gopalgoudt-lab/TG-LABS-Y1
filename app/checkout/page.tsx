@@ -31,6 +31,9 @@ export default function CheckoutPage() {
   const [bookingId, setBookingId] = useState('');
   const [printedReport, setPrintedReport] = useState(false);
   const [serverTotal, setServerTotal] = useState<number | null>(null);
+  const [serverDiagnosticAmount, setServerDiagnosticAmount] = useState<number | null>(null);
+  const [serverHomeCollectionCharge, setServerHomeCollectionCharge] = useState<number | null>(null);
+  const [serverPrintedReportFee, setServerPrintedReportFee] = useState<number | null>(null);
   const [idempotencyKey, setIdempotencyKey] = useState('');
   const [form, setForm] = useState({ name: '', phone: '', email: '', age: '', gender: '', doctorName: '', address: '', pincode: '', date: '', slot: '' });
 
@@ -139,6 +142,9 @@ export default function CheckoutPage() {
       if (!response.ok) throw new Error(data.error || 'Unable to create booking.');
       setBookingId(data.booking.id);
       setServerTotal(Number(data.booking.totalAmount));
+      setServerDiagnosticAmount(Number(data.booking.diagnosticAmount));
+      setServerHomeCollectionCharge(Number(data.booking.homeCollectionCharge || 0));
+      setServerPrintedReportFee(Number(data.booking.printedReportFee || 0));
       setSubmitted(true);
       setDeferredConfirmed(true);
       localStorage.removeItem('tglabs-cart');
@@ -157,6 +163,13 @@ export default function CheckoutPage() {
       <h1>Booking confirmed. Pay when the sample is collected.</h1>
       <div className="notice"><b>Booking ID:</b> {bookingId}<br/><b>Patient:</b> {form.name}<br/><b>Age / Gender:</b> {form.age} / {form.gender}<br/>{form.doctorName && <><b>Doctor:</b> {form.doctorName}<br/></>}<b>Mobile:</b> {form.phone}<br/><b>Email:</b> {form.email}<br/>{mode === 'home' && <><b>Pincode:</b> {form.pincode}<br/></>}{printedReport && <><b>Printed reports:</b> Yes · Delivery in 24–48 hrs (+₹100)<br/></>}<b>Payment option:</b> {deferredLabel}<br/><b>Total amount:</b> ₹{displayedTotal.toLocaleString('en-IN')}</div>
       <div className="paidNote">No online payment is required now. Please pay ₹{displayedTotal.toLocaleString('en-IN')} by {collectionPaymentMethod === 'UPI' ? 'UPI' : 'cash'} when the sample is collected.</div>
+      <div className="card confirmationBreakdown">
+        <b>Booking price breakdown</b>
+        <div className="summaryRow"><span>Diagnostic amount</span><strong>₹{(serverDiagnosticAmount ?? diagnosticTotal).toLocaleString('en-IN')}</strong></div>
+        {(serverHomeCollectionCharge ?? homeCollectionCharge) > 0 && <div className="summaryRow"><span>Home collection charge</span><strong>₹{(serverHomeCollectionCharge ?? homeCollectionCharge).toLocaleString('en-IN')}</strong></div>}
+        {(serverPrintedReportFee ?? (printedReport ? PRINTED_REPORT_FEE : 0)) > 0 && <div className="summaryRow"><span>Printed reports</span><strong>₹{(serverPrintedReportFee ?? PRINTED_REPORT_FEE).toLocaleString('en-IN')}</strong></div>}
+        <div className="summaryTotal"><span>Total amount</span><strong>₹{displayedTotal.toLocaleString('en-IN')}</strong></div>
+      </div>
       {error && <div className="errorBox">{error}</div>}
       <div className="successActions"><a className="btn primary" href="/patient">View patient dashboard →</a><a className="btn" href="/">Back to TG Labs</a></div>
     </div></main>;
