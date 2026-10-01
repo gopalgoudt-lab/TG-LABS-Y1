@@ -73,6 +73,17 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
   const diagnosticAmount=packages.reduce((sum,p)=>sum+p.price,0)+tests.filter(t=>!covered.has(t.id)).reduce((sum,t)=>sum+t.price,0);
   const totalAmount=diagnosticAmount+(existing.homeCollectionCharge||0)+(existing.printedReportFee||0);
 
+  // A paid booking is a financial record. Its charged amount and diagnostic
+  // composition must not be rewritten by the general Admin edit form.
+  if(existing.paymentStatus==='PAID'){
+   const existingItems=await prisma.bookingItem.findMany({where:{bookingId:id},select:{testId:true,price:true}});
+   const requestedItems=[...itemMap.values()];
+   const normalize=(items:{id?:string;testId?:string;price:number}[])=>items.map(item=>({id:item.id??item.testId!,price:Number(item.price)})).sort((a,b)=>a.id.localeCompare(b.id)||a.price-b.price);
+   if(JSON.stringify(normalize(existingItems))!==JSON.stringify(normalize(requestedItems))||Number(totalAmount)!==Number(existing.totalAmount)){
+    return NextResponse.json({error:'Paid booking tests, packages and amount are locked. Create an approved adjustment instead of editing the paid booking.'},{status:409});
+   }
+  }
+
   const booking=await prisma.$transaction(async tx=>{
    let patientId=existing.patientId;const pdata={name:b.name,email:b.email,age:b.age??null,gender:normalizeGender(b.gender)};
    if(existing.patient.phone!==b.phone){const target=await tx.patient.findUnique({where:{phone:b.phone}});if(target){patientId=target.id;await tx.patient.update({where:{id:target.id},data:pdata})}else await tx.patient.update({where:{id:existing.patientId},data:{phone:b.phone,...pdata}})}else await tx.patient.update({where:{id:existing.patientId},data:pdata});
