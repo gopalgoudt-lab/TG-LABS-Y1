@@ -45,9 +45,16 @@ function workflowUpdate(existing:any,target:WorkflowStage|undefined,technician:s
 export async function GET(request:Request,{params}:{params:Promise<{id:string}>}){
  try{await adminFromRequest(request)}catch(error){const auth=adminAuthError(error);return NextResponse.json({error:auth.error},{status:auth.status})}
  const{id}=await params;
- const booking=await prisma.booking.findUnique({where:{id},include:{patient:{include:{bookings:{orderBy:{createdAt:'desc'},take:20,include:{items:{include:{test:true}}}}}},items:{include:{test:true}}}});
+ const booking=await prisma.booking.findUnique({where:{id},include:{patient:{include:{bookings:{orderBy:{createdAt:'desc'},take:20,include:{items:{include:{test:true}}}}}},items:{include:{test:true}},payments:{where:{status:'PAID'},orderBy:{createdAt:'desc'},take:1}}});
  if(!booking)return NextResponse.json({error:'Booking not found.'},{status:404});
- return NextResponse.json({booking});
+ const snapshotTotal=booking.paymentReceiptSnapshot&&typeof booking.paymentReceiptSnapshot==='object'&&!Array.isArray(booking.paymentReceiptSnapshot)?Number((booking.paymentReceiptSnapshot as Record<string,unknown>).total):NaN;
+ const paidTransactionAmount=booking.payments[0]?.amount;
+ const authoritativePaidAmount=Number.isFinite(snapshotTotal)?snapshotTotal:(typeof paidTransactionAmount==='number'?paidTransactionAmount:null);
+ const commercialIntegrity=booking.paymentStatus==='PAID'&&authoritativePaidAmount!==null&&Number(booking.totalAmount)!==Number(authoritativePaidAmount)
+  ?{status:'MISMATCH',bookingTotal:booking.totalAmount,paidAmount:authoritativePaidAmount,message:'Paid booking amount differs from the frozen payment record. Commercial fields are locked; review before further financial changes.'}
+  :{status:'OK'};
+ const {payments:_,...safeBooking}=booking;
+ return NextResponse.json({booking:safeBooking,commercialIntegrity});
 }
 
 export async function PATCH(request:Request,{params}:{params:Promise<{id:string}>}){
