@@ -1,0 +1,25 @@
+name: Payment Receipt Snapshot Regression
+
+on:
+  pull_request:
+    paths:
+      - 'lib/payment-receipt-snapshot.ts'
+      - 'tests/payment-receipt-snapshot.test.ts'
+      - 'app/api/admin/bookings/**'
+      - 'app/api/patient/bookings/**'
+      - 'app/api/payments/**'
+      - 'prisma/schema.prisma'
+      - 'prisma/migrations/**'
+
+jobs:
+  receipt-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run receipt snapshot regression
+        run: node --import tsx --test tests/payment-receipt-snapshot.test.ts
