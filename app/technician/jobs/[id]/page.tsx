@@ -18,7 +18,11 @@ export default function TechnicianJobPage(){
   watchRef.current=navigator.geolocation.watchPosition(async position=>{
    const now=Date.now();if(now-lastSentRef.current<15000)return;lastSentRef.current=now;
    const {latitude,longitude,accuracy,speed,heading}=position.coords;
-   try{const response=await fetch('/api/technician/jobs/'+job.id+'/location',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({latitude,longitude,accuracy,speed,heading,recordedAt:new Date(position.timestamp).toISOString()})});
+   const payload:{latitude:number;longitude:number;accuracy?:number;speed?:number;heading?:number;recordedAt:string}={latitude,longitude,recordedAt:new Date(position.timestamp).toISOString()};
+   if(Number.isFinite(accuracy)&&accuracy>=0&&accuracy<=10000)payload.accuracy=accuracy;
+   if(speed!==null&&Number.isFinite(speed)&&speed>=0&&speed<=200)payload.speed=speed;
+   if(heading!==null&&Number.isFinite(heading)&&heading>=0&&heading<=360)payload.heading=heading;
+   try{const response=await fetch('/api/technician/jobs/'+job.id+'/location',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(response.ok)setLocationStatus('Live location sharing active · last update '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
     else if(response.status===409){navigator.geolocation.clearWatch(watchRef.current!);watchRef.current=null;setLocationStatus('Live location sharing stopped.')}
     else setLocationStatus('Unable to send live location.');}
