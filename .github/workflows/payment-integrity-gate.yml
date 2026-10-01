@@ -1,0 +1,22 @@
+name: Payment Integrity Gate
+
+on:
+  pull_request:
+    paths:
+      - 'lib/payment-integrity.ts'
+      - 'lib/booking-integrity.ts'
+      - 'tests/payment-integrity.test.ts'
+      - '.github/workflows/payment-integrity-gate.yml'
+
+jobs:
+  payment-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run payment integrity regression
+        run: node --import tsx --test tests/payment-integrity.test.ts
