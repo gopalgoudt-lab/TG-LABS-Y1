@@ -8,6 +8,7 @@ import { buildPaymentReceiptSnapshot } from '@/lib/payment-receipt-snapshot';
 export const dynamic='force-dynamic';
 
 const schema=z.object({mode:z.enum(['CASH','UPI','CARD']).default('CASH')});
+const COLLECTION_PAYMENT_STAGES=new Set(['SAMPLE_COLLECTED','SAMPLE_RECEIVED_AT_LAB','PROCESSING','REPORT_READY','REPORT_DELIVERED']);
 
 export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){
  try{
@@ -19,6 +20,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
   if(existing.paymentStatus==='PAID')return NextResponse.json({booking:existing,alreadyPaid:true});
   if(existing.paymentStatus==='REFUNDED')return NextResponse.json({error:'Refunded bookings cannot be marked paid from this screen.'},{status:409});
   if(existing.totalAmount<=0)return NextResponse.json({error:'Booking total must be positive before payment can be recorded.'},{status:409});
+  if(!COLLECTION_PAYMENT_STAGES.has(existing.workflowStatus))return NextResponse.json({error:'Pay-at-collection payment can be recorded only after sample collection.'},{status:409});
 
   const now=new Date();
   const ipAddress=(request.headers.get('x-forwarded-for')||'').split(',')[0].trim()||null;

@@ -31,6 +31,9 @@ test('admin collection payment requires admin identity and rejects unsafe paymen
  assert.ok(payment.includes("if(existing.paymentStatus==='PAID')"));
  assert.ok(payment.includes("if(existing.paymentStatus==='REFUNDED')"));
  assert.ok(payment.includes('if(existing.totalAmount<=0)'));
+ assert.ok(payment.includes('COLLECTION_PAYMENT_STAGES'));
+ assert.ok(payment.includes("'SAMPLE_COLLECTED'"));
+ assert.ok(payment.includes("Pay-at-collection payment can be recorded only after sample collection."));
 });
 
 test('collection payment claim is concurrency-safe and records authoritative amount plus audit',()=>{
