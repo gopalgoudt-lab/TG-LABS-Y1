@@ -121,6 +121,7 @@ export default function EditBookingPage() {
   const [collectionPaymentMode, setCollectionPaymentMode] = useState<'CASH'|'UPI'|'CARD'>('CASH');
   const [publishingReport, setPublishingReport] = useState(false);
   const [quarantiningReport, setQuarantiningReport] = useState(false);
+  const [reconcilingPaidTotal, setReconcilingPaidTotal] = useState(false);
   const [reportPrepared, setReportPrepared] = useState(false);
   const [reportType, setReportType] = useState<ReportType>('FULL');
   const [msg, setMsg] = useState('');
@@ -247,6 +248,21 @@ export default function EditBookingPage() {
     }
   }
 
+  async function reconcilePaidTotal() {
+    if (!commercialIntegrity || commercialIntegrity.status !== 'MISMATCH') return;
+    if (!window.confirm('Reconcile this paid booking total only from its frozen payment receipt? Tests, packages and payment records will not be changed.')) return;
+    setReconcilingPaidTotal(true); setMsg('');
+    try {
+      const r = await fetch(`/api/admin/bookings/${id}/reconcile-paid-total`, { method: 'POST' });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Unable to reconcile paid booking');
+      setF((x: any) => ({ ...x, totalAmount: j.booking?.totalAmount ?? j.totalAmount ?? x.totalAmount }));
+      setCommercialIntegrity({ status: 'OK' });
+      setMsg(j.unchanged ? 'Paid booking already matches its frozen receipt.' : 'Paid booking total reconciled from frozen receipt evidence. No payment record was changed.');
+    } catch (e) { setMsg(e instanceof Error ? e.message : 'Unable to reconcile paid booking'); }
+    finally { setReconcilingPaidTotal(false); }
+  }
+
   async function quarantineCurrentReport() {
     if (!f.reportName || reportPrepared) return;
     const reason = window.prompt('Why is this report being quarantined? Enter at least 10 characters. The action is audited.');
@@ -345,7 +361,7 @@ export default function EditBookingPage() {
         <a href="/admin/bookings" style={{ color: '#087f6f', fontWeight: 800 }}>← Booking Management</a>
       </div>
       {msg && <div style={{ ...box, margin: '15px 0' }}>{msg}</div>}
-      {commercialIntegrity?.status === 'MISMATCH' && <div role="alert" style={{ ...box, margin: '15px 0', border: '2px solid #b45309', background: '#fff7ed' }}><b>Paid booking integrity warning</b><div style={{ marginTop: 6 }}>Booking total ₹{Number(commercialIntegrity.bookingTotal).toLocaleString('en-IN')} differs from frozen paid amount ₹{Number(commercialIntegrity.paidAmount).toLocaleString('en-IN')}. Commercial fields are locked. Do not use normal booking edits to reconcile this payment.</div></div>}
+      {commercialIntegrity?.status === 'MISMATCH' && <div role="alert" style={{ ...box, margin: '15px 0', border: '2px solid #b45309', background: '#fff7ed' }}><b>Paid booking integrity warning</b><div style={{ marginTop: 6 }}>Booking total ₹{Number(commercialIntegrity.bookingTotal).toLocaleString('en-IN')} differs from frozen paid amount ₹{Number(commercialIntegrity.paidAmount).toLocaleString('en-IN')}. Commercial fields are locked. Do not use normal booking edits to reconcile this payment. <button type="button" disabled={reconcilingPaidTotal} onClick={reconcilePaidTotal} style={{ marginLeft: 10, border: '1px solid #b45309', borderRadius: 8, padding: '6px 9px', background: '#fff', color: '#9a3412', fontWeight: 800, cursor: reconcilingPaidTotal ? 'wait' : 'pointer' }}>{reconcilingPaidTotal ? 'Reconciling…' : 'Reconcile from frozen receipt'}</button></div></div>}
 
       <section style={{ ...box, marginTop: 18 }}>
         <h2>Sample Processing Workflow</h2>
