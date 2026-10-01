@@ -63,6 +63,19 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
   const{id}=await params,b=schema.parse(await request.json()),existing=await prisma.booking.findUnique({where:{id},include:{patient:true}});
   if(!existing)return NextResponse.json({error:'Booking not found.'},{status:404});
   if(existing.status==='CANCELLED'||existing.status==='COMPLETED')return NextResponse.json({error:'Cancelled or completed bookings cannot be edited here.'},{status:409});
+  // Do not allow final report delivery while a paid booking's current total
+  // disagrees with its immutable payment evidence. This is a release-safety
+  // gate only; it never rewrites historical financial records.
+  if(b.workflowStatus==='REPORT_DELIVERED'&&existing.paymentStatus==='PAID'){
+   const paidTx=await prisma.paymentTransaction.findFirst({where:{bookingId:id,status:'PAID'},orderBy:{createdAt:'desc'},select:{amount:true}});
+   const snapshot=existing.paymentReceiptSnapshot;
+   const snapshotTotal=snapshot&&typeof snapshot==='object'&&!Array.isArray(snapshot)?Number((snapshot as Record<string,unknown>).total):NaN;
+   const authoritativePaidAmount=Number.isFinite(snapshotTotal)?snapshotTotal:(paidTx?.amount??null);
+   if(authoritativePaidAmount!==null&&Number(existing.totalAmount)!==Number(authoritativePaidAmount)){
+    return NextResponse.json({error:'Report delivery is blocked because this paid booking has an unresolved amount mismatch. Review the payment integrity warning before delivery.'},{status:409});
+   }
+  }
+
   let workflowData:any={};
   try{workflowData=workflowUpdate(existing,b.workflowStatus,b.technician)}catch(error){
    if(error instanceof Error&&error.message==='WORKFLOW_BACKWARD')return NextResponse.json({error:'Workflow stages cannot be moved backwards from this screen.'},{status:409});
