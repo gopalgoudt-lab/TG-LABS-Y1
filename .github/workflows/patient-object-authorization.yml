@@ -1,0 +1,26 @@
+name: Patient Object Authorization Regression
+
+on:
+  pull_request:
+    paths:
+      - 'app/api/patient/**'
+      - 'tests/patient-object-authorization.test.ts'
+      - '.github/workflows/patient-object-authorization.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/api/patient/**'
+      - 'tests/patient-object-authorization.test.ts'
+
+jobs:
+  patient-object-authorization:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx jest tests/patient-object-authorization.test.ts --runInBand
