@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-function source(file: string) {
+function source(file) {
   return fs.readFileSync(path.join(process.cwd(), file), 'utf8');
 }
 
