@@ -123,6 +123,7 @@ export default function EditBookingPage() {
   const [reportPrepared, setReportPrepared] = useState(false);
   const [reportType, setReportType] = useState<ReportType>('FULL');
   const [msg, setMsg] = useState('');
+  const [commercialIntegrity, setCommercialIntegrity] = useState<any>(null);
   const [q, setQ] = useState('');
   const [pq, setPq] = useState('');
   const [renumberPages, setRenumberPages] = useState(false);
@@ -145,6 +146,7 @@ export default function EditBookingPage() {
       const bj = await b.json(), tj = await t.json(), pj = await p.json(), techj = await tech.json();
       if (!b.ok) { setMsg(bj.error || 'Unable to load booking'); setLoading(false); return; }
       const x = bj.booking;
+      setCommercialIntegrity(bj.commercialIntegrity || null);
       setTests(tj.tests || []);
       setPackages(pj.packages || []);
       setTechnicians((techj.technicians || []).filter((x: TechnicianOption) => x.active));
@@ -324,6 +326,7 @@ export default function EditBookingPage() {
         <a href="/admin/bookings" style={{ color: '#087f6f', fontWeight: 800 }}>← Booking Management</a>
       </div>
       {msg && <div style={{ ...box, margin: '15px 0' }}>{msg}</div>}
+      {commercialIntegrity?.status === 'MISMATCH' && <div role="alert" style={{ ...box, margin: '15px 0', border: '2px solid #b45309', background: '#fff7ed' }}><b>Paid booking integrity warning</b><div style={{ marginTop: 6 }}>Booking total ₹{Number(commercialIntegrity.bookingTotal).toLocaleString('en-IN')} differs from frozen paid amount ₹{Number(commercialIntegrity.paidAmount).toLocaleString('en-IN')}. Commercial fields are locked. Do not use normal booking edits to reconcile this payment.</div></div>}
 
       <section style={{ ...box, marginTop: 18 }}>
         <h2>Sample Processing Workflow</h2>
