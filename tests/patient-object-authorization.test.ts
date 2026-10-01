@@ -1,5 +1,5 @@
-import fs from 'node:fs';
-import path from 'node:path';
+const fs = require('node:fs');
+const path = require('node:path');
 
 function source(file) {
   return fs.readFileSync(path.join(process.cwd(), file), 'utf8');
