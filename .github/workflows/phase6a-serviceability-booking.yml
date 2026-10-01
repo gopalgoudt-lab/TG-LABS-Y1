@@ -1,0 +1,20 @@
+name: Phase 6A Serviceability Booking Gate
+on:
+  pull_request:
+    paths:
+      - 'lib/serviceability.ts'
+      - 'app/api/serviceability/route.ts'
+      - 'app/api/bookings/route.ts'
+      - 'tests/phase6a-serviceability-booking.test.ts'
+      - '.github/workflows/phase6a-serviceability-booking.yml'
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: node --import tsx --test tests/phase6a-serviceability-booking.test.ts tests/phase3c-serviceability-cart.test.ts
