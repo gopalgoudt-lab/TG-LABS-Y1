@@ -42,6 +42,10 @@ test('catalog and detail additions sanitize stored cart before appending', () =>
     assert.ok(source.includes('productName: product.name'));
     assert.ok(source.includes('partnerName: offer.partner.name'));
   }
+  assert.ok(productCardSource.includes("cart.filter((x) => x.productIdentifier !== product.id)"));
+  assert.ok(catalogDetailSource.includes('addCatalogItemWithContainment(cart,item,composition)'));
+  assert.ok(catalogDetailSource.includes("JSON.stringify(result.items)"));
+  }
 });
 
 test('cart page reads the same tglabs-cart browser key', () => {
