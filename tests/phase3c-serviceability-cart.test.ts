@@ -38,9 +38,9 @@ test('cart parser rejects non-array storage safely', () => {
 test('catalog and detail additions sanitize stored cart before appending', () => {
   for (const source of [productCardSource, catalogDetailSource]) {
     assert.ok(source.includes("readCatalogCart(localStorage.getItem(key))"));
-    assert.ok(source.includes('productIdentifier: product.id'));
-    assert.ok(source.includes('productName: product.name'));
-    assert.ok(source.includes('partnerName: offer.partner.name'));
+    assert.match(source, /productIdentifier\s*:\s*product\.id/);
+    assert.match(source, /productName\s*:\s*product\.name/);
+    assert.match(source, /partnerName\s*:\s*offer\.partner\.name/);
   }
   assert.ok(productCardSource.includes("cart.filter((x) => x.productIdentifier !== product.id)"));
   assert.ok(catalogDetailSource.includes('addCatalogItemWithContainment(cart,item,composition)'));
