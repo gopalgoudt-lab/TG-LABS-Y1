@@ -61,7 +61,7 @@ const NAV: Record<Role, Item[]> = {
 
 const QUICK: Record<Role, Quick[]> = {
   patient: [
-    {label:'Book a New Test',href:'/tests',icon:'⚕',note:'Search tests, packages & health conditions'},
+    {label:'Book a New Test',href:'/tests?from=patient',icon:'⚕',note:'Search tests, packages & health conditions'},
     {label:'View Reports',href:'/patient#reports',icon:'▤',note:'Open and download diagnostic reports'},
     {label:'Manage Family',href:'/patient#family',icon:'♟',note:'Keep family health in one account'},
     {label:'Manage Addresses',href:'/patient#addresses',icon:'⌖',note:'Save locations for home collection'},
