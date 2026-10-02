@@ -26,7 +26,8 @@ type EditorForm = {
   homeCollectionCharge: string;
 };
 
-// Keep the raw file below the API's 2,000,000-character data-URL limit after base64 expansion.\nconst MAX_IMAGE_BYTES = 1_400_000;
+// Keep the raw file below the API's 2,000,000-character data-URL limit after base64 expansion.
+const MAX_IMAGE_BYTES = 1_400_000;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const emptyForm: EditorForm = {
