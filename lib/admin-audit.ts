@@ -46,10 +46,11 @@ export async function writeAdminAudit(
     summary: string;
     metadata?: Prisma.InputJsonValue | null;
   },
+  client: Pick<Prisma.TransactionClient, 'adminAuditLog'> | typeof prisma = prisma,
 ) {
   try {
     const actor = await auditActorFromRequest(request);
-    await prisma.adminAuditLog.create({
+    await client.adminAuditLog.create({
       data: {
         adminPhone: actor.phone,
         action: input.action,
