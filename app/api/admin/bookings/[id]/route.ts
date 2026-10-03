@@ -162,7 +162,10 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
 
 export async function DELETE(request:Request,{params}:{params:Promise<{id:string}>}){
  try{
-  await adminFromRequest(request);
+  const admin=await adminFromRequest(request);
+  const superAdminPhones=(process.env.SUPER_ADMIN_PHONE_NUMBERS||'').split(',').map(v=>v.replace(/\D/g,'').slice(-10)).filter(Boolean);
+  if(!superAdminPhones.length)return NextResponse.json({error:'Permanent booking deletion is disabled until SUPER_ADMIN_PHONE_NUMBERS is configured.'},{status:503});
+  if(!superAdminPhones.includes(admin.phone.replace(/\D/g,'').slice(-10)))return NextResponse.json({error:'Only a configured Super Admin can permanently delete TEST/UAT/DEMO bookings.'},{status:403});
   const {id}=await params;
   const body=z.object({
    reason:z.string().trim().min(10).max(500),
@@ -182,8 +185,8 @@ export async function DELETE(request:Request,{params}:{params:Promise<{id:string
   const marker=[existing.patient.name,existing.address,existing.adminNotes].filter(Boolean).join(' ').toUpperCase();
   if(!/(^|\W)(TEST|UAT|DEMO)(\W|$)|DO NOT PROCESS/.test(marker))
    return NextResponse.json({error:'Hard delete is restricted to clearly marked TEST/UAT/DEMO bookings. Use Cancel Booking for genuine patient bookings.'},{status:409});
+  await writeAdminAudit(request,{action:'TEST_BOOKING_DELETE_APPROVED',entityType:'Booking',entityId:id,summary:'Super Admin approved permanent deletion of a clearly marked unpaid test/demo booking.',metadata:{reason:body.reason,patientName:existing.patient.name}});
   await prisma.booking.delete({where:{id}});
-  await writeAdminAudit(request,{action:'TEST_BOOKING_DELETED',entityType:'Booking',entityId:id,summary:'Admin permanently deleted a clearly marked unpaid test/demo booking.',metadata:{reason:body.reason,patientName:existing.patient.name}});
   return NextResponse.json({deleted:true,id});
  }catch(error){
   if(error instanceof z.ZodError)return NextResponse.json({error:'Deletion requires a reason of at least 10 characters and explicit confirmation.'},{status:400});
