@@ -16,6 +16,8 @@ test('patient homepage search offers live selectable public catalog suggestions'
   assert.match(search, /offer\.partner\.name/);
   assert.match(search, /offer\.price/);
   assert.match(search, /router\.push\(detailsHref\(item\)\)/);
+  assert.ok(search.includes("if (item.type === 'PROFILE') return `/profiles/"));
+  assert.ok(search.includes("return `/packages/"));
   assert.match(search, /router\.push\(\`\/\?q=/);
 });
 
