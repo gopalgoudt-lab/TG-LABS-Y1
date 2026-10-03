@@ -46,7 +46,8 @@ function rankSuggestions(items: Suggestion[], query: string) {
 
 function detailsHref(item: Suggestion) {
   if (item.type === 'TEST') return `/tests/${encodeURIComponent(item.slug)}`;
-  return `/profiles/${encodeURIComponent(item.slug)}`;
+  if (item.type === 'PROFILE') return `/profiles/${encodeURIComponent(item.slug)}`;
+  return `/packages/${encodeURIComponent(item.slug)}`;
 }
 
 export default function PatientCatalogSearch() {
