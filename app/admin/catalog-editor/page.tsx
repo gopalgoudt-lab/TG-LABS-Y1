@@ -68,6 +68,7 @@ export default function AdminCatalogEditorPage() {
   const [includedProfileQuery, setIncludedProfileQuery] = useState('');
   const [includedProfileResults, setIncludedProfileResults] = useState<Array<{ id: string; name: string; tests: Array<{ id: string; name: string }> }>>([]);
   const [selectedProfiles, setSelectedProfiles] = useState<Array<{ id: string; name: string; tests: Array<{ id: string; name: string }> }>>([]);
+  const [offerEligibility, setOfferEligibility] = useState<{ bookable: boolean; reasons: string[]; displayEnabled: boolean; displayable: boolean } | null>(null);
 
   function selectCatalogItem(item: any) {
     setForm({
@@ -78,6 +79,7 @@ export default function AdminCatalogEditorPage() {
       packageType: item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE', active: item.active !== false, homeCollectionCharge: String(item.homeCollectionCharge ?? 0),
     });
     setSelectedProfiles(Array.isArray(item.includedProfiles) ? item.includedProfiles : []);
+    setOfferEligibility(item.offerEligibility ?? null);
     setEditorMode(kind === 'test' ? 'TEST' : item.packageType === 'PROFILE' ? 'PROFILE' : 'PACKAGE');
     setQuery(String(item.name ?? ''));
     setSearchOpen(false);
@@ -285,6 +287,7 @@ export default function AdminCatalogEditorPage() {
         {kind === 'package' && <section className="rounded border p-4 space-y-3"><h3 className="font-semibold">Included tests</h3><div className="flex gap-2"><input className="w-full rounded border p-2" value={includedTestQuery} onChange={(e) => setIncludedTestQuery(e.target.value)} placeholder="Search TG Labs tests by name" /><button type="button" className="rounded border px-4 py-2" onClick={() => void searchIncludedTests()} disabled={!form.partner || !includedTestQuery.trim()}>Search tests</button></div>{includedTestResults.length > 0 && <div className="max-h-56 overflow-auto rounded border">{includedTestResults.map(test => <button key={test.id} type="button" className="block w-full border-b p-2 text-left last:border-b-0 hover:bg-slate-50" onClick={() => addIncludedTest(test)}>{test.name}</button>)}</div>}<div><p className="text-xs text-slate-600">Selected catalog IDs are saved internally. Search and select tests instead of typing names.</p><textarea readOnly aria-label="Selected included test catalog IDs" className="mt-1 min-h-20 w-full rounded border bg-slate-50 p-2" value={form.includedTestIds} /></div>{form.includedTestIds && <div className="flex flex-wrap gap-2">{form.includedTestIds.split(',').map(value => value.trim()).filter(Boolean).map(testId => <button key={testId} type="button" className="rounded border px-2 py-1 text-xs" onClick={() => removeIncludedTest(testId)}>Remove {testId}</button>)}</div>}</section>}
         <label className="block">Description<textarea className="mt-1 min-h-28 w-full rounded border p-2" value={form.description} onChange={(e) => setField('description', e.target.value)} /></label>
         <section className="rounded border p-4"><h3 className="font-semibold">Pricing &amp; Gross margin</h3><p className="text-sm">Gross margin: {margin === null ? '—' : margin}. Informational only; partner booking, operations and serviceability remain protected.</p></section>
+        {offerEligibility && <section className="rounded border p-4" aria-label="Public catalog eligibility"><h3 className="font-semibold">Public catalog eligibility</h3><p className="text-sm">Displayable: {offerEligibility.displayable ? 'Yes' : 'No'} · Bookable: {offerEligibility.bookable ? 'Yes' : 'No'} · Partner display: {offerEligibility.displayEnabled ? 'Enabled' : 'Disabled'}</p><p className={offerEligibility.displayable ? 'mt-1 text-sm text-green-700' : 'mt-1 text-sm text-red-700'}>{offerEligibility.reasons.length ? `Reason(s): ${offerEligibility.reasons.join(', ')}` : offerEligibility.displayEnabled ? 'No offer-level eligibility failures.' : 'Reason: PARTNER_DISPLAY_DISABLED'}</p><p className="mt-1 text-xs text-slate-600">Read-only diagnostic. Saving this form does not change these protected offer/partner gates.</p></section>}
         <button className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50" type="submit" disabled={!form.id || status === 'saving'}>{status === 'saving' ? 'Saving…' : 'Save changes'}</button>
         {message && <p role="status" className={status === 'error' ? 'text-red-700' : 'text-green-700'}>{message}</p>}
       </form>
