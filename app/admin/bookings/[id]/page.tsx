@@ -117,6 +117,7 @@ export default function EditBookingPage() {
   const [technicianId, setTechnicianId] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
   const [recordingPayment, setRecordingPayment] = useState(false);
   const [collectionPaymentMode, setCollectionPaymentMode] = useState<'CASH'|'UPI'|'CARD'>('CASH');
   const [publishingReport, setPublishingReport] = useState(false);
@@ -352,6 +353,33 @@ export default function EditBookingPage() {
     finally { setSaving(false); }
   }
 
+  async function cancelBooking() {
+    const reason=window.prompt('Why are you cancelling this booking? Enter at least 10 characters. This action is audited.');
+    if(!reason||reason.trim().length<10){setMsg('Cancellation stopped. Enter a clear reason of at least 10 characters.');return;}
+    if(!window.confirm('Cancel this unpaid booking? The booking record will be preserved for audit/history.'))return;
+    setLifecycleBusy(true);setMsg('');
+    try{
+      const r=await fetch(`/api/admin/bookings/${id}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'CANCEL',reason:reason.trim(),confirm:'CANCEL_BOOKING'})});
+      const j=await r.json();if(!r.ok)throw new Error(j.error||'Unable to cancel booking');
+      set('status','CANCELLED');setMsg('Booking cancelled. The record has been preserved.');
+      setTimeout(()=>router.push('/admin/bookings'),900);
+    }catch(e){setMsg(e instanceof Error?e.message:'Unable to cancel booking');}finally{setLifecycleBusy(false);}
+  }
+
+  async function deleteTestBooking() {
+    const reason=window.prompt('Permanent deletion is only for TEST/UAT/DEMO bookings. Enter the reason (at least 10 characters).');
+    if(!reason||reason.trim().length<10){setMsg('Deletion stopped. Enter a clear reason of at least 10 characters.');return;}
+    const phrase=window.prompt('Type DELETE TEST BOOKING to confirm permanent deletion.');
+    if(phrase!=='DELETE TEST BOOKING'){setMsg('Deletion cancelled. Confirmation phrase did not match.');return;}
+    if(!window.confirm('Permanently delete this TEST/UAT/DEMO booking? This cannot be undone.'))return;
+    setLifecycleBusy(true);setMsg('');
+    try{
+      const r=await fetch(`/api/admin/bookings/${id}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({reason:reason.trim(),confirm:'DELETE_TEST_BOOKING'})});
+      const j=await r.json();if(!r.ok)throw new Error(j.error||'Unable to delete test booking');
+      router.push('/admin/bookings');
+    }catch(e){setMsg(e instanceof Error?e.message:'Unable to delete test booking');setLifecycleBusy(false);}
+  }
+
   if (loading) return <main style={{ padding: 30 }}>Loading booking…</main>;
 
   return <main style={{ minHeight: '100vh', background: '#f4f8f6', padding: 28, color: '#12352f', fontFamily: 'Arial,sans-serif' }}>
@@ -423,6 +451,15 @@ export default function EditBookingPage() {
       <section style={{ ...box, marginTop: 18 }}>
         <h2>Patient Booking History</h2>
         <div style={{ maxHeight: 300, overflow: 'auto', border: '1px solid #e1eae7', borderRadius: 10 }}><table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}><thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}><tr>{['Date', 'Tests', 'Slot', 'Technician', 'Payment', 'Status', 'Amount'].map(h => <th key={h} style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid #dce7e3' }}>{h}</th>)}</tr></thead><tbody>{history.map(h => <tr key={h.id}><td style={{ padding: 10 }}>{new Date(h.collectionDate).toLocaleDateString('en-IN')}</td><td>{h.items.map(i=>i.test.name).join(', ')}</td><td>{h.slot}</td><td>{h.technician||'—'}</td><td>{h.paymentStatus}</td><td>{h.status}</td><td>₹{h.totalAmount}</td></tr>)}</tbody></table></div>
+      </section>
+
+      <section style={{ ...box, marginTop: 18, border: '1px solid #f0c7c7' }}>
+        <h2>Booking lifecycle</h2>
+        <p style={{ color: '#687c76' }}>Cancel preserves the booking record. Permanent delete is restricted by the server to clearly marked unpaid TEST/UAT/DEMO bookings with no report, completed workflow, paid transaction or partner payable.</p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button type="button" disabled={lifecycleBusy||f.status==='CANCELLED'||f.status==='COMPLETED'||f.paymentStatus==='PAID'} onClick={cancelBooking} style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #b45309', background: '#fff7ed', color: '#9a3412', fontWeight: 900 }}>{f.status==='CANCELLED'?'Booking Cancelled':'Cancel Booking'}</button>
+          <button type="button" disabled={lifecycleBusy||f.paymentStatus==='PAID'||f.status==='COMPLETED'||Boolean(f.reportName)} onClick={deleteTestBooking} style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #b91c1c', background: '#fff', color: '#b91c1c', fontWeight: 900 }}>Delete TEST/UAT/DEMO Booking</button>
+        </div>
       </section>
 
       <button disabled={saving} onClick={save} style={{ marginTop: 20, width: '100%', padding: 15, border: 0, borderRadius: 12, background: '#087f6f', color: '#fff', fontWeight: 900, fontSize: 16 }}>{saving ? 'Saving Changes…' : 'Save Booking & Workflow Changes'}</button>
