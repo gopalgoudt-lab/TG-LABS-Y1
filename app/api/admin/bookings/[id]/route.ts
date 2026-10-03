@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { adminAuthError } from '@/lib/admin-auth';
-import { adminFromRequest } from '@/lib/admin-audit';
+import { adminFromRequest, writeAdminAudit } from '@/lib/admin-audit';
 
 export const dynamic='force-dynamic';
 
@@ -131,4 +131,64 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
   });
   return NextResponse.json({booking,diagnosticAmount,totalAmount});
  }catch(error){const auth=adminAuthError(error);if(auth.status!==401||error instanceof Error&&error.message.includes('ADMIN'))return NextResponse.json({error:auth.error},{status:auth.status});if(error instanceof z.ZodError)return NextResponse.json({error:'Please check the booking details.',fields:error.flatten().fieldErrors},{status:400});console.error(error);return NextResponse.json({error:'Unable to update booking.'},{status:500})}
+}
+
+
+export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){
+ try{
+  await adminFromRequest(request);
+  const {id}=await params;
+  const body=z.object({
+   action:z.enum(['CANCEL']),
+   reason:z.string().trim().min(10).max(500),
+   confirm:z.literal('CANCEL_BOOKING')
+  }).parse(await request.json());
+  const existing=await prisma.booking.findUnique({where:{id},select:{id:true,status:true,paymentStatus:true,reportName:true}});
+  if(!existing)return NextResponse.json({error:'Booking not found.'},{status:404});
+  if(existing.status==='COMPLETED')return NextResponse.json({error:'Completed bookings cannot be cancelled.'},{status:409});
+  if(existing.status==='CANCELLED')return NextResponse.json({booking:existing,unchanged:true});
+  if(existing.paymentStatus==='PAID')return NextResponse.json({error:'Paid bookings require an approved refund/cancellation workflow and cannot be cancelled here.'},{status:409});
+  if(existing.reportName)return NextResponse.json({error:'Bookings with a published report cannot be cancelled here.'},{status:409});
+  const booking=await prisma.booking.update({where:{id},data:{status:'CANCELLED',adminNotes:body.reason}});
+  await writeAdminAudit(request,{action:'BOOKING_CANCELLED',entityType:'Booking',entityId:id,summary:'Admin cancelled an unpaid booking.',metadata:{reason:body.reason}});
+  return NextResponse.json({booking});
+ }catch(error){
+  if(error instanceof z.ZodError)return NextResponse.json({error:'A cancellation reason of at least 10 characters is required.'},{status:400});
+  const auth=adminAuthError(error);
+  if(auth.status!==401||error instanceof Error&&error.message.includes('ADMIN'))return NextResponse.json({error:auth.error},{status:auth.status});
+  console.error(error);return NextResponse.json({error:'Unable to cancel booking.'},{status:500});
+ }
+}
+
+export async function DELETE(request:Request,{params}:{params:Promise<{id:string}>}){
+ try{
+  await adminFromRequest(request);
+  const {id}=await params;
+  const body=z.object({
+   reason:z.string().trim().min(10).max(500),
+   confirm:z.literal('DELETE_TEST_BOOKING')
+  }).parse(await request.json());
+  const existing=await prisma.booking.findUnique({
+   where:{id},
+   include:{patient:{select:{name:true}},payments:{select:{status:true}},partnerPayables:{select:{id:true}}}
+  });
+  if(!existing)return NextResponse.json({error:'Booking not found.'},{status:404});
+  if(existing.paymentStatus==='PAID'||existing.payments.some(p=>p.status==='PAID'))
+   return NextResponse.json({error:'Paid bookings cannot be deleted. Preserve the financial record and use the approved cancellation/refund workflow.'},{status:409});
+  if(existing.reportName||existing.reportDeliveredAt||existing.status==='COMPLETED')
+   return NextResponse.json({error:'Completed or reported bookings cannot be deleted.'},{status:409});
+  if(existing.partnerPayables.length)
+   return NextResponse.json({error:'Bookings with partner payable records cannot be deleted.'},{status:409});
+  const marker=[existing.patient.name,existing.address,existing.adminNotes].filter(Boolean).join(' ').toUpperCase();
+  if(!/(^|\W)(TEST|UAT|DEMO)(\W|$)|DO NOT PROCESS/.test(marker))
+   return NextResponse.json({error:'Hard delete is restricted to clearly marked TEST/UAT/DEMO bookings. Use Cancel Booking for genuine patient bookings.'},{status:409});
+  await prisma.booking.delete({where:{id}});
+  await writeAdminAudit(request,{action:'TEST_BOOKING_DELETED',entityType:'Booking',entityId:id,summary:'Admin permanently deleted a clearly marked unpaid test/demo booking.',metadata:{reason:body.reason,patientName:existing.patient.name}});
+  return NextResponse.json({deleted:true,id});
+ }catch(error){
+  if(error instanceof z.ZodError)return NextResponse.json({error:'Deletion requires a reason of at least 10 characters and explicit confirmation.'},{status:400});
+  const auth=adminAuthError(error);
+  if(auth.status!==401||error instanceof Error&&error.message.includes('ADMIN'))return NextResponse.json({error:auth.error},{status:auth.status});
+  console.error(error);return NextResponse.json({error:'Unable to delete test booking.'},{status:500});
+ }
 }
