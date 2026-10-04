@@ -49,6 +49,7 @@ type Report = {
   tests: string[];
   packages: string[];
   downloadUrl: string | null;
+  aiLanguages?: AiLanguage[];
 };
 
 type AiReport = {
@@ -335,11 +336,12 @@ export default function PatientPage() {
                           <div style={{ marginTop: 14, padding: 12, borderRadius: 14, background: '#f7f5ff', border: '1px solid #ddd6fe' }}>
                             <b style={{ fontSize: 13 }}>Choose language</b>
                             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-                              {(['en', 'te', 'hi'] as AiLanguage[]).map((lang) => (
-                                <button key={lang} disabled={!!aiBusy} onClick={() => generateAiReport(r, lang, false)} style={{ ...languageButton, background: aiReports[r.id].language === lang ? '#5b3cc4' : '#fff', color: aiReports[r.id].language === lang ? '#fff' : '#5038a8' }}>
+                              {(['en', 'te', 'hi'] as AiLanguage[]).map((lang) => {
+                                const available = r.aiLanguages?.includes(lang) || aiReports[r.id].language === lang;
+                                return <button key={lang} disabled={!!aiBusy || !available} title={available ? undefined : 'This language is not available for this saved AI report yet.'} onClick={() => available && generateAiReport(r, lang, false)} style={{ ...languageButton, opacity: available ? 1 : .5, cursor: available ? 'pointer' : 'not-allowed', background: aiReports[r.id].language === lang ? '#5b3cc4' : '#fff', color: aiReports[r.id].language === lang ? '#fff' : '#5038a8' }}>
                                   {aiBusy === `${r.id}:${lang}` ? 'Loading…' : LANGUAGE_LABELS[lang]}
-                                </button>
-                              ))}
+                                </button>;
+                              })}
                             </div>
                           </div>
 
