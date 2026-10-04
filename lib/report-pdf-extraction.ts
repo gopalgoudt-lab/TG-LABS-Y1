@@ -1,6 +1,22 @@
 import 'server-only';
 import { PDFParse } from 'pdf-parse';
 
+// pdf.js checks for DOMMatrix during server startup even though text extraction
+// does not need browser geometry. Provide the minimal server-side shape it expects.
+if (typeof globalThis.DOMMatrix === 'undefined') {
+  class ServerDOMMatrix {
+    a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+    constructor(_init?: unknown) {}
+    multiply() { return this; }
+    preMultiplySelf() { return this; }
+    translate() { return this; }
+    scale() { return this; }
+    rotate() { return this; }
+    inverse() { return this; }
+  }
+  Object.defineProperty(globalThis, 'DOMMatrix', { value: ServerDOMMatrix, configurable: true });
+}
+
 const PDF_DATA_PREFIX = 'data:application/pdf;base64,';
 const MAX_EXTRACTED_TEXT = 120_000;
 
