@@ -120,6 +120,7 @@ export default function EditBookingPage() {
   const [recordingPayment, setRecordingPayment] = useState(false);
   const [collectionPaymentMode, setCollectionPaymentMode] = useState<'CASH'|'UPI'|'CARD'>('CASH');
   const [publishingReport, setPublishingReport] = useState(false);
+  const [preparingReport, setPreparingReport] = useState(false);
   const [quarantiningReport, setQuarantiningReport] = useState(false);
   const [reconcilingPaidTotal, setReconcilingPaidTotal] = useState(false);
   const [reportPrepared, setReportPrepared] = useState(false);
@@ -197,17 +198,19 @@ export default function EditBookingPage() {
   async function report(files?: FileList | null) {
     const selected = Array.from(files || []);
     if (!selected.length) return;
-    setMsg('');
+    setMsg('Preparing selected PDF…');
+    setPreparingReport(true);
     for (const file of selected) {
-      if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) { setMsg('Please select PDF diagnostic reports only.'); return; }
-      if (file.size > 3 * 1024 * 1024) { setMsg(`${file.name} is larger than 3 MB.`); return; }
+      if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) { setMsg('Please select PDF diagnostic reports only.'); setPreparingReport(false); return; }
+      if (file.size > 3 * 1024 * 1024) { setMsg(`${file.name} is larger than 3 MB.`); setPreparingReport(false); return; }
     }
     try {
       if (selected.length === 1 && !renumberPages) {
         const file = selected[0], data = await fileAsDataUrl(file);
         setF((x: any) => ({ ...x, reportName: file.name, reportData: data }));
         setReportPrepared(true);
-        setMsg('1 PDF prepared. Review the report type, then click Publish Report.');
+        setMsg(`Prepared report: ${file.name}. Review the report type, then click Publish Report.`);
+        setPreparingReport(false);
         return;
       }
       const merged = await PDFDocument.create();
@@ -218,7 +221,7 @@ export default function EditBookingPage() {
       }
       if (renumberPages) await correctPageNumbers(merged);
       const bytes = await merged.save();
-      if (bytes.byteLength > 3 * 1024 * 1024) { setMsg('The final PDF is larger than 3 MB. Please use smaller source PDFs.'); return; }
+      if (bytes.byteLength > 3 * 1024 * 1024) { setMsg('The final PDF is larger than 3 MB. Please use smaller source PDFs.'); setPreparingReport(false); return; }
       const data = await fileAsDataUrl(new Blob([bytes as BlobPart], { type: 'application/pdf' }));
       const name = selected.length === 1
         ? (renumberPages ? `TG-Labs-Corrected-Pages-${selected[0].name}` : selected[0].name)
@@ -226,8 +229,11 @@ export default function EditBookingPage() {
       setF((x: any) => ({ ...x, reportName: name, reportData: data }));
       setReportPrepared(true);
       setMsg(`${selected.length} PDF${selected.length > 1 ? 's' : ''} prepared${renumberPages ? ' with corrected final page numbering' : ''}. Review the report type, then click Publish Report.`);
+      setPreparingReport(false);
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : 'Unable to prepare the selected PDFs');
+      setReportPrepared(false);
+      setMsg(`PDF preparation failed: ${e instanceof Error ? e.message : 'Unable to prepare the selected PDFs'}`);
+      setPreparingReport(false);
     }
   }
 
@@ -434,7 +440,7 @@ export default function EditBookingPage() {
           <label>Booking Status<select style={input} value={f.status} onChange={e => set('status', e.target.value)}><option>PENDING</option><option>CONFIRMED</option><option>CANCELLED</option><option>COMPLETED</option></select></label>
           <div><label>Payment Status<input style={{ ...input, background: '#f8fafc' }} value={f.paymentStatus} readOnly /></label>{f.paymentStatus !== 'PAID' && <div style={{ display: 'flex', gap: 8, marginTop: 7 }}><select aria-label="Collection payment mode" style={{ ...input, width: 105 }} value={collectionPaymentMode} onChange={e => setCollectionPaymentMode(e.target.value as 'CASH'|'UPI'|'CARD')}><option value="CASH">Cash</option><option value="UPI">UPI</option><option value="CARD">Card</option></select><button type="button" disabled={recordingPayment} onClick={recordCollectionPayment} style={{ border: 0, borderRadius: 10, padding: '9px 12px', background: '#15803d', color: '#fff', fontWeight: 900, cursor: recordingPayment ? 'wait' : 'pointer' }}>{recordingPayment ? 'Recording…' : 'Record full payment'}</button></div>}</div>
           <label>Report type<select style={input} value={reportType} onChange={e => setReportType(e.target.value as ReportType)}><option value="PARTIAL">Partial Report</option><option value="FULL">Full Report</option></select><small style={{ display: 'block', marginTop: 6, color: '#687c76' }}>Partial keeps the booking in Processing. Full publishes the final report and moves it to Report Ready.</small></label>
-          <label>Replace / Upload Report<input type="file" accept="application/pdf,.pdf" multiple style={input} onChange={e => { report(e.target.files); e.currentTarget.value = ''; }} /><small style={{ display: 'block', marginTop: 6, color: '#687c76' }}>Select one or multiple PDFs. Multiple files are merged in selection order into one final report.</small></label>
+          <label>Replace / Upload Report<input type="file" accept="application/pdf,.pdf" multiple disabled={preparingReport || publishingReport} style={input} onChange={e => { report(e.target.files); e.currentTarget.value = ''; }} /><small style={{ display: 'block', marginTop: 6, color: '#687c76' }}>{preparingReport ? 'Preparing selected PDF…' : 'Select one or multiple PDFs. Multiple files are merged in selection order into one final report.'}</small></label>
         </div>
         <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 12, padding: '10px 12px', border: '1px solid #d7e5e0', borderRadius: 10, background: '#f8fcfa', maxWidth: 620 }}><input type="checkbox" checked={renumberPages} onChange={e => setRenumberPages(e.target.checked)} style={{ marginTop: 2 }} /><span><b>Replace / correct final page numbers</b><small style={{ display: 'block', marginTop: 3, color: '#687c76' }}>When selected, TG Labs masks the inherited right-edge page-number area across a larger vertical band plus the final footer, then writes one clean Page 1 of N, Page 2 of N… sequence after merge.</small></span></label>
         {f.reportName && <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><b>{reportPrepared ? 'Prepared report:' : 'Current report:'}</b> {f.reportName} {f.reportData && <button type="button" onClick={openReport} style={{ border: 0, background: 'transparent', padding: 0, color: '#087f6f', fontWeight: 800, textDecoration: 'underline', cursor: 'pointer' }}>Open report</button>} {!reportPrepared && f.workflowStatus !== 'REPORT_DELIVERED' && <button type="button" disabled={quarantiningReport} onClick={quarantineCurrentReport} style={{ border: '1px solid #b45309', borderRadius: 9, padding: '7px 10px', background: '#fff7ed', color: '#9a3412', fontWeight: 800, cursor: quarantiningReport ? 'wait' : 'pointer' }}>{quarantiningReport ? 'Quarantining…' : 'Quarantine incorrect report'}</button>}</div>}
