@@ -202,7 +202,7 @@ export default function PatientPage() {
 
   async function generateAiReport(report: Report, language: AiLanguage = 'en', askConsent = true) {
     if (!report.downloadUrl) return;
-    if (askConsent && !window.confirm('AI Report will use this diagnostic report for an educational explanation. Saved explanations are reused on future visits. It is not a diagnosis or a substitute for your doctor. Continue?')) return;
+    if (askConsent && !window.confirm('AI Health Report provides an educational explanation of laboratory results prepared by TG Labs. Saved explanations are reused on future visits. It is not a diagnosis or a substitute for your doctor. Continue?')) return;
 
     const auth = authOrRedirect();
     if (!auth) return;
@@ -221,7 +221,7 @@ export default function PatientPage() {
       const data = await parseAiReportResponse(res);
       setAiReports((x) => ({ ...x, [report.id]: data }));
     } catch (e) {
-      setAiError((x) => ({ ...x, [report.id]: e instanceof Error ? e.message : 'Unable to generate AI Report.' }));
+      setAiError((x) => ({ ...x, [report.id]: e instanceof Error && !/verif|structured/i.test(e.message) ? e.message : 'AI Health Report is not ready for this report yet. Please try again later.' }));
     } finally {
       setAiBusy('');
     }
