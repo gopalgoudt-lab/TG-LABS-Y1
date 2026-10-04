@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { sendWorkflowStatusWhatsApp } from '@/lib/whatsapp';
 import { adminFromRequest, writeAdminAudit } from '@/lib/admin-audit';
 import { adminAuthError } from '@/lib/admin-auth';
+import { extractDiagnosticPdfText } from '@/lib/report-pdf-extraction';
+import { parseDeidentifiedLabObservations } from '@/lib/report-observation-parser';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -129,9 +131,43 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'A partial report cannot replace a completed or delivered final report.' }, { status: 409 });
     }
 
+    let autoObservations: ReturnType<typeof parseDeidentifiedLabObservations> = [];
+    let extractionStatus: 'READY' | 'NO_SAFE_OBSERVATIONS' | 'UNAVAILABLE' = 'UNAVAILABLE';
+    let extractedPages = 0;
+    let extractionTruncated = false;
+
+    try {
+      const extracted = await extractDiagnosticPdfText(finalReportData);
+      extractedPages = extracted.pages;
+      extractionTruncated = extracted.truncated;
+      autoObservations = parseDeidentifiedLabObservations(extracted.text);
+      extractionStatus = autoObservations.length > 0 ? 'READY' : 'NO_SAFE_OBSERVATIONS';
+    } catch (extractionError) {
+      console.warn('Diagnostic PDF text extraction unavailable', extractionError);
+    }
+
     const now = new Date();
     const isFull = body.reportType === 'FULL';
-    const booking = await prisma.booking.update({
+    const booking = await prisma.$transaction(async (tx) => {
+      await tx.reportObservation.deleteMany({
+        where: { bookingId: body.bookingId, source: 'AUTO_EXTRACTED' },
+      });
+
+      if (autoObservations.length > 0) {
+        await tx.reportObservation.createMany({
+          data: autoObservations.map((observation) => ({
+            bookingId: body.bookingId,
+            parameterName: observation.parameterName,
+            value: observation.value,
+            unit: observation.unit ?? null,
+            referenceRange: observation.referenceRange ?? null,
+            flag: observation.flag ?? null,
+            source: 'AUTO_EXTRACTED',
+          })),
+        });
+      }
+
+      return tx.booking.update({
       where: { id: body.bookingId },
       data: {
         reportName: fileName,
@@ -150,11 +186,12 @@ export async function POST(request: Request) {
           ? (existing.status === 'COMPLETED' ? 'COMPLETED' : 'CONFIRMED')
           : 'CONFIRMED',
       },
-      include: {
-        patient: true,
-        assignedTechnician: { select: { id: true, name: true, phone: true, employeeCode: true } },
-        items: { include: { test: true } },
-      },
+        include: {
+          patient: true,
+          assignedTechnician: { select: { id: true, name: true, phone: true, employeeCode: true } },
+          items: { include: { test: true } },
+        },
+      });
     });
 
     await writeAdminAudit(request, {
@@ -169,6 +206,10 @@ export async function POST(request: Request) {
         pageNumbersReplaced,
         previousReportName: existing.reportName || null,
         workflowStatus: booking.workflowStatus,
+        autoExtractionStatus: extractionStatus,
+        autoObservationCount: autoObservations.length,
+        extractedPages,
+        extractionTruncated,
       },
     });
 
@@ -188,6 +229,10 @@ export async function POST(request: Request) {
       workflowStatus: booking.workflowStatus,
       reportReadyAt: booking.reportReadyAt,
       printedReportPending: isFull && booking.printedReport && !booking.reportDeliveredAt,
+      aiExtraction: {
+        status: extractionStatus,
+        observationCount: autoObservations.length,
+      },
     });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Invalid report upload.' }, { status: 400 });
