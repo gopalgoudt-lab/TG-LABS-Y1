@@ -29,6 +29,9 @@ export async function GET(request: Request) {
             reportData: true,
             reportReadyAt: true,
             reportDeliveredAt: true,
+            aiReportEn: true,
+            aiReportTe: true,
+            aiReportHi: true,
             workflowStatus: true,
             collectionDate: true,
             createdByAdmin: true, adminNotes: true,
@@ -52,6 +55,7 @@ export async function GET(request: Request) {
         tests: booking.createdByAdmin === 'THYROCARE_MANUAL' ? manualPatientTests(booking.createdByAdmin, booking.adminNotes) : booking.items.map((item) => item.test.name),
         packages: booking.packages.map((item) => item.package.name),
         downloadUrl: booking.reportData ? `/api/patient/reports/${booking.id}/file` : null,
+        aiLanguages: [booking.aiReportEn ? 'en' : null, booking.aiReportTe ? 'te' : null, booking.aiReportHi ? 'hi' : null].filter(Boolean),
         reportDocuments: booking.createdByAdmin === 'THYROCARE_MANUAL' ? manualPatientReports(booking.createdByAdmin, booking.adminNotes).map((doc) => ({ ...doc, downloadUrl: `/api/patient/reports/${booking.id}/file?documentId=${encodeURIComponent(doc.id)}` })) : [],
       })),
     });
