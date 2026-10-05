@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { adminFromRequest } from '@/lib/admin-audit';
+import { adminAuthError } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +24,7 @@ const schema = z.object({
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
+    await adminFromRequest(request);
     const { id } = await context.params;
     const body = schema.parse(await request.json());
     if (body.price > body.mrp && body.mrp > 0) return NextResponse.json({ error: 'After Discount price cannot be higher than MRP.' }, { status: 400 });
@@ -48,8 +51,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
 }
 
-export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
+    await adminFromRequest(request);
     const { id } = await context.params;
     await prisma.diagnosticTest.update({ where: { id }, data: { active: false } });
     return NextResponse.json({ success: true });
