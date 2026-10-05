@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // pdf-parse/pdf.js loads its worker and optional Node canvas at runtime.
+  // Keep the package external to the Next server bundle so Vercel traces the
+  // package files instead of rewriting worker resolution into .next chunks.
+  serverExternalPackages: ['pdf-parse', 'pdfjs-dist', '@napi-rs/canvas'],
   async redirects() {
     return [
       { source: '/appointment', destination: '/', permanent: true },
