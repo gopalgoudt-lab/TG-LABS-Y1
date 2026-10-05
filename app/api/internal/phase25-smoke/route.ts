@@ -7,7 +7,16 @@ const PACKAGE_SLUG = 'basic-health-checkup';
 const EXPECTED_PRICE = 999;
 const EXPECTED_TESTS = 5;
 
-export async function GET() {
+export async function GET(request: Request) {
+  // This endpoint performs a database-write smoke test and must never be
+  // callable by anonymous/public traffic. It is disabled unless an explicit
+  // server-side token is configured, and callers must present that token.
+  const expectedToken = process.env.INTERNAL_SMOKE_TEST_TOKEN;
+  const suppliedToken = request.headers.get('x-tg-internal-token');
+  if (!expectedToken || !suppliedToken || suppliedToken !== expectedToken) {
+    return NextResponse.json({ error: 'Not found.' }, { status: 404 });
+  }
+
   const startedAt = Date.now();
 
   try {
