@@ -142,6 +142,16 @@ export async function POST(request: Request) {
       extractionTruncated = extracted.truncated;
       autoObservations = parseDeidentifiedLabObservations(extracted.text);
       extractionStatus = autoObservations.length > 0 ? 'READY' : 'NO_SAFE_OBSERVATIONS';
+      // Privacy-safe Preview/Production diagnostic: structural counts only.
+      // Never log extracted report text, patient identity, result values or units.
+      console.info('Diagnostic PDF extraction summary', {
+        status: extractionStatus,
+        observationCount: autoObservations.length,
+        pages: extractedPages,
+        truncated: extractionTruncated,
+        textLength: extracted.text.length,
+        lineCount: extracted.text ? extracted.text.split('\\n').length : 0,
+      });
     } catch (extractionError) {
       console.warn('Diagnostic PDF text extraction unavailable', extractionError);
     }
