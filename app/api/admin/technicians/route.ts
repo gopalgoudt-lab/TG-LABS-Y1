@@ -51,6 +51,16 @@ export async function POST(request: Request) {
         notes: b.notes || null,
         loginPinHash: hashPin(b.loginPin),
       },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        employeeCode: true,
+        pincodes: true,
+        active: true,
+        notes: true,
+      },
     });
     return NextResponse.json({ technician }, { status: 201 });
   } catch (error) {
