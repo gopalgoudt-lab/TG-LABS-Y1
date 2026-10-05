@@ -26,7 +26,7 @@ export async function PATCH(request: Request) {
 
     await prisma.$transaction(async tx => {
       await tx.technician.update({ where: { id: technician.id }, data: { loginPinHash: hashPin(newPin) } });
-      await tx.technicianSession.deleteMany({ where: { technicianId: technician.id, id: { not: session.id } } });
+      await tx.technicianSession.deleteMany({ where: { technicianId: technician.id } });
     });
 
     return NextResponse.json({ ok: true });
