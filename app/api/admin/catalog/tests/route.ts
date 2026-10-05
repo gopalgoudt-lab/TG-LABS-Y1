@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { adminFromRequest } from '@/lib/admin-audit';
+import { adminAuthError } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,13 +28,15 @@ function slugify(value: string) {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  try { await adminFromRequest(request); } catch (error) { const auth = adminAuthError(error); return NextResponse.json({ error: auth.error }, { status: auth.status }); }
   const tests = await prisma.diagnosticTest.findMany({ where: { active: true }, orderBy: { createdAt: 'desc' } });
   return NextResponse.json({ tests });
 }
 
 export async function POST(request: Request) {
   try {
+    await adminFromRequest(request);
     const body = testSchema.parse(await request.json());
     if (body.price > body.mrp && body.mrp > 0) {
       return NextResponse.json({ error: 'After Discount price cannot be higher than MRP.' }, { status: 400 });
