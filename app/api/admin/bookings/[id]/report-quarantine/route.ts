@@ -26,22 +26,26 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const previousReportName = existing.reportName;
     const previousWorkflowStatus = existing.workflowStatus;
     const now = new Date();
-    const booking = await prisma.booking.update({
-      where: { id },
-      data: {
-        reportName: null,
-        reportData: null,
-        reportReadyAt: null,
-        workflowStatus: 'PROCESSING',
-        processingStartedAt: existing.processingStartedAt ?? now,
-        aiReportEn: null,
-        aiReportTe: null,
-        aiReportHi: null,
-        aiReportEnAt: null,
-        aiReportTeAt: null,
-        aiReportHiAt: null,
-      },
-      select: { id: true, workflowStatus: true, reportName: true, reportReadyAt: true },
+    const booking = await prisma.$transaction(async (tx) => {
+      const updated = await tx.booking.update({
+        where: { id },
+        data: {
+          reportName: null,
+          reportData: null,
+          reportReadyAt: null,
+          workflowStatus: 'PROCESSING',
+          processingStartedAt: existing.processingStartedAt ?? now,
+          aiReportEn: null,
+          aiReportTe: null,
+          aiReportHi: null,
+          aiReportEnAt: null,
+          aiReportTeAt: null,
+          aiReportHiAt: null,
+        },
+        select: { id: true, workflowStatus: true, reportName: true, reportReadyAt: true },
+      });
+      await tx.reportObservation.deleteMany({ where: { bookingId: id } });
+      return updated;
     });
 
     await writeAdminAudit(request, {
