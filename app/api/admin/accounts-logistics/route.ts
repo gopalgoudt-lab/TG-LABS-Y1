@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { adminFromRequest } from '@/lib/admin-audit';
+import { adminAuthError } from '@/lib/admin-auth';
 export const dynamic='force-dynamic';
-export async function GET(){
+export async function GET(request:Request){
+ try{await adminFromRequest(request)}catch(error){const auth=adminAuthError(error);return NextResponse.json({error:auth.error},{status:auth.status})}
  const [bookings,transactions,webhooks,payables]=await Promise.all([
   prisma.booking.findMany({orderBy:{createdAt:'desc'},take:200,include:{patient:{select:{name:true}},assignedTechnician:{select:{name:true}}}}),
   prisma.paymentTransaction.findMany({orderBy:{createdAt:'desc'},take:300}),
