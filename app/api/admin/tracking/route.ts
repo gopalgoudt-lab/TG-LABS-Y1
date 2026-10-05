@@ -12,7 +12,6 @@ export async function GET(request: Request) {
       bookingId: string;
       workflowStatus: string;
       patientName: string;
-      patientPhone: string;
       technicianId: string;
       technicianName: string;
       latitude: number;
@@ -26,7 +25,6 @@ export async function GET(request: Request) {
         b."id" AS "bookingId",
         b."workflowStatus",
         p."name" AS "patientName",
-        p."phone" AS "patientPhone",
         t."id" AS "technicianId",
         t."name" AS "technicianName",
         l."latitude",
