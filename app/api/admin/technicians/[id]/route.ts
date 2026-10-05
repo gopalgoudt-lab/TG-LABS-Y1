@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { hashPin } from '@/lib/technician-auth';
+import { adminFromRequest } from '@/lib/admin-audit';
+import { adminAuthError } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +20,7 @@ const schema = z.object({
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await adminFromRequest(request);
     const { id } = await params;
     const b = schema.parse(await request.json());
     const technician = await prisma.technician.update({
@@ -35,19 +38,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     });
     return NextResponse.json({ technician });
   } catch (error) {
+    const auth = adminAuthError(error);
+    if (auth.status !== 401 || error instanceof Error && error.message.startsWith('ADMIN_')) return NextResponse.json({ error: auth.error }, { status: auth.status });
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Please check technician details.', fields: error.flatten().fieldErrors }, { status: 400 });
     console.error(error);
     return NextResponse.json({ error: 'Unable to update technician.' }, { status: 500 });
   }
 }
 
-export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await adminFromRequest(request);
     const { id } = await params;
     const technician = await prisma.technician.update({ where: { id }, data: { active: false } });
     await prisma.technicianSession.deleteMany({ where: { technicianId: id } });
     return NextResponse.json({ technician });
   } catch (error) {
+    const auth = adminAuthError(error);
+    if (auth.status !== 401 || error instanceof Error && error.message.startsWith('ADMIN_')) return NextResponse.json({ error: auth.error }, { status: auth.status });
     console.error(error);
     return NextResponse.json({ error: 'Unable to deactivate technician.' }, { status: 500 });
   }
