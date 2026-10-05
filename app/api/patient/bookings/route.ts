@@ -65,7 +65,7 @@ export async function GET(request: Request) {
         tests: booking.createdByAdmin === 'THYROCARE_MANUAL' ? manualPatientTests(booking.createdByAdmin, booking.adminNotes) : booking.items.map((item) => item.test.name),
         packages: booking.packages.map((item) => item.package.name),
       })),
-    });
+    }, { headers: { 'Cache-Control': 'private, no-store, max-age=0', 'Pragma': 'no-cache', 'X-Content-Type-Options': 'nosniff' } });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'UNAUTHENTICATED';
     const authenticationErrors = new Set([
