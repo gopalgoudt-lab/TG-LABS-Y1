@@ -45,7 +45,7 @@ function workflowUpdate(existing:any,target:WorkflowStage|undefined,technician:s
 export async function GET(request:Request,{params}:{params:Promise<{id:string}>}){
  try{await adminFromRequest(request)}catch(error){const auth=adminAuthError(error);return NextResponse.json({error:auth.error},{status:auth.status})}
  const{id}=await params;
- const booking=await prisma.booking.findUnique({where:{id},include:{patient:{include:{bookings:{orderBy:{createdAt:'desc'},take:20,include:{items:{include:{test:true}}}}}},items:{include:{test:true}},payments:{where:{status:'PAID'},orderBy:{createdAt:'desc'},take:1}}});
+ const booking=await prisma.booking.findUnique({where:{id},include:{patient:{include:{bookings:{orderBy:{createdAt:'desc'},take:20,select:{id:true,collectionDate:true,slot:true,status:true,paymentStatus:true,totalAmount:true,technician:true,items:{select:{test:{select:{name:true}}}}}}}},items:{include:{test:true}},payments:{where:{status:'PAID'},orderBy:{createdAt:'desc'},take:1}}});
  if(!booking)return NextResponse.json({error:'Booking not found.'},{status:404});
  const snapshotTotal=booking.paymentReceiptSnapshot&&typeof booking.paymentReceiptSnapshot==='object'&&!Array.isArray(booking.paymentReceiptSnapshot)?Number((booking.paymentReceiptSnapshot as Record<string,unknown>).total):NaN;
  const paidTransactionAmount=booking.payments[0]?.amount;
