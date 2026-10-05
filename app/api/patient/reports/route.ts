@@ -60,7 +60,7 @@ export async function GET(request: Request) {
         aiReady: booking.reportObservations.length > 0,
         reportDocuments: booking.createdByAdmin === 'THYROCARE_MANUAL' ? manualPatientReports(booking.createdByAdmin, booking.adminNotes).map((doc) => ({ ...doc, downloadUrl: `/api/patient/reports/${booking.id}/file?documentId=${encodeURIComponent(doc.id)}` })) : [],
       })),
-    });
+    }, { headers: { 'Cache-Control': 'private, no-store, max-age=0', 'Pragma': 'no-cache', 'X-Content-Type-Options': 'nosniff' } });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'UNAUTHENTICATED';
     const authenticationErrors = new Set([
