@@ -102,7 +102,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="TG-Labs-Payment-Receipt-${booking.id.slice(-8).toUpperCase()}.pdf"`,
-        'Cache-Control': 'private, no-store',
+        'Cache-Control': 'private, no-store, max-age=0',
+        'Pragma': 'no-cache',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Robots-Tag': 'noindex, nofollow, noarchive',
+        'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'",
       },
     });
   } catch (error) {
