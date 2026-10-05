@@ -1,6 +1,4 @@
 import 'server-only';
-import { PDFParse } from 'pdf-parse';
-
 // pdf.js checks for DOMMatrix during server startup even though text extraction
 // does not need browser geometry. Provide the minimal server-side shape it expects.
 if (typeof globalThis.DOMMatrix === 'undefined') {
@@ -39,6 +37,9 @@ export async function extractDiagnosticPdfText(dataUrl: string): Promise<Extract
     throw new Error('INVALID_PDF');
   }
 
+  // Load pdf.js only after the DOMMatrix server polyfill exists. A static import
+  // is evaluated before module code and would trigger pdf.js' DOMMatrix check too early.
+  const { PDFParse } = await import('pdf-parse');
   const parser = new PDFParse({ data: new Uint8Array(bytes) });
 
   try {
