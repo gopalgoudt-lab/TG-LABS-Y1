@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { adminFromRequest } from '@/lib/admin-audit';
+import { adminAuthError } from '@/lib/admin-auth';
 import { sendWorkflowStatusWhatsApp } from '@/lib/whatsapp';
 import { writeAdminAudit } from '@/lib/admin-audit';
 
@@ -29,7 +31,8 @@ function canTransition(from:string,to:WorkflowStatus){
  return (NEXT[from as WorkflowStatus]||[]).includes(to);
 }
 
-export async function GET(){
+export async function GET(request:Request){
+ try{await adminFromRequest(request)}catch(error){const auth=adminAuthError(error);return NextResponse.json({error:auth.error},{status:auth.status})}
  const[bookings,technicians]=await Promise.all([
   prisma.booking.findMany({where:{status:{not:'CANCELLED'}},orderBy:[{collectionDate:'asc'},{slot:'asc'}],take:150,include:{patient:true,assignedTechnician:{select:{id:true,name:true,phone:true,employeeCode:true}},items:{include:{test:{select:{name:true,fastingNeeded:true,sampleTypes:true}}}}}}),
   prisma.technician.findMany({where:{active:true},orderBy:{name:'asc'},select:{id:true,name:true,phone:true,employeeCode:true,pincodes:true}})
@@ -38,6 +41,7 @@ export async function GET(){
 }
 
 export async function PATCH(request:Request){
+ try{await adminFromRequest(request)}catch(error){const auth=adminAuthError(error);return NextResponse.json({error:auth.error},{status:auth.status})}
  try{
   const body=patchSchema.parse(await request.json());
   const existing=await prisma.booking.findUnique({where:{id:body.bookingId}});
