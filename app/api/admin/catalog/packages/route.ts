@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { adminFromRequest } from '@/lib/admin-audit';
+import { adminAuthError } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +26,8 @@ const schema = z.object({
 
 const slugify = (v: string) => v.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-export async function GET() {
+export async function GET(request: Request) {
+  try { await adminFromRequest(request); } catch (error) { const auth = adminAuthError(error); return NextResponse.json({ error: auth.error }, { status: auth.status }); }
   const packages = await prisma.diagnosticPackage.findMany({
     where: { active: true },
     include: { tests: { include: { test: true } } },
@@ -35,6 +38,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    await adminFromRequest(request);
     const b = schema.parse(await request.json());
     if (b.price > b.mrp && b.mrp > 0) {
       return NextResponse.json({ error: 'After Discount price cannot be higher than MRP.' }, { status: 400 });
