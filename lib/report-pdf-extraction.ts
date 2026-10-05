@@ -37,9 +37,13 @@ export async function extractDiagnosticPdfText(dataUrl: string): Promise<Extract
     throw new Error('INVALID_PDF');
   }
 
-  // Load pdf.js only after the DOMMatrix server polyfill exists. A static import
-  // is evaluated before module code and would trigger pdf.js' DOMMatrix check too early.
+  // pdf-parse documents explicit worker setup for serverless runtimes. Using
+  // getData() makes the worker self-contained, avoiding a runtime filesystem
+  // lookup for pdf.worker.mjs inside a Vercel function.
+  const { getData } = await import('pdf-parse/worker');
   const { PDFParse } = await import('pdf-parse');
+  PDFParse.setWorker(getData());
+
   const parser = new PDFParse({ data: new Uint8Array(bytes) });
 
   try {
