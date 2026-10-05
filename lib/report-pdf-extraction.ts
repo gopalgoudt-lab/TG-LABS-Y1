@@ -1,19 +1,4 @@
 import 'server-only';
-// pdf.js checks for DOMMatrix during server startup even though text extraction
-// does not need browser geometry. Provide the minimal server-side shape it expects.
-if (typeof globalThis.DOMMatrix === 'undefined') {
-  class ServerDOMMatrix {
-    a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
-    constructor(_init?: unknown) {}
-    multiply() { return this; }
-    preMultiplySelf() { return this; }
-    translate() { return this; }
-    scale() { return this; }
-    rotate() { return this; }
-    inverse() { return this; }
-  }
-  Object.defineProperty(globalThis, 'DOMMatrix', { value: ServerDOMMatrix, configurable: true });
-}
 
 const PDF_DATA_PREFIX = 'data:application/pdf;base64,';
 const MAX_EXTRACTED_TEXT = 120_000;
@@ -37,9 +22,9 @@ export async function extractDiagnosticPdfText(dataUrl: string): Promise<Extract
     throw new Error('INVALID_PDF');
   }
 
-  // pdf-parse documents explicit worker setup for serverless runtimes. Using
-  // getData() makes the worker self-contained, avoiding a runtime filesystem
-  // lookup for pdf.worker.mjs inside a Vercel function.
+  // pdf-parse owns its Node compatibility setup. In serverless runtimes the
+  // worker must be supplied explicitly as embedded data so pdf.js never looks
+  // for pdf.worker.mjs on the function filesystem.
   const { getData } = await import('pdf-parse/worker');
   const { PDFParse } = await import('pdf-parse');
   PDFParse.setWorker(getData());
