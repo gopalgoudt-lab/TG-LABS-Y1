@@ -22,12 +22,15 @@ export async function GET(request: Request) {
   try { await adminFromRequest(request); } catch (error) { const auth = adminAuthError(error); return NextResponse.json({ error: auth.error }, { status: auth.status }); }
   const technicians = await prisma.technician.findMany({
     orderBy: [{ active: 'desc' }, { name: 'asc' }],
-    include: {
-      bookings: {
-        orderBy: { collectionDate: 'desc' },
-        take: 50,
-        include: { patient: true, items: { include: { test: true } } },
-      },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      email: true,
+      employeeCode: true,
+      pincodes: true,
+      active: true,
+      notes: true,
     },
   });
   return NextResponse.json({ technicians });
