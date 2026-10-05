@@ -27,8 +27,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const now = new Date();
     const booking = await prisma.$transaction(async tx => {
-      const updated = await tx.booking.update({
-        where: { id },
+      const updated = await tx.booking.updateMany({
+        where: {
+          id,
+          status: { notIn: ['CANCELLED', 'COMPLETED'] },
+          workflowStatus: existing.workflowStatus,
+          technicianId: existing.technicianId,
+        },
         data: {
           technicianId: technician?.id || null,
           technician: technician?.name || null,
@@ -40,8 +45,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           sampleCollectedAt: null,
           sampleReceivedAt: null,
         },
-        include: { patient: true, assignedTechnician: true, items: { include: { test: true } } },
       });
+      if (updated.count !== 1) throw new Error('ASSIGNMENT_CONFLICT');
       await tx.adminAuditLog.create({ data: {
         adminPhone: admin.phone,
         action: technician ? 'TECHNICIAN_ASSIGNED' : 'TECHNICIAN_UNASSIGNED',
@@ -61,10 +66,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       } });
       return updated;
     });
-    return NextResponse.json({ booking });
+    return NextResponse.json({ ok: true, technicianId: technician?.id || null, workflowStatus: technician ? 'TECHNICIAN_ASSIGNED' : 'BOOKING_CREATED' });
   } catch (error) {
     const message = error instanceof Error ? error.message : '';
     if (message === 'UNAUTHENTICATED' || message.startsWith('ADMIN_')) return NextResponse.json({ error: 'Admin authentication required.' }, { status: 401 });
+    if (message === 'ASSIGNMENT_CONFLICT') return NextResponse.json({ error: 'Booking changed while assigning technician. Refresh and try again.' }, { status: 409 });
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Invalid technician assignment.' }, { status: 400 });
     console.error('Technician assignment failed', error);
     return NextResponse.json({ error: 'Unable to assign technician.' }, { status: 500 });
