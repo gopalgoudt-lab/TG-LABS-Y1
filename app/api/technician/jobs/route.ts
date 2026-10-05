@@ -33,5 +33,5 @@ export async function GET() {
       },
     },
   });
-  return NextResponse.json({ technician: session.technician, bookings });
+  return NextResponse.json({ technician: { name: session.technician.name, phone: session.technician.phone, employeeCode: session.technician.employeeCode }, bookings });
 }
