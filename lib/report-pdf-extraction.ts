@@ -33,10 +33,13 @@ export async function extractDiagnosticPdfText(dataUrl: string): Promise<Extract
 
   try {
     const result = await parser.getText();
+    // Preserve tabs and repeated spaces because diagnostic PDFs commonly use
+    // them as table-column boundaries. The observation parser relies on those
+    // boundaries to separate parameter, result, unit and reference range.
     const normalized = (result.text ?? '')
       .replace(/\0/g, '')
       .replace(/\r\n?/g, '\n')
-      .replace(/[ \t]+/g, ' ')
+      .replace(/[ \f\v]+$/gm, '')
       .replace(/\n{4,}/g, '\n\n\n')
       .trim();
 
