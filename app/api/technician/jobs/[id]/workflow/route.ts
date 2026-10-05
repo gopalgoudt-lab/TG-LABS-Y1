@@ -25,19 +25,36 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const now = new Date();
     const booking = await prisma.$transaction(async tx => {
-      const updated = await tx.booking.update({
-        where: { id },
+      const claimed = await tx.booking.updateMany({
+        where: {
+          id,
+          technicianId: session.technicianId,
+          workflowStatus: existing.workflowStatus,
+          status: { notIn: ['CANCELLED', 'COMPLETED'] },
+        },
         data: {
           workflowStatus: body.status,
           technicianNotes: body.notes || existing.technicianNotes,
           ...technicianTimestamp(body.status, now),
         },
-        include: {
-          patient: true,
+      });
+      if (claimed.count !== 1) throw new Error('TECHNICIAN_JOB_CHANGED');
+
+      const updated = await tx.booking.findFirst({
+        where: { id, technicianId: session.technicianId },
+        select: {
+          id: true, workflowStatus: true, collectionDate: true, slot: true,
+          address: true, pincode: true, paymentStatus: true, paymentMode: true,
+          totalAmount: true, technicianNotes: true, doctorName: true,
+          printedReport: true, printedReportFee: true,
+          patient: { select: { name: true, phone: true, email: true, age: true, gender: true } },
           assignedTechnician: { select: { name: true } },
-          items: { include: { test: true } },
+          items: { select: { price: true, test: { select: {
+            name: true, sampleTypes: true, sampleTypeOther: true, fastingNeeded: true, tat: true
+          } } } },
         },
       });
+      if (!updated) throw new Error('TECHNICIAN_JOB_CHANGED');
       if (body.status !== existing.workflowStatus) {
         await tx.adminAuditLog.create({ data: {
           adminPhone: session.technician.phone,
@@ -70,6 +87,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ booking });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Invalid workflow update.' }, { status: 400 });
+    if (error instanceof Error && error.message === 'TECHNICIAN_JOB_CHANGED') return NextResponse.json({ error: 'This assignment changed. Refresh your jobs before updating it.' }, { status: 409 });
     console.error('Technician workflow update failed', error);
     return NextResponse.json({ error: 'Unable to update job.' }, { status: 500 });
   }
