@@ -15,6 +15,7 @@ const INSTRUCTION_LIKE = /\b(?:ignore|instruction|prompt|system|assistant|develo
 const VALUE_TOKEN = /^(?:[<>]=?\s*)?(?:\d+(?:\.\d+)?|positive|negative|reactive|non[- ]?reactive|detected|not\s+detected)$/i;
 const FLAG_TOKEN = /^(?:normal|low|high|borderline|critical|abnormal|positive|negative|l|h)$/i;
 const RANGE_TOKEN = /^(?:[<>]=?\s*)?\d+(?:\.\d+)?\s*(?:-|–|—|to)\s*(?:[<>]=?\s*)?\d+(?:\.\d+)?$/i;
+const INLINE_RESULT_ROW = /^(.{2,120}?[A-Za-z][A-Za-z0-9 ()./%+_-]{0,118}?)\s+(?:([HL])\s+)?((?:[<>]=?\s*)?\d+(?:\.\d+)?|positive|negative|reactive|non[- ]?reactive|detected|not\s+detected)\s+(.{1,40}?)\s+((?:[<>]=?\s*)?\d+(?:\.\d+)?\s*(?:-|–|—|to)\s*(?:[<>]=?\s*)?\d+(?:\.\d+)?)$/i;
 
 function clean(value: string | undefined, max = MAX_FIELD) {
   return (value ?? '').replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
@@ -34,6 +35,32 @@ function normalizeFlag(value: string | undefined) {
   return flag;
 }
 
+function validParameterName(parameterName: string) {
+  return Boolean(parameterName && parameterName.length >= 2 && /[A-Za-z]/.test(parameterName) && !IDENTITY_OR_HEADER.test(parameterName) && !INSTRUCTION_LIKE.test(parameterName));
+}
+
+function parseInlineResultRow(line: string): AutoExtractedObservation | null {
+  const match = line.match(INLINE_RESULT_ROW);
+  if (!match) return null;
+
+  const parameterName = clean(match[1]);
+  const flag = normalizeFlag(match[2]);
+  const value = clean(match[3]);
+  const unit = clean(match[4], 40);
+  const referenceRange = clean(match[5]);
+
+  if (!validParameterName(parameterName) || !VALUE_TOKEN.test(value) || !RANGE_TOKEN.test(referenceRange)) return null;
+  if (!unit || VALUE_TOKEN.test(unit) || RANGE_TOKEN.test(unit) || INSTRUCTION_LIKE.test(unit)) return null;
+
+  return {
+    parameterName,
+    value,
+    unit,
+    referenceRange,
+    ...(flag ? { flag } : {}),
+  };
+}
+
 function parseDelimited(line: string): AutoExtractedObservation | null {
   const delimiter = line.includes('\t') ? /\t+/ : line.includes('|') ? /\s*\|\s*/ : /\s{2,}/;
   const cells = line.split(delimiter).map((cell) => clean(cell)).filter(Boolean);
@@ -44,8 +71,7 @@ function parseDelimited(line: string): AutoExtractedObservation | null {
 
   const parameterName = clean(cells.slice(0, valueIndex).join(' '));
   const value = clean(cells[valueIndex]);
-  if (!parameterName || parameterName.length < 2 || !/[A-Za-z]/.test(parameterName)) return null;
-  if (IDENTITY_OR_HEADER.test(parameterName) || INSTRUCTION_LIKE.test(parameterName)) return null;
+  if (!validParameterName(parameterName)) return null;
 
   const tail = cells.slice(valueIndex + 1);
   let flag: string | undefined;
@@ -76,9 +102,10 @@ function parseDelimited(line: string): AutoExtractedObservation | null {
 /**
  * Conservative local parser for text extracted from diagnostic PDFs.
  *
- * It intentionally accepts only table-like rows with an explicit result value.
- * Identity/header lines and instruction-like content are discarded. Ambiguous
- * lines fail closed instead of becoming AI input.
+ * It accepts conventional table rows and a guarded single-space fallback for
+ * common lab layouts (for example SagePath CBC rows) only when an explicit
+ * result, unit and numeric reference range are all present. Identity/header
+ * lines and instruction-like content are discarded. Ambiguous lines fail closed.
  */
 export function parseDeidentifiedLabObservations(text: string): AutoExtractedObservation[] {
   if (!text) return [];
@@ -90,7 +117,7 @@ export function parseDeidentifiedLabObservations(text: string): AutoExtractedObs
     const line = safeLine(rawLine);
     if (!line) continue;
 
-    const parsed = parseDelimited(line);
+    const parsed = parseDelimited(line) ?? parseInlineResultRow(line);
     if (!parsed) continue;
 
     const key = `${parsed.parameterName.toLowerCase()}\u0000${parsed.value.toLowerCase()}\u0000${(parsed.unit ?? '').toLowerCase()}`;
