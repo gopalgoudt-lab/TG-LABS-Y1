@@ -35,7 +35,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         notes: b.notes || null,
         ...(b.loginPin ? { loginPinHash: hashPin(b.loginPin) } : {}),
       },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        employeeCode: true,
+        pincodes: true,
+        active: true,
+        notes: true,
+      },
     });
+    if (b.loginPin) await prisma.technicianSession.deleteMany({ where: { technicianId: id } });
     return NextResponse.json({ technician });
   } catch (error) {
     const auth = adminAuthError(error);
@@ -50,7 +61,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   try {
     await adminFromRequest(request);
     const { id } = await params;
-    const technician = await prisma.technician.update({ where: { id }, data: { active: false } });
+    const technician = await prisma.technician.update({
+      where: { id },
+      data: { active: false },
+      select: { id: true, name: true, phone: true, email: true, employeeCode: true, pincodes: true, active: true, notes: true },
+    });
     await prisma.technicianSession.deleteMany({ where: { technicianId: id } });
     return NextResponse.json({ technician });
   } catch (error) {
