@@ -36,9 +36,17 @@ export async function extractDiagnosticPdfText(dataUrl: string): Promise<Extract
     // Preserve tabs and repeated spaces because diagnostic PDFs commonly use
     // them as table-column boundaries. The observation parser relies on those
     // boundaries to separate parameter, result, unit and reference range.
-    const normalized = (result.text ?? '')
+    const rawText = result.text ?? '';
+
+    // pdf.js may expose table rows as positioned text items while getText()
+    // returns the whole page as one physical line. Recover conservative row
+    // boundaries from large horizontal gaps before observation parsing. This
+    // does not interpret clinical values; the downstream parser still fails
+    // closed unless a row has a valid result/unit/range shape.
+    const normalized = rawText
       .replace(/\0/g, '')
       .replace(/\r\n?/g, '\n')
+      .replace(/([^\n\t ]) {3,}(?=[A-Za-z][A-Za-z0-9 (])/g, '$1\n')
       .replace(/[ \f\v]+$/gm, '')
       .replace(/\n{4,}/g, '\n\n\n')
       .trim();
