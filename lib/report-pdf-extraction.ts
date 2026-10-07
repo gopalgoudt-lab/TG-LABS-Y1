@@ -38,7 +38,14 @@ export async function extractDiagnosticPdfText(dataUrl: string): Promise<Extract
     // report to one physical line. Table extraction is coordinate/layout based
     // and gives us row boundaries without interpreting clinical meaning.
     let extractedText = result.text ?? '';
-    if (!/[\r\n]/.test(extractedText)) {
+    const meaningfulLineCount = extractedText
+      .replace(/\0/g, '')
+      .replace(/\r\n?/g, '\n')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean).length;
+
+    if (meaningfulLineCount <= 1) {
       try {
         const tableResult = await parser.getTable();
         const tableRows = tableResult.pages.flatMap((page) =>
