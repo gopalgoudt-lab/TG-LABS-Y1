@@ -47,12 +47,24 @@ export async function extractDiagnosticPdfText(dataUrl: string): Promise<Extract
     // normalization that downstream observation parsing receives.
     let extractedText = result.text ?? '';
     let normalized = normalizeText(extractedText);
+    const rawMeaningfulLineCount = extractedText
+      .replace(/\0/g, '')
+      .replace(/\r\n?/g, '\n')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean).length;
     const normalizedMeaningfulLineCount = normalized
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean).length;
 
+    let tableAttempted = false;
+    let tableExtractionFailed = false;
+    let tableCount = 0;
+    let tableRowCount = 0;
+
     if (normalizedMeaningfulLineCount <= 1) {
+      tableAttempted = true;
       try {
         const tableResult = await parser.getTable();
         const tableRows = tableResult.pages.flatMap((page) =>
@@ -61,28 +73,35 @@ export async function extractDiagnosticPdfText(dataUrl: string): Promise<Extract
           ),
         ).filter(Boolean);
 
-        console.info('Diagnostic PDF layout summary', {
-          normalizedTextCollapsed: true,
-          normalizedMeaningfulLineCount,
-          tablePages: tableResult.pages.length,
-          tableCount: tableResult.pages.reduce((sum, page) => sum + page.tables.length, 0),
-          tableRowCount: tableRows.length,
-        });
+        tableCount = tableResult.pages.reduce((sum, page) => sum + page.tables.length, 0);
+        tableRowCount = tableRows.length;
 
         if (tableRows.length) {
           extractedText = tableRows.join('\n');
           normalized = normalizeText(extractedText);
         }
-      } catch (error) {
-        console.info('Diagnostic PDF layout summary', {
-          normalizedTextCollapsed: true,
-          normalizedMeaningfulLineCount,
-          tableExtractionFailed: true,
-          errorName: error instanceof Error ? error.name : 'UnknownError',
-        });
-        // Never log report text or cells: diagnostic reports may contain PHI.
+      } catch {
+        tableExtractionFailed = true;
+        // Never log report text, cells, values, names or error messages:
+        // diagnostic reports may contain PHI.
       }
     }
+
+    const finalMeaningfulLineCount = normalized
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean).length;
+    console.info('Diagnostic PDF extraction stages', {
+      rawLength: extractedText.length,
+      rawMeaningfulLineCount,
+      normalizedLength: normalized.length,
+      normalizedMeaningfulLineCount,
+      tableAttempted,
+      tableExtractionFailed,
+      tableCount,
+      tableRowCount,
+      finalMeaningfulLineCount,
+    });
 
     if (!normalized) throw new Error('PDF_TEXT_NOT_FOUND');
 
