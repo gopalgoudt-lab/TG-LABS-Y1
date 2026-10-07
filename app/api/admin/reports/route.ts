@@ -150,7 +150,7 @@ export async function POST(request: Request) {
         pages: extractedPages,
         truncated: extractionTruncated,
         textLength: extracted.text.length,
-        lineCount: extracted.text ? extracted.text.split('\\n').length : 0,
+        lineCount: extracted.text ? extracted.text.split(/\r?\n/).length : 0,
       });
     } catch (extractionError) {
       console.warn('Diagnostic PDF text extraction unavailable', extractionError);
