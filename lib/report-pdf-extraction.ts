@@ -34,18 +34,25 @@ export async function extractDiagnosticPdfText(dataUrl: string): Promise<Extract
   try {
     const result = await parser.getText();
 
-    // Prefer pdf-parse's table extractor when getText() collapses a diagnostic
-    // report to one physical line. Table extraction is coordinate/layout based
-    // and gives us row boundaries without interpreting clinical meaning.
+    const normalizeText = (value: string) =>
+      value
+        .replace(/\0/g, '')
+        .replace(/\r\n?/g, '\n')
+        .replace(/([^\n\t ]) {3,}(?=[A-Za-z][A-Za-z0-9 (])/g, '$1\n')
+        .replace(/[ \f\v]+$/gm, '')
+        .replace(/\n{4,}/g, '\n\n\n')
+        .trim();
+
+    // Decide whether the PDF is collapsed only after applying the same
+    // normalization that downstream observation parsing receives.
     let extractedText = result.text ?? '';
-    const meaningfulLineCount = extractedText
-      .replace(/\0/g, '')
-      .replace(/\r\n?/g, '\n')
+    let normalized = normalizeText(extractedText);
+    const normalizedMeaningfulLineCount = normalized
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean).length;
 
-    if (meaningfulLineCount <= 1) {
+    if (normalizedMeaningfulLineCount <= 1) {
       try {
         const tableResult = await parser.getTable();
         const tableRows = tableResult.pages.flatMap((page) =>
@@ -53,40 +60,29 @@ export async function extractDiagnosticPdfText(dataUrl: string): Promise<Extract
             table.map((row) => row.map((cell) => String(cell ?? '').trim()).filter(Boolean).join('\t')),
           ),
         ).filter(Boolean);
+
         console.info('Diagnostic PDF layout summary', {
-          textCollapsed: true,
+          normalizedTextCollapsed: true,
+          normalizedMeaningfulLineCount,
           tablePages: tableResult.pages.length,
           tableCount: tableResult.pages.reduce((sum, page) => sum + page.tables.length, 0),
           tableRowCount: tableRows.length,
         });
-        if (tableRows.length) extractedText = tableRows.join('\n');
+
+        if (tableRows.length) {
+          extractedText = tableRows.join('\n');
+          normalized = normalizeText(extractedText);
+        }
       } catch (error) {
         console.info('Diagnostic PDF layout summary', {
-          textCollapsed: true,
+          normalizedTextCollapsed: true,
+          normalizedMeaningfulLineCount,
           tableExtractionFailed: true,
           errorName: error instanceof Error ? error.name : 'UnknownError',
         });
-        // Never log extracted report text or cell contents: reports may contain PHI.
-        // Fail back to plain text. The observation parser remains fail-closed.
+        // Never log report text or cells: diagnostic reports may contain PHI.
       }
     }
-    // Preserve tabs and repeated spaces because diagnostic PDFs commonly use
-    // them as table-column boundaries. The observation parser relies on those
-    // boundaries to separate parameter, result, unit and reference range.
-    const rawText = extractedText;
-
-    // pdf.js may expose table rows as positioned text items while getText()
-    // returns the whole page as one physical line. Recover conservative row
-    // boundaries from large horizontal gaps before observation parsing. This
-    // does not interpret clinical values; the downstream parser still fails
-    // closed unless a row has a valid result/unit/range shape.
-    const normalized = rawText
-      .replace(/\0/g, '')
-      .replace(/\r\n?/g, '\n')
-      .replace(/([^\n\t ]) {3,}(?=[A-Za-z][A-Za-z0-9 (])/g, '$1\n')
-      .replace(/[ \f\v]+$/gm, '')
-      .replace(/\n{4,}/g, '\n\n\n')
-      .trim();
 
     if (!normalized) throw new Error('PDF_TEXT_NOT_FOUND');
 
