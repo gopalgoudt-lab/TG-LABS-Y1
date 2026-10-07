@@ -32,17 +32,29 @@ export async function extractDiagnosticPdfText(dataUrl: string): Promise<Extract
   const parser = new PDFParse({ data: new Uint8Array(bytes) });
 
   try {
-    const result = await parser.getText({
-      // pdf-parse/pdf.js can otherwise concatenate positioned text items from
-      // diagnostic tables into one physical line. A small page-level cell
-      // threshold preserves row boundaries without interpreting any values.
-      cellSeparator: '\t',
-      lineThreshold: 4,
-    });
+    const result = await parser.getText();
+
+    // Prefer pdf-parse's table extractor when getText() collapses a diagnostic
+    // report to one physical line. Table extraction is coordinate/layout based
+    // and gives us row boundaries without interpreting clinical meaning.
+    let extractedText = result.text ?? '';
+    if (!/[\r\n]/.test(extractedText)) {
+      try {
+        const tableResult = await parser.getTable();
+        const tableRows = tableResult.pages.flatMap((page) =>
+          page.tables.flatMap((table) =>
+            table.map((row) => row.map((cell) => String(cell ?? '').trim()).filter(Boolean).join('\t')),
+          ),
+        ).filter(Boolean);
+        if (tableRows.length) extractedText = tableRows.join('\n');
+      } catch {
+        // Fail back to plain text. The observation parser remains fail-closed.
+      }
+    }
     // Preserve tabs and repeated spaces because diagnostic PDFs commonly use
     // them as table-column boundaries. The observation parser relies on those
     // boundaries to separate parameter, result, unit and reference range.
-    const rawText = result.text ?? '';
+    const rawText = extractedText;
 
     // pdf.js may expose table rows as positioned text items while getText()
     // returns the whole page as one physical line. Recover conservative row
