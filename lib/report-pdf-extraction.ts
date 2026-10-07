@@ -46,8 +46,20 @@ export async function extractDiagnosticPdfText(dataUrl: string): Promise<Extract
             table.map((row) => row.map((cell) => String(cell ?? '').trim()).filter(Boolean).join('\t')),
           ),
         ).filter(Boolean);
+        console.info('Diagnostic PDF layout summary', {
+          textCollapsed: true,
+          tablePages: tableResult.pages.length,
+          tableCount: tableResult.pages.reduce((sum, page) => sum + page.tables.length, 0),
+          tableRowCount: tableRows.length,
+        });
         if (tableRows.length) extractedText = tableRows.join('\n');
-      } catch {
+      } catch (error) {
+        console.info('Diagnostic PDF layout summary', {
+          textCollapsed: true,
+          tableExtractionFailed: true,
+          errorName: error instanceof Error ? error.name : 'UnknownError',
+        });
+        // Never log extracted report text or cell contents: reports may contain PHI.
         // Fail back to plain text. The observation parser remains fail-closed.
       }
     }
