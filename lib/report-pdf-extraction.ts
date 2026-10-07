@@ -32,7 +32,13 @@ export async function extractDiagnosticPdfText(dataUrl: string): Promise<Extract
   const parser = new PDFParse({ data: new Uint8Array(bytes) });
 
   try {
-    const result = await parser.getText();
+    const result = await parser.getText({
+      // pdf-parse/pdf.js can otherwise concatenate positioned text items from
+      // diagnostic tables into one physical line. A small page-level cell
+      // threshold preserves row boundaries without interpreting any values.
+      cellSeparator: '\t',
+      lineThreshold: 4,
+    });
     // Preserve tabs and repeated spaces because diagnostic PDFs commonly use
     // them as table-column boundaries. The observation parser relies on those
     // boundaries to separate parameter, result, unit and reference range.
