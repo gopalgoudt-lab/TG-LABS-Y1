@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -80,6 +81,26 @@ export async function GET(request: NextRequest) {
   return new NextResponse("Forbidden", { status: 403 });
 }
 
+/**function hasValidMetaSignature(
+  rawBody: string,
+  signature: string | null,
+  appSecret: string
+): boolean {
+  if (!signature || !/^sha256=[a-f0-9]{64}$/i.test(signature)) {
+    return false;
+  }
+
+  const expected = createHmac("sha256", appSecret)
+    .update(rawBody, "utf8")
+    .digest();
+
+  const received = Buffer.from(signature.slice(7), "hex");
+
+  return (
+    received.length === expected.length &&
+    timingSafeEqual(received, expected)
+  );
+}
 /**
  * Receives WhatsApp Cloud API webhook events.
  * Delivery status observability is intentionally log-only: it does not persist
@@ -87,7 +108,27 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const payload = await request.json();
+    const appSecret = process.env.WHATSAPP_APP_SECRET;
+
+if (!appSecret) {
+  console.error("WhatsApp webhook app secret is not configured");
+  return NextResponse.json({ received: false }, { status: 503 });
+}
+
+const rawBody = await request.text();
+
+if (
+  !hasValidMetaSignature(
+    rawBody,
+    request.headers.get("x-hub-signature-256"),
+    appSecret
+  )
+) {
+  console.warn("WhatsApp webhook signature rejected");
+  return NextResponse.json({ received: false }, { status: 403 });
+}
+
+const payload = JSON.parse(rawBody);
 
     if (payload?.object !== "whatsapp_business_account") {
       return NextResponse.json({ received: false }, { status: 400 });
