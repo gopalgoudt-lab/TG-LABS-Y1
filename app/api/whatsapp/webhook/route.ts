@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
   return new NextResponse("Forbidden", { status: 403 });
 }
 
-/**function hasValidMetaSignature(
+function hasValidMetaSignature(
   rawBody: string,
   signature: string | null,
   appSecret: string
