@@ -32,7 +32,7 @@ CREATE UNIQUE INDEX "BookingFinancialAdjustment_correctionKey_key"
   ON "BookingFinancialAdjustment"("correctionKey");
 CREATE UNIQUE INDEX "BookingFinancialAdjustment_correctedReceiptId_key"
   ON "BookingFinancialAdjustment"("correctedReceiptId");
-CREATE INDEX "BookingFinancialAdjustment_bookingId_createdAt_idx"
-  ON "BookingFinancialAdjustment"("bookingId", "createdAt");
+CREATE UNIQUE INDEX "BookingFinancialAdjustment_bookingId_key"
+  ON "BookingFinancialAdjustment"("bookingId");
 CREATE INDEX "BookingFinancialAdjustment_approvedAt_idx"
   ON "BookingFinancialAdjustment"("approvedAt");
