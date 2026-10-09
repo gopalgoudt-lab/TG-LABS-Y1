@@ -9,6 +9,8 @@ on:
       - 'tests/corrected-manual-upi-receipt.test.ts'
       - 'lib/manual-upi-correction-preflight.ts'
       - 'lib/manual-upi-approval-evidence.ts'
+      - 'lib/manual-upi-atomic-adjustment.ts'
+      - 'lib/manual-upi-transaction-audit.ts'
       - 'tests/manual-upi-approval-evidence.test.ts'
       - 'tests/manual-upi-correction-preflight.test.ts'
       - 'app/api/admin/bookings/**'
