@@ -7,6 +7,9 @@ on:
       - 'tests/manual-upi-correction.test.ts'
       - 'lib/corrected-manual-upi-receipt.ts'
       - 'tests/corrected-manual-upi-receipt.test.ts'
+      - 'lib/manual-upi-correction-preflight.ts'
+      - 'tests/manual-upi-correction-preflight.test.ts'
+      - 'app/api/admin/bookings/**'
       - 'prisma/schema.prisma'
       - 'prisma/migrations/**'
       - '.github/workflows/manual-upi-correction-validation.yml'
@@ -27,6 +30,6 @@ jobs:
         env:
           NEON_DATABASE_URL: postgresql://validation:validation@localhost:5432/validation?schema=public
       - name: Test manual UPI amount rules
-        run: node --import tsx --test tests/manual-upi-correction.test.ts tests/corrected-manual-upi-receipt.test.ts
+        run: node --import tsx --test tests/manual-upi-correction.test.ts tests/corrected-manual-upi-receipt.test.ts tests/manual-upi-correction-preflight.test.ts
       - name: Typecheck correction files in isolation
-        run: npx tsc --noEmit --skipLibCheck --target es2022 --module nodenext --moduleResolution nodenext --types node lib/manual-upi-correction.ts lib/corrected-manual-upi-receipt.ts tests/manual-upi-correction.test.ts tests/corrected-manual-upi-receipt.test.ts
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module nodenext --moduleResolution nodenext --types node lib/manual-upi-correction.ts lib/corrected-manual-upi-receipt.ts lib/manual-upi-correction-preflight.ts tests/manual-upi-correction-preflight.test.ts tests/manual-upi-correction.test.ts tests/corrected-manual-upi-receipt.test.ts
