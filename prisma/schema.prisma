@@ -369,6 +369,7 @@ model Booking {
   packages             BookingPackage[]
   payments             PaymentTransaction[]
   financialAdjustments BookingFinancialAdjustment[]
+  manualUpiApprovals   ManualUpiCorrectionApproval[]
   partnerPayables      PartnerPayable[]
   reportObservations   ReportObservation[]
 
@@ -574,5 +575,28 @@ model BookingFinancialAdjustment {
   createdAt             DateTime @default(now())
 
   @@unique([bookingId])
+  @@index([approvedAt])
+}
+
+
+// Server-side approval record, not a client-supplied approval flag.
+// Recording approval alone never changes financial records.
+model ManualUpiCorrectionApproval {
+  id                        String   @id @default(cuid())
+  bookingId                 String   @unique
+  booking                   Booking  @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  originalReceiptHash       String
+  phonePeReferenceHash      String
+  bankCreditEvidenceRef     String
+  paymentVerifiedByUid      String
+  requestedByUid            String
+  approvedByUid             String
+  discountAmount            Int
+  verifiedPaidAmount        Int
+  approvalReason            String
+  paymentVerifiedAt         DateTime
+  approvedAt                DateTime
+  createdAt                 DateTime @default(now())
+
   @@index([approvedAt])
 }
