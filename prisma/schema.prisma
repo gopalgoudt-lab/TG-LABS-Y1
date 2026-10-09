@@ -368,6 +368,7 @@ model Booking {
   items                BookingItem[]
   packages             BookingPackage[]
   payments             PaymentTransaction[]
+  financialAdjustments BookingFinancialAdjustment[]
   partnerPayables      PartnerPayable[]
   reportObservations   ReportObservation[]
 
@@ -547,4 +548,31 @@ model ThyrocareCredential {
   @@unique([phone, role])
   @@index([phone])
   @@index([role])
+}
+
+
+// Append-only correction evidence. Rows are never edited to rewrite a paid receipt.
+// This model is intentionally not wired to a Production write endpoint yet.
+model BookingFinancialAdjustment {
+  id                    String   @id @default(cuid())
+  bookingId             String
+  booking               Booking  @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  correctionKey         String   @unique
+  originalGrossAmount   Int
+  discountAmount        Int
+  correctedNetAmount    Int
+  verifiedPaidAmount    Int
+  paymentMethod         String
+  collectionAccountType String
+  paymentReferenceHash  String
+  evidenceReference     String
+  originalReceiptHash   String?
+  correctedReceiptId    String?  @unique
+  reason                String
+  approvedBy            String
+  approvedAt            DateTime
+  createdAt             DateTime @default(now())
+
+  @@index([bookingId, createdAt])
+  @@index([approvedAt])
 }
