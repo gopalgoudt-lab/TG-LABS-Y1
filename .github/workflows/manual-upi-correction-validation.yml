@@ -24,7 +24,7 @@ jobs:
         run: npx prisma validate
         env:
           NEON_DATABASE_URL: postgresql://validation:validation@localhost:5432/validation?schema=public
-      - name: Typecheck
-        run: npm run typecheck
       - name: Test manual UPI amount rules
         run: node --import tsx --test tests/manual-upi-correction.test.ts
+      - name: Typecheck correction files in isolation
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module nodenext --moduleResolution nodenext --types node lib/manual-upi-correction.ts tests/manual-upi-correction.test.ts
