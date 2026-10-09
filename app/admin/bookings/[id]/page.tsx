@@ -328,6 +328,23 @@ export default function EditBookingPage() {
     } finally { setRecordingPayment(false); }
   }
 
+  async function saveWorkflowStage() {
+    setSaving(true); setMsg('');
+    try {
+      const response = await fetch(`/api/admin/bookings/${id}/workflow`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workflowStatus: f.workflowStatus }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to save workflow stage');
+      setTimes((previous: any) => ({ ...previous, ...result.booking }));
+      set('workflowStatus', result.booking.workflowStatus);
+      setMsg('Workflow stage saved successfully.');
+    } catch (error) {
+      setMsg(error instanceof Error ? error.message : 'Unable to save workflow stage');
+    } finally { setSaving(false); }
+  }
+
   async function save() {
     setSaving(true); setMsg('');
     try {
@@ -397,6 +414,8 @@ export default function EditBookingPage() {
           {FLOW.map(([code, label], i) => { const current = FLOW.findIndex(x => x[0] === f.workflowStatus); const reached = i <= current; const key = stampKeys[code]; return <div key={code} style={{ padding: 12, borderRadius: 12, border: `1px solid ${reached ? '#8bcbbb' : '#dfe9e5'}`, background: reached ? '#eff9f6' : '#fafcfc' }}><div style={{ fontWeight: 900, color: reached ? '#087f6f' : '#758681' }}>{i + 1}. {label}</div><small>{code === 'BOOKING_CREATED' ? when(times.createdAt) : when(times[key])}</small></div>; })}
         </div>
         <label style={{ fontWeight: 800 }}>Update workflow stage<select style={{ ...input, marginTop: 6 }} value={f.workflowStatus} onChange={e => set('workflowStatus', e.target.value)}>{FLOW.map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
+        <button type="button" disabled={saving || f.workflowStatus === times.workflowStatus} onClick={saveWorkflowStage} style={{ marginTop: 12, padding: '12px 16px', background: '#087f6f', color: 'white', border: 0, borderRadius: 10, fontWeight: 800 }}>{saving ? 'Saving…' : 'Save Workflow Stage Only'}</button>
+        {msg && <div role="status" style={{ marginTop: 10, color: msg.includes('successfully') ? '#087f6f' : '#b91c1c', fontWeight: 700 }}>{msg}</div>}
         <div style={{ fontSize: 12, color: '#687c76', marginTop: 8 }}>When you save a new stage, TG Labs records its timestamp automatically. Report Delivered will also mark the booking Completed.</div>
       </section>
 
