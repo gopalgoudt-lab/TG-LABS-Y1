@@ -29,6 +29,10 @@ jobs:
         run: npx prisma validate
         env:
           NEON_DATABASE_URL: postgresql://validation:validation@localhost:5432/validation?schema=public
+      - name: Generate Prisma client for API build
+        run: npx prisma generate
+        env:
+          NEON_DATABASE_URL: postgresql://validation:validation@localhost:5432/validation?schema=public
       - name: Test manual UPI amount rules
         run: node --import tsx --test tests/manual-upi-correction.test.ts tests/corrected-manual-upi-receipt.test.ts tests/manual-upi-correction-preflight.test.ts
       - name: Typecheck correction files in isolation
