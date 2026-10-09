@@ -39,7 +39,7 @@ function fakeDatabase(options: { approved?: boolean; failAudit?: boolean; existi
     } },
   };
   const db = {
-    $transaction: async (fn: (tx: typeof tx) => Promise<unknown>) => fn(tx),
+    $transaction: async (fn: (transaction: any) => Promise<unknown>) => fn(tx),
   };
   return { db, writes };
 }
