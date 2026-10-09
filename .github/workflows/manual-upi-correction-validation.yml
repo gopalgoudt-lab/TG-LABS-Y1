@@ -1,0 +1,30 @@
+name: Manual UPI Correction Validation
+
+on:
+  pull_request:
+    paths:
+      - 'lib/manual-upi-correction.ts'
+      - 'tests/manual-upi-correction.test.ts'
+      - 'prisma/schema.prisma'
+      - 'prisma/migrations/**'
+      - '.github/workflows/manual-upi-correction-validation.yml'
+  workflow_dispatch:
+
+jobs:
+  manual-upi-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Validate Prisma schema
+        run: npx prisma validate
+        env:
+          NEON_DATABASE_URL: postgresql://validation:validation@localhost:5432/validation?schema=public
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test manual UPI amount rules
+        run: node --import tsx --test tests/manual-upi-correction.test.ts
