@@ -1,0 +1,38 @@
+name: Manual UPI Isolated PostgreSQL Integration
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: isolated
+          POSTGRES_PASSWORD: isolated
+          POSTGRES_DB: manual_upi_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U isolated -d manual_upi_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NEON_DATABASE_URL: postgresql://isolated:isolated@localhost:5432/manual_upi_test?schema=public
+      MANUAL_UPI_ISOLATED_DB_TEST: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma validate
+      - run: npx prisma generate
+      - name: Apply schema to disposable isolated PostgreSQL only
+        run: npx prisma db push --skip-generate
+      - name: Run actual transaction and rollback tests
+        run: node --import tsx --test tests/manual-upi-postgres.integration.test.ts
