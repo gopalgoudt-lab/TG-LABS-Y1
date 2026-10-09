@@ -573,6 +573,6 @@ model BookingFinancialAdjustment {
   approvedAt            DateTime
   createdAt             DateTime @default(now())
 
-  @@index([bookingId, createdAt])
+  @@unique([bookingId])
   @@index([approvedAt])
 }
