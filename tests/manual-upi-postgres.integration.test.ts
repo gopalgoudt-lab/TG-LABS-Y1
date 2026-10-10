@@ -9,7 +9,7 @@ if (!process.env.MANUAL_UPI_ISOLATED_DB_TEST || !process.env.NEON_DATABASE_URL?.
 
 const prisma = new PrismaClient();
 const receipt = { total: 5280, lines: [{ name: 'AAROGYAM CAMP PROFILE 3', amount: 5280 }] };
-const hash = createHash('sha256').update(JSON.stringify(receipt)).digest('hex');
+
 
 async function fixture() {
   const id = randomUUID();
@@ -19,19 +19,33 @@ async function fixture() {
     paymentStatus: 'PAID', paymentMode: 'UPI', totalAmount: 5280,
     paymentReceiptSnapshot: receipt,
   } });
-  await prisma.manualUpiCorrectionApproval.create({ data: {
+ const savedBooking = await prisma.booking.findUniqueOrThrow({
+  where: { id: booking.id },
+  select: { paymentReceiptSnapshot: true },
+});
+
+const hash = createHash('sha256')
+  .update(JSON.stringify(savedBooking.paymentReceiptSnapshot))
+  .digest('hex');
+
+await prisma.manualUpiCorrectionApproval.create({ data: {
     bookingId: booking.id, originalReceiptHash: hash, phonePeReferenceHash: 'test-hash',
     bankCreditEvidenceRef: 'test-evidence', paymentVerifiedByUid: 'verifier',
     requestedByUid: 'requester', approvedByUid: 'approver', discountAmount: 2780,
     verifiedPaidAmount: 2500, approvalReason: 'Isolated test approval',
     paymentVerifiedAt: new Date(), approvedAt: new Date(),
   } });
-  return { booking, patient };
+  return { booking, patient, hash };
 }
-function command(id: string, key: string) {
-  return { bookingId: id, correctionKey: key, approvedByUid: 'approver',
-    approvedByPhone: 'test-admin', expectedOriginalGrossAmount: 5280,
-    expectedOriginalReceiptHash: hash };
+function command(id: string, key: string, hash: string) {
+  return {
+    bookingId: id,
+    correctionKey: key,
+    approvedByUid: 'approver',
+    approvedByPhone: 'test-admin',
+    expectedOriginalGrossAmount: 5280,
+    expectedOriginalReceiptHash: hash,
+  };
 }
 async function cleanup(bookingId: string, patientId: string) {
   await prisma.bookingFinancialAdjustment.deleteMany({ where: { bookingId } });
@@ -41,11 +55,11 @@ async function cleanup(bookingId: string, patientId: string) {
 }
 
 test('isolated PostgreSQL: committed correction is idempotent, receipt remains frozen', async () => {
-  const { booking, patient } = await fixture();
+  const { booking, patient, hash } = await fixture();
   try {
     const key = randomUUID();
-    const first = await applyApprovedManualUpiAdjustment(prisma, command(booking.id, key));
-    const again = await applyApprovedManualUpiAdjustment(prisma, command(booking.id, key));
+    const first = await applyApprovedManualUpiAdjustment(prisma, command(booking.id, key, hash));
+   const again = await applyApprovedManualUpiAdjustment(prisma, command(booking.id, key, hash));
     assert.equal(first.unchanged, false);
     assert.equal(again.unchanged, true);
     assert.equal(first.adjustmentId, again.adjustmentId);
@@ -62,7 +76,7 @@ test('isolated PostgreSQL: committed correction is idempotent, receipt remains f
 });
 
 test('isolated PostgreSQL: audit insertion failure rolls back financial adjustment', async () => {
-  const { booking, patient } = await fixture();
+  const { booking, patient, hash } = await fixture();
   const proxy = new Proxy(prisma, {
     get(target, property, receiver) {
       if (property === '$transaction') return async (callback: (tx: unknown) => Promise<unknown>, options: unknown) =>
@@ -76,7 +90,13 @@ test('isolated PostgreSQL: audit insertion failure rolls back financial adjustme
     },
   });
   try {
-    await assert.rejects(applyApprovedManualUpiAdjustment(proxy as PrismaClient, command(booking.id, randomUUID())), /FORCED_AUDIT_FAILURE/);
+   await assert.rejects(
+  applyApprovedManualUpiAdjustment(
+    proxy as PrismaClient,
+    command(booking.id, randomUUID(), hash)
+  ),
+  /FORCED_AUDIT_FAILURE/
+);
     assert.equal(await prisma.bookingFinancialAdjustment.count({ where: { bookingId: booking.id } }), 0);
   } finally {
     await cleanup(booking.id, patient.id);
