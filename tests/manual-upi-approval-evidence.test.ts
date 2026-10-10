@@ -27,3 +27,8 @@ test('blocks requester from independently verifying their own payment', () => {
   assert.equal(result.eligibleForIndependentReview, false);
   assert.ok(result.blockers.includes('REQUESTER_CANNOT_VERIFY_PAYMENT'));
 });
+
+test('blocks an approval when requester and verifier identities match', () => {
+  const result = validateManualUpiApprovalEvidence({ ...valid, requestedByUid: 'same-uid', verifiedByUid: 'same-uid' });
+  assert.ok(result.blockers.includes('REQUESTER_CANNOT_VERIFY_PAYMENT'));
+});
