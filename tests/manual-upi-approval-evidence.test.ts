@@ -21,3 +21,9 @@ test('blocks missing evidence and invalid approval time', () => {
   assert.ok(result.blockers.includes('MISSING_APPROVAL_EVIDENCE'));
   assert.ok(result.blockers.includes('INVALID_APPROVAL_TIMESTAMP'));
 });
+
+test('blocks requester from independently verifying their own payment', () => {
+  const result = validateManualUpiApprovalEvidence({ ...valid, verifiedByUid: valid.requestedByUid });
+  assert.equal(result.eligibleForIndependentReview, false);
+  assert.ok(result.blockers.includes('REQUESTER_CANNOT_VERIFY_PAYMENT'));
+});
