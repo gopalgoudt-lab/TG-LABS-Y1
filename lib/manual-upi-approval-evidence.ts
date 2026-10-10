@@ -22,6 +22,8 @@ export function validateManualUpiApprovalEvidence(input: ManualUpiApprovalEviden
     blockers.push('REQUESTER_CANNOT_APPROVE');
   if (input.verifiedByUid && input.approvedByUid && input.verifiedByUid === input.approvedByUid)
     blockers.push('PAYMENT_VERIFIER_CANNOT_APPROVE');
+  if (input.requestedByUid && input.verifiedByUid && input.requestedByUid === input.verifiedByUid)
+    blockers.push('REQUESTER_CANNOT_VERIFY_PAYMENT');
   if (!Number.isFinite(Date.parse(input.approvalRecordedAt))) blockers.push('INVALID_APPROVAL_TIMESTAMP');
   return { eligibleForIndependentReview: blockers.length === 0, blockers };
 }
