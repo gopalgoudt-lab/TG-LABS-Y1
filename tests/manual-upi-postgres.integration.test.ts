@@ -103,4 +103,64 @@ test('isolated PostgreSQL: audit insertion failure rolls back financial adjustme
   }
 });
 
+
+async function assertConcurrentCorrectionInvariant(sameKey: boolean) {
+  const { booking, patient, hash } = await fixture();
+  try {
+    const firstKey = randomUUID();
+    const secondKey = sameKey ? firstKey : randomUUID();
+    const outcomes = await Promise.allSettled([
+      applyApprovedManualUpiAdjustment(prisma, command(booking.id, firstKey, hash)),
+      applyApprovedManualUpiAdjustment(prisma, command(booking.id, secondKey, hash)),
+    ]);
+
+    // A serialization conflict is permitted to fail closed; no second write is permitted.
+    assert.ok(outcomes.some(result => result.status === 'fulfilled'),
+      'at least one concurrent correction must commit');
+    const adjustments = await prisma.bookingFinancialAdjustment.findMany({
+      where: { bookingId: booking.id },
+    });
+    assert.equal(adjustments.length, 1, 'exactly one adjustment per booking');
+    assert.ok([firstKey, secondKey].includes(adjustments[0].correctionKey));
+    const audits = await prisma.adminAuditLog.findMany({
+      where: { entityId: booking.id, action: 'MANUAL_UPI_FINANCIAL_CORRECTION' },
+    });
+    assert.equal(audits.length, 1, 'exactly one corresponding audit record');
+    const current = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
+    assert.equal(current.totalAmount, 5280);
+    assert.deepEqual(current.paymentReceiptSnapshot, receipt);
+    assert.equal(adjustments[0].verifiedPaidAmount, 2500);
+    assert.equal(adjustments[0].correctedNetAmount, 2500);
+
+    for (const result of outcomes) {
+      if (result.status === 'fulfilled') {
+        assert.equal(result.value.adjustmentId, adjustments[0].id);
+        if (!sameKey) assert.equal(result.value.unchanged, false);
+      } else {
+        // Prisma may surface serialization conflicts (P2034) or uniqueness
+        // violations (P2002) rather than transparently retrying.
+        const error = result.reason as { code?: string; message?: string };
+        assert.ok(
+          ['P2034', 'P2002'].includes(error?.code ?? '') ||
+          (sameKey ? false : error?.message === 'BOOKING_ALREADY_ADJUSTED'),
+          'unexpected concurrent correction failure: ' + String(error?.message),
+        );
+      }
+    }
+  } finally {
+    await prisma.adminAuditLog.deleteMany({
+      where: { entityId: booking.id, action: 'MANUAL_UPI_FINANCIAL_CORRECTION' },
+    });
+    await cleanup(booking.id, patient.id);
+  }
+}
+
+test('isolated PostgreSQL: simultaneous same-key corrections create one adjustment and audit', async () => {
+  await assertConcurrentCorrectionInvariant(true);
+});
+
+test('isolated PostgreSQL: simultaneous different-key corrections cannot double-adjust booking', async () => {
+  await assertConcurrentCorrectionInvariant(false);
+});
+
 test.after(async () => { await prisma.$disconnect(); });
