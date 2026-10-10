@@ -39,7 +39,7 @@ jobs:
         env:
           NEON_DATABASE_URL: postgresql://validation:validation@localhost:5432/validation?schema=public
       - name: Test manual UPI amount rules
-        run: node --import tsx --test tests/manual-upi-correction.test.ts tests/corrected-manual-upi-receipt.test.ts tests/manual-upi-correction-preflight.test.ts tests/manual-upi-approval-evidence.test.ts tests/manual-upi-atomic-adjustment.test.ts
+        run: node --import tsx --test tests/manual-upi-correction.test.ts tests/corrected-manual-upi-receipt.test.ts tests/manual-upi-correction-preflight.test.ts tests/manual-upi-approval-evidence.test.ts tests/manual-upi-atomic-adjustment.test.ts tests/manual-upi-bank-evidence-adapter.test.ts
       - name: Typecheck transaction service in isolation
         run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-atomic-adjustment.ts lib/manual-upi-transaction-audit.ts tests/manual-upi-atomic-adjustment.test.ts
       - name: Typecheck correction files in isolation
