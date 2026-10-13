@@ -56,3 +56,25 @@ test('provider exceptions fail closed and do not leak exception messages', async
   assert.deepEqual(result.blockers, ['TRUSTED_EVIDENCE_VERIFICATION_FAILED']);
   assert.equal(JSON.stringify(result).includes('secret bank data'), false);
 });
+
+test('provider receives only booking ID and immutable receipt hash', async () => {
+  let received: unknown;
+  const trusted = provider();
+  const result = await checkManualUpiIssuanceReadiness(db(), 'booking', {
+    verify: async input => { received = input; return trusted.verify(input); },
+  });
+  assert.equal(result.eligible, true);
+  assert.deepEqual(received, { bookingId: 'booking', originalReceiptHash: hash });
+});
+test('self-approval and untrusted reviewer are blocked before issuance', async () => {
+  const self = provider({ evidence: {
+    requestedByUid: 'requester', verifiedByUid: 'verifier', approvedByUid: 'requester',
+    paymentReferenceHash: 'phonepe-hash', bankCreditEvidenceReference: 'bank-credit-ref',
+    originalReceiptEvidenceReference: hash, reason: 'Verified discrepancy',
+    approvalRecordedAt: '2026-10-10T10:00:00.000Z',
+  }, authenticatedReviewerUid: 'requester' });
+  const selfResult = await checkManualUpiIssuanceReadiness(db(), 'booking', self);
+  assert.equal(selfResult.eligible, false);
+  const unauthorized = await checkManualUpiIssuanceReadiness(db(), 'booking', provider({ reviewerAuthorized: false }));
+  assert.equal(unauthorized.eligible, false);
+});
