@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import { assessTrustedManualUpiApproval } from './manual-upi-trusted-approval-gate';
+import { validateVerifiedManualUpiAmounts } from './manual-upi-verified-amounts';
 import type { TrustedManualUpiEvidenceProvider } from './manual-upi-approval-issuance-readiness';
 
 /**
@@ -35,9 +36,17 @@ export async function issueTrustedManualUpiApproval(
     if (!assessment.eligibleForTrustedApprovalIssuance)
       throw new Error('TRUSTED_APPROVAL_BLOCKED');
 
-    // No inferred discount: the provider must independently authorize its value.
-    // This interface currently supplies no independently verified monetary
-    // approval payload, so issuance MUST fail closed until it is extended.
-    throw new Error('VERIFIED_APPROVAL_AMOUNTS_NOT_IMPLEMENTED');
+    // Only independently reconciled server-side monetary evidence may pass this gate.
+    if (!provider.verifyAmounts) throw new Error('VERIFIED_MONETARY_PROVIDER_REQUIRED');
+    const amounts = await provider.verifyAmounts({ bookingId, originalReceiptHash });
+    if (amounts.bookingId !== bookingId)
+      throw new Error('VERIFIED_MONETARY_BOOKING_MISMATCH');
+    const monetary = validateVerifiedManualUpiAmounts(amounts);
+    if (!monetary.eligible) throw new Error('VERIFIED_MONETARY_EVIDENCE_REJECTED');
+
+    // No financial write until unit consistency (rupees vs paise), approval
+    // provenance, idempotency, and transactional audit tests are reviewed.
+    // Never infer that an outstanding balance is an authorized discount.
+    throw new Error('ATOMIC_APPROVAL_PERSISTENCE_NOT_IMPLEMENTED');
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 10000 });
 }
