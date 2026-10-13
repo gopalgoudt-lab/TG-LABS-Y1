@@ -600,3 +600,15 @@ model ManualUpiCorrectionApproval {
 
   @@index([approvedAt])
 }
+
+model ManualUpiRoleAssignment {
+  id            String    @id @default(cuid())
+  firebaseUid   String    @unique
+  role          String
+  active        Boolean   @default(false)
+  assignedByUid String
+  createdAt     DateTime  @default(now())
+  revokedAt     DateTime?
+
+  @@index([role, active])
+}
