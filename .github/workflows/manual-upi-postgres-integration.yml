@@ -35,4 +35,4 @@ jobs:
       - name: Apply schema to disposable isolated PostgreSQL only
         run: npx prisma db push --skip-generate
       - name: Run actual transaction and rollback tests
-        run: node --import tsx --test tests/manual-upi-postgres.integration.test.ts
+        run: node --import tsx --test tests/manual-upi-postgres.integration.test.ts tests/manual-upi-role-assignment-postgres.integration.test.ts
