@@ -34,5 +34,7 @@ jobs:
       - run: npx prisma generate
       - name: Apply schema to disposable isolated PostgreSQL only
         run: npx prisma db push --skip-generate
+      - name: Apply role security constraints to isolated PostgreSQL
+        run: npx prisma db execute --file prisma/migrations/20261013203000_manual_upi_role_assignment/migration.sql
       - name: Run actual transaction and rollback tests
         run: node --import tsx --test tests/manual-upi-postgres.integration.test.ts tests/manual-upi-role-assignment-postgres.integration.test.ts
