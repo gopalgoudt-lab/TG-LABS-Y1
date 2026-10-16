@@ -41,7 +41,8 @@ test('unpaid, missing and mismatched frozen receipts are rejected', async () => 
 test('trusted independent evidence is required and snapshot remains unchanged', async () => {
   const before = JSON.stringify(snapshot);
   const valid = await checkManualUpiIssuanceReadiness(db(), 'booking', provider());
-  assert.equal(valid.eligible, true);
+  assert.equal(valid.eligible, false);
+  assert.deepEqual(valid.blockers, ['VERIFIED_MONETARY_PROVIDER_UNAVAILABLE']);
   assert.equal(valid.originalReceiptHash, hash);
   assert.equal(JSON.stringify(snapshot), before);
   const wrong = provider();
@@ -62,8 +63,9 @@ test('provider receives only booking ID and immutable receipt hash', async () =>
   const trusted = provider();
   const result = await checkManualUpiIssuanceReadiness(db(), 'booking', {
     verify: async input => { received = input; return trusted.verify(input); },
-  });
-  assert.equal(result.eligible, true);
+  assert.equal(result.eligible, false);
+  assert.deepEqual(result.blockers, ['VERIFIED_MONETARY_PROVIDER_UNAVAILABLE']);
+  assert.equal(result.eligible, false);
   assert.deepEqual(received, { bookingId: 'booking', originalReceiptHash: hash });
 });
 test('self-approval and untrusted reviewer are blocked before issuance', async () => {
