@@ -63,7 +63,7 @@ test('provider receives only booking ID and immutable receipt hash', async () =>
   const trusted = provider();
   const result = await checkManualUpiIssuanceReadiness(db(), 'booking', {
     verify: async input => { received = input; return trusted.verify(input); },
-  assert.equal(result.eligible, false);
+  });
   assert.deepEqual(result.blockers, ['VERIFIED_MONETARY_PROVIDER_UNAVAILABLE']);
   assert.equal(result.eligible, false);
   assert.deepEqual(received, { bookingId: 'booking', originalReceiptHash: hash });
