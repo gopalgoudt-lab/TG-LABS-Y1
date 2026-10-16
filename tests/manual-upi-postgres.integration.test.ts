@@ -163,4 +163,52 @@ test('isolated PostgreSQL: simultaneous different-key corrections cannot double-
   await assertConcurrentCorrectionInvariant(false);
 });
 
+test('isolated PostgreSQL: approval requires three distinct actors', async () => {
+  const cases = [
+    { requestedByUid: 'same', paymentVerifiedByUid: 'same', approvedByUid: 'owner', allowed: false },
+    { requestedByUid: 'same', paymentVerifiedByUid: 'verifier', approvedByUid: 'same', allowed: false },
+    { requestedByUid: 'requester', paymentVerifiedByUid: 'same', approvedByUid: 'same', allowed: false },
+    { requestedByUid: 'requester', paymentVerifiedByUid: 'verifier', approvedByUid: 'owner', allowed: true },
+  ];
+
+  for (const actors of cases) {
+    const { booking, patient } = await fixture();
+
+    try {
+      // Remove the valid approval created by the fixture.
+      await prisma.manualUpiCorrectionApproval.delete({
+        where: { bookingId: booking.id },
+      });
+
+      const createApproval = () =>
+        prisma.manualUpiCorrectionApproval.create({
+          data: {
+            bookingId: booking.id,
+            originalReceiptHash: createHash('sha256')
+              .update(JSON.stringify(receipt))
+              .digest('hex'),
+            phonePeReferenceHash: 'test-hash',
+            bankCreditEvidenceRef: 'test-evidence',
+            requestedByUid: actors.requestedByUid,
+            paymentVerifiedByUid: actors.paymentVerifiedByUid,
+            approvedByUid: actors.approvedByUid,
+            discountAmount: 2780,
+            verifiedPaidAmount: 2500,
+            approvalReason: 'Isolated constraint test',
+            paymentVerifiedAt: new Date(),
+            approvedAt: new Date(),
+          },
+        });
+
+      if (actors.allowed) {
+        await createApproval();
+      } else {
+        await assert.rejects(createApproval);
+      }
+    } finally {
+      await cleanup(booking.id, patient.id);
+    }
+  }
+});
+
 test.after(async () => { await prisma.$disconnect(); });
