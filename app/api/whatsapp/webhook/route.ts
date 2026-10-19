@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -16,6 +17,13 @@ type WhatsAppStatus = {
     };
   }>;
 };
+
+function isAuthenticMetaWebhook(rawBody: string, signatureHeader: string | null, appSecret: string): boolean {
+  if (!signatureHeader || !/^sha256=[a-f0-9]{64}$/i.test(signatureHeader)) return false;
+  const expected = createHmac("sha256", appSecret).update(rawBody, "utf8").digest();
+  const received = Buffer.from(signatureHeader.slice(7), "hex");
+  return received.length === expected.length && timingSafeEqual(received, expected);
+}
 
 function logDeliveryStatuses(payload: any) {
   const entries = Array.isArray(payload?.entry) ? payload.entry : [];
@@ -87,7 +95,19 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const payload = await request.json();
+    const appSecret = process.env.META_APP_SECRET;
+    if (!appSecret) {
+      console.error("WhatsApp webhook rejected: META_APP_SECRET is not configured");
+      return NextResponse.json({ received: false }, { status: 503 });
+    }
+
+    const rawBody = await request.text();
+    if (!isAuthenticMetaWebhook(rawBody, request.headers.get("x-hub-signature-256"), appSecret)) {
+      console.warn("WhatsApp webhook rejected: invalid Meta signature");
+      return NextResponse.json({ received: false }, { status: 401 });
+    }
+
+    const payload = JSON.parse(rawBody);
 
     if (payload?.object !== "whatsapp_business_account") {
       return NextResponse.json({ received: false }, { status: 400 });
