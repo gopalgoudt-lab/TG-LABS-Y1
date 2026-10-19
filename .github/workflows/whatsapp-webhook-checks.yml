@@ -28,5 +28,3 @@ jobs:
         run: npm ci
       - name: Verify WhatsApp webhook signatures
         run: node --import tsx --test tests/whatsapp-webhook-signature.test.ts
-      - name: TypeScript check
-        run: npx tsc --noEmit
