@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { isAuthenticMetaWebhook } from "@/lib/whatsapp-webhook-signature";
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -17,13 +17,6 @@ type WhatsAppStatus = {
     };
   }>;
 };
-
-function isAuthenticMetaWebhook(rawBody: string, signatureHeader: string | null, appSecret: string): boolean {
-  if (!signatureHeader || !/^sha256=[a-f0-9]{64}$/i.test(signatureHeader)) return false;
-  const expected = createHmac("sha256", appSecret).update(rawBody, "utf8").digest();
-  const received = Buffer.from(signatureHeader.slice(7), "hex");
-  return received.length === expected.length && timingSafeEqual(received, expected);
-}
 
 function logDeliveryStatuses(payload: any) {
   const entries = Array.isArray(payload?.entry) ? payload.entry : [];
