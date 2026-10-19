@@ -1,6 +1,6 @@
 # Atomic manual UPI correction: implementation gate
 
-**Status:** Design for implementation; NO enabled financial write endpoint. PR #306 stays Draft.
+**Status (2026-10-19):** Internal serializable adjustment writer and transaction-bound audit exist, but trusted approval issuance is deliberately not implemented. NO enabled financial write endpoint. PR #306 stays Draft.
 
 ## Required trusted inputs
 - Booking ID and stable correction key, bound to a specific original receipt hash.
@@ -18,8 +18,19 @@
 7. Derive effective net/paid totals from the adjustment for patient/admin display, instead of rewriting the original gross line-item price. Verify partner payable and reporting behavior separately.
 8. Block any Production execution until migration is reviewed and tested against an isolated database, and both financial reviewer and deploy approver explicitly sign off.
 
-## Known blockers
-- No trusted reviewer-attestation storage or independent approval identity flow yet.
-- No atomic adjustment writer or transaction-bound audit implementation yet.
-- No PDF issuance integration, reconciliation of existing transaction rows, or end-to-end Preview tests yet.
-- Existing booking's PhonePe receipt and matching bank credit have not been independently verified.
+## Verified implementation inventory (2026-10-19)
+- `lib/manual-upi-atomic-adjustment.ts` implements an internal serializable Prisma transaction which re-reads the paid booking, checks the frozen receipt hash and stored approval, and creates `BookingFinancialAdjustment` plus `AdminAuditLog` atomically. It is NOT an authorized public write endpoint.
+- `lib/manual-upi-approval-issuer.ts` performs trusted-evidence and amount prechecks but intentionally throws `ATOMIC_APPROVAL_PERSISTENCE_NOT_IMPLEMENTED`. There is no completed approval issuance path.
+- `lib/manual-upi-approval-issuance-readiness.ts` is read-only and always reports `eligible: false`, including when prechecks pass.
+- `lib/manual-upi-bank-evidence-adapter.ts` defines a trusted source interface and validates returned credit evidence. It does not implement an authenticated bank/provider integration.
+- `app/api/admin/bookings/[id]/manual-upi-correction/route.ts` remains preparation-only and returns `correctionApplied: false`, `receiptIssued: false`.
+
+## Remaining blockers and next implementation gate
+1. Implement and review a real server-side bank reconciliation provider: verify actual settlement, UPI reference, amount in integer paise, beneficiary account, evidence provenance, and one-time reference use across bookings. Reject screenshots and client flags as proof.
+2. Design and test trusted approval persistence before enabling it: authenticate OWNER and independently authorized verifier from server-side identities; enforce three distinct actors; bind approval to immutable booking/receipt/evidence/amounts; prohibit unapproved discounts; enforce replay/idempotency and rollback.
+3. Review amount-unit consistency between booking amounts and `*Paise` fields before any write. Do not silently assume rupees and paise are interchangeable.
+4. Verify that the atomic adjustment caller checks OWNER authorization, approval provenance, payment-ledger state and duplicate requests. Test concurrency, tampered receipt, stale approval, and audit-write rollback in isolated PostgreSQL.
+5. Implement separate, versioned corrected-receipt issuance with idempotency and end-to-end Preview UAT. Preserve the original receipt and transaction history.
+6. Independently verify the reported ₹2,500 PhonePe credit and receiving account. The ₹2,780 difference from ₹5,280 remains unresolved unless separately approved as a discount.
+
+**Release rule:** A green check validates only the executed tests. No Production migrations, corrected receipts, account provisioning, or live financial changes are authorized. Keep PR #306 Draft.
