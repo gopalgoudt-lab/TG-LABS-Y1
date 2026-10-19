@@ -1,0 +1,32 @@
+name: WhatsApp webhook security checks
+
+on:
+  pull_request:
+    paths:
+      - 'app/api/whatsapp/webhook/**'
+      - 'lib/whatsapp-webhook-signature.ts'
+      - 'tests/whatsapp-webhook-signature.test.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/whatsapp-webhook-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  signature-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify WhatsApp webhook signatures
+        run: node --import tsx --test tests/whatsapp-webhook-signature.test.ts
+      - name: TypeScript check
+        run: npx tsc --noEmit
