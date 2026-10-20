@@ -81,7 +81,7 @@ jobs:
       - name: Typecheck bank review release gate
         run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-bank-review-release-gate.ts tests/manual-upi-bank-review-release-gate.test.ts
       - name: Test encrypted statement envelope
-      - run: node --import tsx --test tests/manual-upi-statement-encryption.test.ts
+        run: node --import tsx --test tests/manual-upi-statement-encryption.test.ts
       - name: Typecheck encrypted statement envelope
         run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-statement-encryption.ts tests/manual-upi-statement-encryption.test.ts
       - name: Typecheck transaction service in isolation
