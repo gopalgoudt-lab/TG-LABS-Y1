@@ -5,6 +5,8 @@ on:
     paths:
       - 'lib/manual-upi-statement-encryption.ts'
       - 'lib/manual-upi-bank-statement-vault-preparation.ts'
+      - 'lib/manual-upi-ciphertext-vault-handoff.ts'
+      - 'tests/manual-upi-ciphertext-vault-handoff.test.ts'
       - 'tests/manual-upi-bank-statement-vault-preparation.test.ts'
       - 'tests/manual-upi-statement-encryption.test.ts'
       - 'tests/manual-upi-approval-issuance-readiness.test.ts'
@@ -90,6 +92,10 @@ jobs:
         run: node --import tsx --test tests/manual-upi-bank-statement-vault-preparation.test.ts
       - name: Typecheck bank statement vault preparation
         run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-bank-statement-vault-preparation.ts tests/manual-upi-bank-statement-vault-preparation.test.ts
+      - name: Test ciphertext-only vault handoff
+        run: node --import tsx --test tests/manual-upi-ciphertext-vault-handoff.test.ts
+      - name: Typecheck ciphertext-only vault handoff
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-ciphertext-vault-handoff.ts tests/manual-upi-ciphertext-vault-handoff.test.ts
       - name: Typecheck transaction service in isolation
         run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-atomic-adjustment.ts lib/manual-upi-transaction-audit.ts tests/manual-upi-atomic-adjustment.test.ts
       - name: Typecheck correction files in isolatio
