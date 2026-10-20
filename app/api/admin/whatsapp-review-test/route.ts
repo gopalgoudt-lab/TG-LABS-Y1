@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isAllowedWhatsAppReviewOrigin } from "@/lib/whatsapp-review-origin";
 import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
@@ -14,8 +15,7 @@ export async function POST(request: Request) {
   if (process.env.WHATSAPP_REVIEW_TEST_ENABLED !== "true") return unavailable();
 
   const origin = request.headers.get("origin");
-  const expectedOrigin = process.env.WHATSAPP_REVIEW_TEST_ORIGIN;
-  if (!origin || !expectedOrigin || origin !== expectedOrigin) {
+  if (!isAllowedWhatsAppReviewOrigin(origin, process.env)) {
     return NextResponse.json({ error: "Origin not allowed." }, { status: 403 });
   }
 
