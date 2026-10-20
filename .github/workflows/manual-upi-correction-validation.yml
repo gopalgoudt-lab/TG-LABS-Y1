@@ -7,6 +7,7 @@ on:
       - 'tests/manual-upi-bank-evidence-boundaries.test.ts'
       - 'lib/manual-upi-bank-evidence-adapter.ts'
       - 'lib/manual-upi-manual-statement-review.ts'
+      - 'lib/manual-upi-statement-review-plan.ts'
       - 'tests/manual-upi-manual-statement-review.test.ts'
       - 'lib/manual-upi-correction.ts'
       - 'lib/manual-upi-balance.ts'
@@ -50,7 +51,7 @@ jobs:
       - name: Test independent manual bank statement review
         run: node --import tsx --test tests/manual-upi-manual-statement-review.test.ts
       - name: Typecheck independent manual bank statement review
-        run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --types node lib/manual-upi-manual-statement-review.ts tests/manual-upi-manual-statement-review.test.ts
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --types node lib/manual-upi-manual-statement-review.ts lib/manual-upi-statement-review-plan.ts tests/manual-upi-manual-statement-review.test.ts
       - name: Typecheck transaction service in isolation
         run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-atomic-adjustment.ts lib/manual-upi-transaction-audit.ts tests/manual-upi-atomic-adjustment.test.ts
       - name: Typecheck correction files in isolatio
