@@ -39,6 +39,7 @@ export default function WhatsAppCoexistenceReadinessPage() {
         This page does not open Meta Signup, request a token, register a number,
         or change the existing WhatsApp Business app.
       </p>
+      <p><Link href="/admin/whatsapp-review-test">Open restricted Meta App Review test-message page</Link></p>
       <Link href="/admin">Return to admin</Link>
     </main>
   );
