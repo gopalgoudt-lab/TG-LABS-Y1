@@ -15,7 +15,12 @@ export async function POST(request: Request) {
   if (process.env.WHATSAPP_REVIEW_TEST_ENABLED !== "true") return unavailable();
 
   const origin = request.headers.get("origin");
-  if (!isAllowedWhatsAppReviewOrigin(origin, process.env)) {
+  if (!isAllowedWhatsAppReviewOrigin(origin, {
+    VERCEL_ENV: process.env.VERCEL_ENV,
+    VERCEL_URL: process.env.VERCEL_URL,
+    VERCEL_BRANCH_URL: process.env.VERCEL_BRANCH_URL,
+    WHATSAPP_REVIEW_TEST_ORIGIN: process.env.WHATSAPP_REVIEW_TEST_ORIGIN,
+  })) {
     return NextResponse.json({ error: "Origin not allowed." }, { status: 403 });
   }
 
