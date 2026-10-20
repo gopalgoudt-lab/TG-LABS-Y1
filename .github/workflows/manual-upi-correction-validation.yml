@@ -1,0 +1,122 @@
+name: Manual UPI Correction Validation
+
+on:
+  pull_request:
+    paths:
+      - 'lib/manual-upi-statement-encryption.ts'
+      - 'lib/manual-upi-bank-statement-vault-preparation.ts'
+      - 'lib/manual-upi-ciphertext-vault-handoff.ts'
+      - 'lib/manual-upi-ciphertext-vault-receipt.ts'
+      - 'lib/manual-upi-s3-security-preflight.ts'
+      - 'lib/manual-upi-candidate-s3-vault.ts'
+      - 'tests/manual-upi-candidate-s3-vault.test.ts'
+      - 'tests/manual-upi-s3-security-preflight.test.ts'
+      - 'tests/manual-upi-ciphertext-vault-receipt.test.ts'
+      - 'tests/manual-upi-ciphertext-vault-handoff.test.ts'
+      - 'tests/manual-upi-bank-statement-vault-preparation.test.ts'
+      - 'tests/manual-upi-statement-encryption.test.ts'
+      - 'tests/manual-upi-approval-issuance-readiness.test.ts'
+      - 'tests/manual-upi-bank-evidence-boundaries.test.ts'
+      - 'lib/manual-upi-bank-evidence-adapter.ts'
+      - 'lib/manual-upi-manual-statement-review.ts'
+      - 'lib/manual-upi-statement-review-plan.ts'
+      - 'lib/manual-upi-private-evidence.ts'
+      - 'lib/manual-upi-private-vault-contract.ts'
+      - 'lib/manual-upi-bank-review-uniqueness.ts'
+      - 'lib/manual-upi-bank-review-writer.ts'
+      - 'lib/manual-upi-bank-review-release-gate.ts'
+      - 'tests/manual-upi-bank-review-release-gate.test.ts'
+      - 'tests/manual-upi-bank-review-writer.test.ts'
+      - 'tests/manual-upi-bank-review-uniqueness.test.ts'
+      - 'tests/manual-upi-private-vault-contract.test.ts'
+      - 'tests/manual-upi-private-evidence.test.ts'
+      - 'tests/manual-upi-manual-statement-review.test.ts'
+      - 'lib/manual-upi-correction.ts'
+      - 'lib/manual-upi-balance.ts'
+      - 'tests/manual-upi-balance.test.ts'
+      - 'tests/manual-upi-correction.test.ts'
+      - 'lib/corrected-manual-upi-receipt.ts'
+      - 'tests/corrected-manual-upi-receipt.test.ts'
+      - 'lib/manual-upi-correction-preflight.ts'
+      - 'lib/manual-upi-approval-evidence.ts'
+      - 'lib/manual-upi-atomic-adjustment.ts'
+      - 'tests/manual-upi-atomic-adjustment.test.ts'
+      - 'lib/manual-upi-transaction-audit.ts'
+      - 'tests/manual-upi-approval-evidence.test.ts'
+      - 'tests/manual-upi-correction-preflight.test.ts'
+      - 'app/api/admin/bookings/**'
+      - 'prisma/schema.prisma'
+      - 'prisma/migrations/**'
+      - '.github/workflows/manual-upi-correction-validation.yml'
+  workflow_dispatch:
+
+jobs:
+  manual-upi-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Validate Prisma schema
+        run: npx prisma validate
+        env:
+          NEON_DATABASE_URL: postgresql://validation:validation@localhost:5432/validation?schema=public
+      - name: Generate Prisma client for API build
+        run: npx prisma generate
+        env:
+          NEON_DATABASE_URL: postgresql://validation:validation@localhost:5432/validation?schema=public
+      - name: Test manual UPI amount rules
+        run: node --import tsx --test tests/manual-upi-correction.test.ts tests/corrected-manual-upi-receipt.test.ts tests/manual-upi-correction-preflight.test.ts tests/manual-upi-approval-evidence.test.ts tests/manual-upi-atomic-adjustment.test.ts tests/manual-upi-bank-evidence-adapter.test.ts tests/manual-upi-bank-evidence-boundaries.test.ts tests/manual-upi-balance.test.ts tests/manual-upi-role-policy.test.ts tests/manual-upi-role-registry.test.ts  tests/manual-upi-approval-issuance-readiness.test.ts
+      - name: Test independent manual bank statement review
+        run: node --import tsx --test tests/manual-upi-manual-statement-review.test.ts
+      - name: Typecheck independent manual bank statement review
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --types node lib/manual-upi-manual-statement-review.ts lib/manual-upi-statement-review-plan.ts tests/manual-upi-manual-statement-review.test.ts
+      - name: Test private evidence security boundary
+        run: node --import tsx --test tests/manual-upi-private-evidence.test.ts tests/manual-upi-private-vault-contract.test.ts
+      - name: Typecheck private evidence security boundary
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-private-evidence.ts lib/manual-upi-private-vault-contract.ts tests/manual-upi-private-evidence.test.ts tests/manual-upi-private-vault-contract.test.ts
+      - name: Test bank review duplicate-reference guards
+        run: node --import tsx --test tests/manual-upi-bank-review-uniqueness.test.ts
+      - name: Typecheck bank review duplicate-reference guards
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-bank-review-uniqueness.ts tests/manual-upi-bank-review-uniqueness.test.ts
+      - name: Test independent bank review persistence remains disabled
+        run: node --import tsx --test tests/manual-upi-bank-review-writer.test.ts
+      - name: Typecheck bank review writer boundary
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-bank-review-writer.ts tests/manual-upi-bank-review-writer.test.ts
+      - name: Test bank review release remains disabled
+        run: node --import tsx --test tests/manual-upi-bank-review-release-gate.test.ts
+      - name: Typecheck bank review release gate
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-bank-review-release-gate.ts tests/manual-upi-bank-review-release-gate.test.ts
+      - name: Test encrypted statement envelope
+        run: node --import tsx --test tests/manual-upi-statement-encryption.test.ts
+      - name: Typecheck encrypted statement envelope
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-statement-encryption.ts tests/manual-upi-statement-encryption.test.ts
+      - name: Test encrypted bank statement vault preparation
+        run: node --import tsx --test tests/manual-upi-bank-statement-vault-preparation.test.ts
+      - name: Typecheck bank statement vault preparation
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-bank-statement-vault-preparation.ts tests/manual-upi-bank-statement-vault-preparation.test.ts
+      - name: Test ciphertext-only vault handoff
+        run: node --import tsx --test tests/manual-upi-ciphertext-vault-handoff.test.ts
+      - name: Typecheck ciphertext-only vault handoff
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-ciphertext-vault-handoff.ts tests/manual-upi-ciphertext-vault-handoff.test.ts
+      - name: Test ciphertext vault receipt validation
+        run: node --import tsx --test tests/manual-upi-ciphertext-vault-receipt.test.ts
+      - name: Typecheck ciphertext vault receipt validation
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-ciphertext-vault-receipt.ts tests/manual-upi-ciphertext-vault-receipt.test.ts
+      - name: Test private S3 security preflight
+        run: node --import tsx --test tests/manual-upi-s3-security-preflight.test.ts
+      - name: Typecheck private S3 security preflight
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-s3-security-preflight.ts tests/manual-upi-s3-security-preflight.test.ts
+      - name: Test candidate S3 ciphertext adapter
+        run: node --import tsx --test tests/manual-upi-candidate-s3-vault.test.ts
+      - name: Typecheck candidate S3 ciphertext adapter
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-candidate-s3-vault.ts tests/manual-upi-candidate-s3-vault.test.ts
+      - name: Typecheck transaction service in isolation
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module commonjs --moduleResolution node --esModuleInterop --types node lib/manual-upi-atomic-adjustment.ts lib/manual-upi-transaction-audit.ts tests/manual-upi-atomic-adjustment.test.ts
+      - name: Typecheck correction files in isolatio
+        run: npx tsc --noEmit --skipLibCheck --target es2022 --module nodenext --moduleResolution nodenext --types node lib/manual-upi-correction.ts lib/corrected-manual-upi-receipt.ts lib/manual-upi-correction-preflight.ts lib/manual-upi-approval-evidence.ts tests/manual-upi-approval-evidence.test.ts tests/manual-upi-correction-preflight.test.ts tests/manual-upi-correction.test.ts tests/corrected-manual-upi-receipt.test.ts lib/manual-upi-role-registry.ts
+ 
+

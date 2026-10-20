@@ -368,6 +368,9 @@ model Booking {
   items                BookingItem[]
   packages             BookingPackage[]
   payments             PaymentTransaction[]
+  financialAdjustments BookingFinancialAdjustment[]
+  manualUpiApprovals   ManualUpiCorrectionApproval[]
+  manualUpiBankReviews ManualUpiBankStatementReview[]
   partnerPayables      PartnerPayable[]
   reportObservations   ReportObservation[]
 
@@ -547,4 +550,93 @@ model ThyrocareCredential {
   @@unique([phone, role])
   @@index([phone])
   @@index([role])
+}
+
+
+// Append-only correction evidence. Rows are never edited to rewrite a paid receipt.
+// This model is intentionally not wired to a Production write endpoint yet.
+model BookingFinancialAdjustment {
+  id                    String   @id @default(cuid())
+  bookingId             String
+  booking               Booking  @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  correctionKey         String   @unique
+  originalGrossAmount   Int
+  discountAmount        Int
+  correctedNetAmount    Int
+  verifiedPaidAmount    Int
+  paymentMethod         String
+  collectionAccountType String
+  paymentReferenceHash  String
+  evidenceReference     String
+  originalReceiptHash   String?
+  correctedReceiptId    String?  @unique
+  reason                String
+  approvedBy            String
+  approvedAt            DateTime
+  createdAt             DateTime @default(now())
+
+  @@unique([bookingId])
+  @@index([approvedAt])
+}
+
+
+// Server-side approval record, not a client-supplied approval flag.
+// Recording approval alone never changes financial records.
+model ManualUpiCorrectionApproval {
+  id                        String   @id @default(cuid())
+  bookingId                 String   @unique
+  booking                   Booking  @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  originalReceiptHash       String
+  phonePeReferenceHash      String
+  bankCreditEvidenceRef     String
+  paymentVerifiedByUid      String
+  requestedByUid            String
+  approvedByUid             String
+  discountAmount            Int
+  verifiedPaidAmount        Int
+  approvalReason            String
+  paymentVerifiedAt         DateTime
+  approvedAt                DateTime
+  createdAt                 DateTime @default(now())
+
+  @@index([approvedAt])
+}
+
+model ManualUpiRoleAssignment {
+  id            String    @id @default(cuid())
+  firebaseUid   String    @unique
+  role          String
+  active        Boolean   @default(false)
+  assignedByUid String
+  createdAt     DateTime  @default(now())
+  revokedAt     DateTime?
+
+  @@index([role, active])
+}
+
+// Design-only persistence model. Do NOT migrate Production or expose a write route.
+// Sensitive statement bytes belong in a private encrypted evidence vault, not PostgreSQL.
+// Unique hashes must be HMAC-derived with a server-held key to resist offline guessing.
+model ManualUpiBankStatementReview {
+  id                         String   @id @default(cuid())
+  bookingId                  String   @unique
+  booking                    Booking  @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  originalReceiptHash        String
+  paymentReferenceHmac       String   @unique
+  receivingAccountHmac       String
+  verifiedAmountPaise        Int
+  currency                   String   @default("INR")
+  statementEvidenceDigest    String
+  privateEvidenceObjectKey   String
+  verifiedByUid              String
+  requestedByUid             String
+  intendedApproverUid        String
+  creditPostedAt             DateTime
+  statementPeriodStart       DateTime
+  statementPeriodEnd         DateTime
+  verifiedAt                 DateTime @default(now())
+  createdAt                  DateTime @default(now())
+
+  @@index([verifiedByUid, verifiedAt])
+  @@index([receivingAccountHmac])
 }
