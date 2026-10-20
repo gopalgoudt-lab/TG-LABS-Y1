@@ -37,4 +37,4 @@ jobs:
       - name: Apply role security constraints to isolated PostgreSQL
         run: npx prisma db execute --schema prisma/schema.prisma --file tests/manual-upi-role-constraints.sql
       - name: Run actual transaction and rollback tests
-        run: node --import tsx --test tests/manual-upi-postgres.integration.test.ts tests/manual-upi-role-assignment-postgres.integration.test.ts
+        run: node --import tsx --test tests/manual-upi-postgres.integration.test.ts tests/manual-upi-role-assignment-postgres.integration.test.ts tests/manual-upi-bank-review-postgres.integration.test.ts
