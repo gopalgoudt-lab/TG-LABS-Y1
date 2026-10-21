@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAllowedWhatsAppReviewOrigin } from "@/lib/whatsapp-review-origin";
+import { getWhatsAppReviewConfigStatus, isValidWhatsAppReviewTestConfiguration } from "@/lib/whatsapp-review-config";
 import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
@@ -12,7 +13,8 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: Request) {
   const unavailable = () => NextResponse.json({ error: "Test messaging is not enabled." }, { status: 503, headers: { "Cache-Control": "no-store" } });
-  if (process.env.WHATSAPP_REVIEW_TEST_ENABLED !== "true") return unavailable();
+  const configCheck = request.headers.get("x-whatsapp-review-config-check") === "status";
+  if (process.env.WHATSAPP_REVIEW_TEST_ENABLED !== "true" && !configCheck) return unavailable();
 
   const origin = request.headers.get("origin");
   if (!isAllowedWhatsAppReviewOrigin(origin, {
@@ -42,10 +44,19 @@ export async function POST(request: Request) {
   const phoneId = process.env.WHATSAPP_REVIEW_TEST_PHONE_NUMBER_ID;
   const token = process.env.WHATSAPP_REVIEW_TEST_ACCESS_TOKEN;
   const recipient = process.env.WHATSAPP_REVIEW_TEST_RECIPIENT;
-  if (!phoneId || !token || !recipient || !/^\\d{7,15}$/.test(recipient) || !/^\\d+$/.test(phoneId)) return unavailable();
+  if (!configCheck && !isValidWhatsAppReviewTestConfiguration({ phoneId, token, recipient })) return unavailable();
 
   // Fail closed if the sender is any known TG LABS WABA phone, including unverified entries.
-  if (["1209018948971017", "1349830611552211", "1318642631325485"].includes(phoneId)) return unavailable();
+  if (!configCheck && phoneId && ["1209018948971017", "1349830611552211", "1318642631325485"].includes(phoneId)) return unavailable();
+
+  // Read-only, authenticated configuration diagnosis. Never returns credentials or numbers.
+  // Uses the same gates as the actual send operation, without creating an audit or calling Meta.
+  if (request.headers.get("x-whatsapp-review-config-check") === "status") {
+    return NextResponse.json({ checks: getWhatsAppReviewConfigStatus({
+      enabled: process.env.WHATSAPP_REVIEW_TEST_ENABLED,
+      phoneId, token, recipient,
+    }) }, { headers: { "Cache-Control": "no-store" } });
+  }
 
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid request." }, { status: 400 }); }
