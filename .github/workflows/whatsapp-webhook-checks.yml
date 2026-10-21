@@ -10,7 +10,9 @@ on:
       - 'tests/whatsapp-embedded-signup-events.test.ts'
       - 'app/api/admin/whatsapp-review-test/**'
       - 'lib/whatsapp-review-origin.ts'
+      - 'lib/whatsapp-review-config.ts'
       - 'tests/whatsapp-review-origin.test.ts'
+      - 'tests/whatsapp-review-config.test.ts'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/whatsapp-webhook-checks.yml'
@@ -32,4 +34,4 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Verify WhatsApp webhook signatures
-        run: node --import tsx --test tests/whatsapp-webhook-signature.test.ts tests/whatsapp-embedded-signup-events.test.ts tests/whatsapp-review-origin.test.ts
+        run: node --import tsx --test tests/whatsapp-webhook-signature.test.ts tests/whatsapp-embedded-signup-events.test.ts tests/whatsapp-review-origin.test.ts tests/whatsapp-review-config.test.ts
