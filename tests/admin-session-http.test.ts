@@ -17,7 +17,7 @@ const state: MockState = { counts: [0, 0], audits: [] };
 const mockPlugin = {
   name: 'admin-route-isolated-mocks',
   setup(pluginBuild: any) {
-    pluginBuild.onResolve({ filter: new RegExp('^@/lib/(admin-auth|prisma) }, (args: { path: string }) => ({ path: args.path, namespace: 'admin-mock' }));
+    pluginBuild.onResolve({ filter: new RegExp('^@/lib/(admin-auth|prisma)$') }, (args: { path: string }) => ({ path: args.path, namespace: 'admin-mock' }));
     pluginBuild.onLoad({ filter: /.*/, namespace: 'admin-mock' }, (args: { path: string }) => ({
       contents: args.path.endsWith('prisma') ? `
         const s = globalThis.__adminRouteMock;
