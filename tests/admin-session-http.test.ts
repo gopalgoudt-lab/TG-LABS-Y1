@@ -37,15 +37,20 @@ const mockPlugin = {
     }));
   },
 };
-const bundled = await build({
-  entryPoints: ['app/api/admin/session/route.ts'],
-  bundle: true, write: false, platform: 'node', format: 'cjs',
-  packages: 'external', plugins: [mockPlugin],
+let POST: (request: Request) => Promise<Response>;
+let GET: (request: Request) => Promise<Response>;
+let logout: (request: Request) => Promise<Response>;
+test.before(async () => {
+  const bundled = await build({
+    entryPoints: ['app/api/admin/session/route.ts'],
+    bundle: true, write: false, platform: 'node', format: 'cjs',
+    packages: 'external', plugins: [mockPlugin],
+  });
+  const mod: { exports: any } = { exports: {} };
+  const require = createRequire(process.cwd() + '/package.json');
+  new Function('require', 'module', 'exports', bundled.outputFiles[0].text)(require, mod, mod.exports);
+  ({ POST, GET, DELETE: logout } = mod.exports);
 });
-const mod: { exports: any } = { exports: {} };
-const require = createRequire(import.meta.url);
-new Function('require', 'module', 'exports', bundled.outputFiles[0].text)(require, mod, mod.exports);
-const { POST, GET, DELETE: logout } = mod.exports;
 const url = 'https://preview.example.invalid/api/admin/session';
 const request = (method: string, headers: Record<string,string> = {}) => new Request(url, { method, headers });
 function reset() {
