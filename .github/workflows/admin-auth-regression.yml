@@ -8,6 +8,7 @@ on:
       - 'lib/firebase-server.ts'
       - 'lib/firebase-auth-errors.ts'
       - 'tests/admin-auth-regression.test.ts'
+      - 'tsconfig.admin-ci.json'
       - '.github/workflows/admin-auth-regression.yml'
   workflow_dispatch:
 permissions:
@@ -26,6 +27,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx prisma generate
-      - run: npm run typecheck
+      - run: npx tsc --noEmit --project tsconfig.admin-ci.json
       - run: npm run test:auth
       - run: node --import tsx --test tests/admin-auth-regression.test.ts
