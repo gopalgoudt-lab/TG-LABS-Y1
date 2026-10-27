@@ -14,7 +14,7 @@ async function tooManyAttempts(ip:string){
  return all>=20||failed>=8;
 }
 async function auditLogin(request:Request,action:'ADMIN_LOGIN_SUCCESS'|'ADMIN_LOGIN_FAILED',phone:string,summary:string){
- try{await prisma.adminAuditLog.create({data:{adminPhone:phone||'UNKNOWN',action,entityType:'ADMIN_SESSION',summary,ipAddress:clientIp(request),userAgent:request.headers.get('user-agent')||null}})}catch(error){console.error('Admin login audit failed',error)}
+ try{await prisma.adminAuditLog.create({data:{adminPhone:phone||'UNKNOWN',action,entityType:'ADMIN_SESSION',summary,ipAddress:clientIp(request),userAgent:request.headers.get('user-agent')||null}})}catch{console.error('Admin login audit failed',{code:'ADMIN_AUDIT_WRITE_FAILED'})}
 }
 
 export async function POST(request:Request){
