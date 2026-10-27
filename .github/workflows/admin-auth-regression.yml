@@ -1,0 +1,33 @@
+name: Admin Authentication Regression
+on:
+  pull_request:
+    paths:
+      - 'app/admin/login/**'
+      - 'app/api/admin/session/**'
+      - 'lib/admin-auth.ts'
+      - 'lib/firebase-server.ts'
+      - 'lib/firebase-auth-errors.ts'
+      - 'tests/admin-auth-regression.test.ts'
+      - 'tests/admin-session-http.test.ts'
+      - 'tsconfig.admin-ci.json'
+      - '.github/workflows/admin-auth-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  admin-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx tsc --noEmit --project tsconfig.admin-ci.json
+      - run: npm run test:auth
+      - run: node --import tsx --test tests/admin-auth-regression.test.ts tests/admin-session-http.test.ts
