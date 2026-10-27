@@ -20,7 +20,9 @@ async function auditLogin(request:Request,action:'ADMIN_LOGIN_SUCCESS'|'ADMIN_LO
 export async function POST(request:Request){
  const ip=clientIp(request);
  try{
-  if(await tooManyAttempts(ip))return NextResponse.json({error:'Too many admin sign-in attempts. Please wait 15 minutes and try again.'},{status:429,headers:{'Retry-After':'900'}});
+  let limited:boolean;
+  try{limited=await tooManyAttempts(ip)}catch{throw new Error('ADMIN_RATE_LIMIT_STORE_UNAVAILABLE')}
+  if(limited)return NextResponse.json({error:'Too many admin sign-in attempts. Please wait 15 minutes and try again.'},{status:429,headers:{'Retry-After':'900'}});
   const identity=await verifyAdminRequest(request);
   const token=await issueAdminSession(identity);
   await auditLogin(request,'ADMIN_LOGIN_SUCCESS',identity.phone,'Admin OTP login succeeded.');
@@ -28,7 +30,7 @@ export async function POST(request:Request){
   response.cookies.set(ADMIN_SESSION_COOKIE,token,{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/',maxAge:60*60*8});
   return response;
  }catch(error){
-  const e=adminAuthError(error);
+  const e=error instanceof Error&&error.message==='ADMIN_RATE_LIMIT_STORE_UNAVAILABLE'?{status:503,error:'Admin sign-in is temporarily unavailable.'}:adminAuthError(error);
   await auditLogin(request,'ADMIN_LOGIN_FAILED','UNKNOWN',`Admin sign-in rejected: ${e.error}`);
   return NextResponse.json({error:e.error},{status:e.status});
  }
