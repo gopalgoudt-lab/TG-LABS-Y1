@@ -106,8 +106,25 @@ export async function downloadPatientReportPdf(key: string) {
   const response = await signedRequest("GET", key);
   const contentLength = Number(response.headers.get("content-length") || 0);
   if (contentLength > MAX_REPORT_BYTES) throw new Error("REPORT_TOO_LARGE");
-  const data = Buffer.from(await response.arrayBuffer());
-  return validatePatientReportPdf(data);
+  if (!response.body) throw new Error("REPORT_STORAGE_EMPTY_RESPONSE");
+  const reader = response.body.getReader();
+  const chunks: Buffer[] = [];
+  let bytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > MAX_REPORT_BYTES) {
+        await reader.cancel();
+        throw new Error("REPORT_TOO_LARGE");
+      }
+      chunks.push(Buffer.from(value));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return validatePatientReportPdf(Buffer.concat(chunks, bytes));
 }
 
 export async function deletePatientReportPdf(key: string) {
