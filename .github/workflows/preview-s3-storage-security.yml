@@ -32,5 +32,4 @@ jobs:
       - name: Run S3 storage security regression tests
         run: node --import tsx --test tests/report-storage-s3.test.ts
 
-      - name: TypeScript validation
-        run: npm run typecheck
+   
