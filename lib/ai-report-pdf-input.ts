@@ -20,7 +20,8 @@ export function decodeAiReportPdf(reportData: string): Buffer {
     throw new Error('AI_PDF_INVALID_BASE64');
   }
   const bytes = Buffer.from(encoded, 'base64');
-  if (bytes.length < 8 || bytes.length > MAX_AI_PDF_BYTES) {
+  if (bytes.length > MAX_AI_PDF_BYTES) { throw new Error('AI_PDF_TOO_LARGE'); }
+  if (bytes.length < 8) {
     throw new Error('AI_PDF_INVALID_SIZE');
   }
   if (bytes.subarray(0, 5).toString('ascii') !== '%PDF-') {
