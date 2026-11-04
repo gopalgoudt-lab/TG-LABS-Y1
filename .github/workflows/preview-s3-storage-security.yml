@@ -1,0 +1,35 @@
+
+name: Preview S3 Storage Security
+
+on:
+  pull_request:
+    paths:
+      - 'lib/report-storage-s3.ts'
+      - 'tests/report-storage-s3.test.ts'
+      - '.github/workflows/preview-s3-storage-security.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  storage-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run S3 storage security regression tests
+        run: node --import tsx --test tests/report-storage-s3.test.ts
+
+   

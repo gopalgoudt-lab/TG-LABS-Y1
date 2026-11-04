@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { signOut } from 'firebase/auth';
 import BrandLogo from '@/components/BrandLogo';
 import RoleDashboardInsights from '@/components/RoleDashboardInsights';
@@ -84,6 +85,13 @@ const QUICK: Record<Role, Quick[]> = {
 export default function DashboardChrome({ role, children }: { role: Role; children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [activeHash, setActiveHash] = useState('');
+  useEffect(() => {
+    const syncHash = () => setActiveHash(window.location.hash);
+    syncHash();
+    window.addEventListener('hashchange', syncHash);
+    return () => window.removeEventListener('hashchange', syncHash);
+  }, [pathname]);
   if ((role === 'admin' && pathname === '/admin/login') || (role === 'technician' && pathname === '/technician/login')) return <>{children}</>;
   const title = role === 'admin' ? 'Admin' : role === 'technician' ? 'Field Technician' : 'Patient';
   const initials = role === 'admin' ? 'A' : role === 'technician' ? 'FT' : 'TG';
@@ -108,7 +116,7 @@ export default function DashboardChrome({ role, children }: { role: Role; childr
     <div className="dashProfile"><div className="dashBell">♧<b>{role === 'admin' ? '5' : role === 'technician' ? '3' : '2'}</b></div><div className="dashAvatar">{initials}</div><div className="dashWho"><strong>{title}</strong><small>{role === 'admin' ? 'Super Admin' : role === 'technician' ? 'Collection Operations' : 'My TG Labs'}</small></div></div>
   </header>;
 
-  const sidebar = <aside className="dashSide"><nav>{NAV[role].map((item) => <a key={`${item.label}-${item.href}`} className={pathname === item.href ? 'active' : ''} href={item.href}><span>{item.icon}</span>{item.label}</a>)}<button className="danger" onClick={logout}><span>↪</span>Logout</button></nav><div className="dashPromo"><strong>{role === 'admin' ? 'Quality Partnerships' : role === 'technician' ? 'Quality Collection' : 'Healthier Families'}</strong><small>{role === 'admin' ? 'Healthier Communities' : role === 'technician' ? 'Every sample handled with care' : 'Better care, stronger tomorrows'}</small></div></aside>;
+  const sidebar = <aside className="dashSide"><nav>{NAV[role].map((item) => <a key={`${item.label}-${item.href}`} className={(item.href.includes('#') ? `${pathname}${activeHash}` === item.href : pathname === item.href && !activeHash) ? 'active' : ''} href={item.href}><span>{item.icon}</span>{item.label}</a>)}<button className="danger" onClick={logout}><span>↪</span>Logout</button></nav><div className="dashPromo"><strong>{role === 'admin' ? 'Quality Partnerships' : role === 'technician' ? 'Quality Collection' : 'Healthier Families'}</strong><small>{role === 'admin' ? 'Healthier Communities' : role === 'technician' ? 'Every sample handled with care' : 'Better care, stronger tomorrows'}</small></div></aside>;
 
   const footer = <footer className="dashFooterStrip"><div><strong>{role === 'admin' ? 'Better Insights. Healthier Communities.' : role === 'technician' ? 'Every Sample Brings Hope.' : 'Your Health. Our Priority.'}</strong><span> TG Labs · Trusted Diagnostics · Healthier Tomorrow.</span></div><div className="dashPills"><b>♢ Trusted Labs</b><b>▣ Secure Platform</b><b>♡ Quality Care</b><b>▥ Better Health</b></div></footer>;
 
