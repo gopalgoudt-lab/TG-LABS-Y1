@@ -1,4 +1,3 @@
-import 'server-only';
 import { PDFDocument } from 'pdf-lib';
 import { decodeAiReportPdf } from './ai-report-pdf-input';
 
