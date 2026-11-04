@@ -77,6 +77,19 @@ export default function PatientPage() {
   const [viewBusy, setViewBusy] = useState('');
   const [receiptBusy, setReceiptBusy] = useState('');
 
+  useEffect(() => {
+    if (loading) return;
+    const scrollToSection = () => {
+      const id = window.location.hash.slice(1);
+      if (id === 'bookings' || id === 'reports') {
+        document.getElementById(id)?.scrollIntoView({ block: 'start' });
+      }
+    };
+    scrollToSection();
+    window.addEventListener('hashchange', scrollToSection);
+    return () => window.removeEventListener('hashchange', scrollToSection);
+  }, [loading]);
+
   function authOrRedirect(): Auth | null {
     try {
       return getFirebaseAuth();
@@ -269,7 +282,7 @@ export default function PatientPage() {
           <section style={panel}><h2>Loading your account…</h2></section>
         ) : (
           <div style={{ display: 'grid', gap: 22 }}>
-            <section style={panel}>
+            <section id="bookings" style={{ ...panel, scrollMarginTop: 110 }}>
               <p style={ey}>BOOKINGS</p>
               <h2>Recent bookings</h2>
               {orders.length === 0 ? <Empty title="No bookings yet" /> : (
@@ -296,7 +309,7 @@ export default function PatientPage() {
               )}
             </section>
 
-            <section style={panel}>
+            <section id="reports" style={{ ...panel, scrollMarginTop: 110 }}>
               <p style={ey}>REPORTS</p>
               <h2 style={{ marginBottom: 5 }}>Diagnostic reports</h2>
               <p style={{ margin: '0 0 18px', color: '#64748b', fontSize: 13 }}>View the original laboratory PDF or open your saved AI explanation in English, Telugu or Hindi.</p>
